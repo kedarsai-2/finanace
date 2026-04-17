@@ -278,9 +278,9 @@ function PartiesTable({
               key={p.id}
               className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_120px_140px_160px_120px]"
             >
-              <button
-                type="button"
-                onClick={() => toast.info(`Open ${p.name}`)}
+              <Link
+                to="/parties/$id/edit"
+                params={{ id: p.id }}
                 className="flex min-w-0 items-center gap-3 text-left"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-sm font-semibold text-primary-foreground">
@@ -302,7 +302,7 @@ function PartiesTable({
                     </p>
                   )}
                 </div>
-              </button>
+              </Link>
 
               <span
                 className={cn(
@@ -344,13 +344,15 @@ function PartiesTable({
 
               <div className="flex justify-start gap-1 sm:justify-end sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                 <Button
+                  asChild
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  onClick={() => toast.info(`Edit ${p.name}`)}
                   aria-label={`Edit ${p.name}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Link to="/parties/$id/edit" params={{ id: p.id }}>
+                    <Pencil className="h-4 w-4" />
+                  </Link>
                 </Button>
                 <Button
                   size="icon"
