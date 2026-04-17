@@ -158,7 +158,7 @@ function DashboardPage() {
   }, [liveInvoices, payments, expenses]);
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-7xl px-6 py-10">Loading…</div>;
+    return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
   }
 
   if (businesses.length === 0) {
@@ -187,7 +187,7 @@ function DashboardPage() {
     liveInvoices.length === 0 && payments.length === 0 && expenses.length === 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">

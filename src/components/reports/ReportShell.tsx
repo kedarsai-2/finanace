@@ -22,7 +22,7 @@ export function ReportShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
         <Link to="/reports">
           <ArrowLeft className="h-4 w-4" /> Back to reports
