@@ -126,7 +126,7 @@ function PartiesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/parties" search={(p: z.infer<typeof searchSchema>) => p}>
+              <Link to="/parties/new">
                 <Plus className="h-4 w-4" />
                 Add Party
               </Link>
