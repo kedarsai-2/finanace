@@ -8,12 +8,22 @@ export interface Address {
   pincode?: string;
 }
 
+export type LedgerTxnType =
+  | "opening"
+  | "invoice"
+  | "payment"
+  | "purchase"
+  | "expense";
+
 export interface LedgerEntry {
   id: string;
   partyId: string;
   date: string; // ISO
   note: string;
   amount: number; // positive = receivable, negative = payable
+  type?: LedgerTxnType;
+  refNo?: string;
+  refLink?: string; // optional path to open the source document
 }
 
 export interface Party {

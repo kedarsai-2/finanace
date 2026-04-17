@@ -73,6 +73,8 @@ export function useParties(businessId?: string | null) {
           date: new Date().toISOString(),
           note: "Opening balance",
           amount: p.openingBalance,
+          type: "opening" as const,
+          refNo: "OPEN",
         },
       ];
     });
