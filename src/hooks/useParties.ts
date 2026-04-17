@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerEntry, Party } from "@/types/party";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.parties";
 const LEDGER_KEY = "bm.partyLedger";
@@ -46,9 +47,25 @@ export function useParties(businessId?: string | null) {
     localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger));
   }, [ledger, hydrated]);
 
+  const partiesRef = useRef<Party[]>(parties);
+  useEffect(() => {
+    partiesRef.current = parties;
+  }, [parties]);
+
   const remove = useCallback((id: string) => {
+    const before = partiesRef.current.find((p) => p.id === id);
     setParties((prev) => prev.filter((p) => p.id !== id));
     setLedger((prev) => prev.filter((e) => e.partyId !== id));
+    if (before) {
+      logAudit({
+        module: "party",
+        action: "delete",
+        recordId: id,
+        reference: before.name,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   /**
@@ -72,9 +89,20 @@ export function useParties(businessId?: string | null) {
    * a single "Opening balance" ledger entry is recorded for that party.
    */
   const upsert = useCallback((p: Party) => {
+    const before = partiesRef.current.find((x) => x.id === p.id);
     setParties((prev) => {
       const exists = prev.some((x) => x.id === p.id);
       return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+    });
+    logAudit({
+      module: "party",
+      action: before ? "edit" : "create",
+      recordId: p.id,
+      reference: p.name,
+      refLink: `/parties/${p.id}`,
+      businessId: p.businessId,
+      before: before ? snapshot(before) : null,
+      after: snapshot(p),
     });
     setLedger((prev) => {
       const filtered = prev.filter(
