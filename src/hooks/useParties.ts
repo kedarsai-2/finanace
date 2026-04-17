@@ -100,7 +100,7 @@ export function useParties(businessId?: string | null) {
     ? parties.filter((p) => p.businessId === businessId)
     : parties;
 
-  return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert };
+  return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
 }
 
 export function formatCurrency(amount: number, currency = "INR") {
