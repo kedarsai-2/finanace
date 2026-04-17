@@ -1,4 +1,6 @@
-export const EXPENSE_CATEGORIES = [
+import type { PaymentMode } from "./payment";
+
+export const DEFAULT_EXPENSE_CATEGORIES = [
   "Rent",
   "Utilities",
   "Salaries",
@@ -9,7 +11,16 @@ export const EXPENSE_CATEGORIES = [
   "Other",
 ] as const;
 
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+/** Categories are now user-managed strings. */
+export type ExpenseCategory = string;
+
+export interface ExpenseCategoryRecord {
+  id: string;
+  businessId: string;
+  name: string;
+  deleted?: boolean;
+  createdAt: string;
+}
 
 export interface Expense {
   id: string;
@@ -18,6 +29,12 @@ export interface Expense {
   date: string;
   amount: number;
   category: ExpenseCategory;
+  /** Optional party reference (no ledger impact — for filtering/reporting only). */
+  partyId?: string;
+  mode?: PaymentMode;
+  reference?: string;
   notes?: string;
+  deleted?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
