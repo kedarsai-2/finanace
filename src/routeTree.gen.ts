@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PartiesNewRouteImport } from './routes/parties.new'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as PartiesIdEditRouteImport } from './routes/parties.$id.edit'
 import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.edit'
 
 const PartiesRoute = PartiesRouteImport.update({
@@ -24,10 +26,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartiesNewRoute = PartiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => PartiesRoute,
+} as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/businesses/new',
   path: '/businesses/new',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PartiesIdEditRoute = PartiesIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => PartiesRoute,
 } as any)
 const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
   id: '/businesses/$id/edit',
@@ -37,34 +49,59 @@ const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/parties': typeof PartiesRoute
+  '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/parties': typeof PartiesRoute
+  '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/parties': typeof PartiesRoute
+  '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
+  fullPaths:
+    | '/'
+    | '/parties'
+    | '/businesses/new'
+    | '/parties/new'
+    | '/businesses/$id/edit'
+    | '/parties/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
-  id: '__root__' | '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
+  to:
+    | '/'
+    | '/parties'
+    | '/businesses/new'
+    | '/parties/new'
+    | '/businesses/$id/edit'
+    | '/parties/$id/edit'
+  id:
+    | '__root__'
+    | '/'
+    | '/parties'
+    | '/businesses/new'
+    | '/parties/new'
+    | '/businesses/$id/edit'
+    | '/parties/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  PartiesRoute: typeof PartiesRoute
+  PartiesRoute: typeof PartiesRouteWithChildren
   BusinessesNewRoute: typeof BusinessesNewRoute
   BusinessesIdEditRoute: typeof BusinessesIdEditRoute
 }
@@ -85,12 +122,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/parties/new': {
+      id: '/parties/new'
+      path: '/new'
+      fullPath: '/parties/new'
+      preLoaderRoute: typeof PartiesNewRouteImport
+      parentRoute: typeof PartiesRoute
+    }
     '/businesses/new': {
       id: '/businesses/new'
       path: '/businesses/new'
       fullPath: '/businesses/new'
       preLoaderRoute: typeof BusinessesNewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/parties/$id/edit': {
+      id: '/parties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/parties/$id/edit'
+      preLoaderRoute: typeof PartiesIdEditRouteImport
+      parentRoute: typeof PartiesRoute
     }
     '/businesses/$id/edit': {
       id: '/businesses/$id/edit'
@@ -102,12 +153,34 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PartiesRouteChildren {
+  PartiesNewRoute: typeof PartiesNewRoute
+  PartiesIdEditRoute: typeof PartiesIdEditRoute
+}
+
+const PartiesRouteChildren: PartiesRouteChildren = {
+  PartiesNewRoute: PartiesNewRoute,
+  PartiesIdEditRoute: PartiesIdEditRoute,
+}
+
+const PartiesRouteWithChildren =
+  PartiesRoute._addFileChildren(PartiesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  PartiesRoute: PartiesRoute,
+  PartiesRoute: PartiesRouteWithChildren,
   BusinessesNewRoute: BusinessesNewRoute,
   BusinessesIdEditRoute: BusinessesIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
