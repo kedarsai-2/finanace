@@ -18,7 +18,7 @@ export const itemFormSchema = z.object({
   openingStock: z.number().min(0).optional(),
   reorderLevel: z.number().min(0).optional(),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
-  active: z.boolean().default(true),
+  active: z.boolean(),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
