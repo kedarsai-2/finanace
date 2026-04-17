@@ -14,8 +14,10 @@ import { Route as ItemsRouteImport } from './routes/items'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PartiesNewRouteImport } from './routes/parties.new'
 import { Route as PartiesIdRouteImport } from './routes/parties.$id'
+import { Route as ItemsNewRouteImport } from './routes/items.new'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as PartiesIdEditRouteImport } from './routes/parties.$id.edit'
+import { Route as ItemsIdEditRouteImport } from './routes/items.$id.edit'
 import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.edit'
 
 const PartiesRoute = PartiesRouteImport.update({
@@ -43,6 +45,11 @@ const PartiesIdRoute = PartiesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => PartiesRoute,
 } as any)
+const ItemsNewRoute = ItemsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ItemsRoute,
+} as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/businesses/new',
   path: '/businesses/new',
@@ -53,6 +60,11 @@ const PartiesIdEditRoute = PartiesIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => PartiesIdRoute,
 } as any)
+const ItemsIdEditRoute = ItemsIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => ItemsRoute,
+} as any)
 const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
   id: '/businesses/$id/edit',
   path: '/businesses/$id/edit',
@@ -61,33 +73,39 @@ const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/items': typeof ItemsRoute
+  '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/items/$id/edit': typeof ItemsIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/items': typeof ItemsRoute
+  '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/items/$id/edit': typeof ItemsIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/items': typeof ItemsRoute
+  '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
+  '/items/$id/edit': typeof ItemsIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
 }
 export interface FileRouteTypes {
@@ -97,9 +115,11 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/new'
     | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
+    | '/items/$id/edit'
     | '/parties/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,9 +127,11 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/new'
     | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
+    | '/items/$id/edit'
     | '/parties/$id/edit'
   id:
     | '__root__'
@@ -117,15 +139,17 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/new'
     | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
+    | '/items/$id/edit'
     | '/parties/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ItemsRoute: typeof ItemsRoute
+  ItemsRoute: typeof ItemsRouteWithChildren
   PartiesRoute: typeof PartiesRouteWithChildren
   BusinessesNewRoute: typeof BusinessesNewRoute
   BusinessesIdEditRoute: typeof BusinessesIdEditRoute
@@ -168,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartiesIdRouteImport
       parentRoute: typeof PartiesRoute
     }
+    '/items/new': {
+      id: '/items/new'
+      path: '/new'
+      fullPath: '/items/new'
+      preLoaderRoute: typeof ItemsNewRouteImport
+      parentRoute: typeof ItemsRoute
+    }
     '/businesses/new': {
       id: '/businesses/new'
       path: '/businesses/new'
@@ -182,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartiesIdEditRouteImport
       parentRoute: typeof PartiesIdRoute
     }
+    '/items/$id/edit': {
+      id: '/items/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/items/$id/edit'
+      preLoaderRoute: typeof ItemsIdEditRouteImport
+      parentRoute: typeof ItemsRoute
+    }
     '/businesses/$id/edit': {
       id: '/businesses/$id/edit'
       path: '/businesses/$id/edit'
@@ -191,6 +229,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ItemsRouteChildren {
+  ItemsNewRoute: typeof ItemsNewRoute
+  ItemsIdEditRoute: typeof ItemsIdEditRoute
+}
+
+const ItemsRouteChildren: ItemsRouteChildren = {
+  ItemsNewRoute: ItemsNewRoute,
+  ItemsIdEditRoute: ItemsIdEditRoute,
+}
+
+const ItemsRouteWithChildren = ItemsRoute._addFileChildren(ItemsRouteChildren)
 
 interface PartiesIdRouteChildren {
   PartiesIdEditRoute: typeof PartiesIdEditRoute
@@ -219,7 +269,7 @@ const PartiesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ItemsRoute: ItemsRoute,
+  ItemsRoute: ItemsRouteWithChildren,
   PartiesRoute: PartiesRouteWithChildren,
   BusinessesNewRoute: BusinessesNewRoute,
   BusinessesIdEditRoute: BusinessesIdEditRoute,
