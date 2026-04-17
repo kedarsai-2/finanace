@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import { AppHeader } from "@/components/layout/AppHeader";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 
@@ -63,10 +64,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <>
-      <AppHeader />
-      <Outlet />
+    <div className="flex min-h-screen w-full">
+      <AppSidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader />
+        <Outlet />
+      </div>
       <Toaster richColors position="top-right" />
-    </>
+    </div>
   );
 }
