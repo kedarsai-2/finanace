@@ -211,7 +211,7 @@ function PartyDetailsPage() {
           </TabsList>
 
           <TabsContent value="ledger" className="mt-4">
-            <LedgerView entries={entries} currency={currency} />
+            <PartyLedger party={party} entries={entries} currency={currency} />
           </TabsContent>
 
           <TabsContent value="transactions" className="mt-4">
@@ -261,82 +261,3 @@ function SummaryCard({
   );
 }
 
-function LedgerView({
-  entries,
-  currency,
-}: {
-  entries: { id: string; date: string; note: string; amount: number }[];
-  currency: string;
-}) {
-  if (entries.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          <Receipt className="h-5 w-5" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold">No ledger entries yet</h3>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Opening balance and future invoices, payments and adjustments will
-          appear here.
-        </p>
-      </div>
-    );
-  }
-
-  // Compute running balance (oldest → newest), then display newest first.
-  const chronological = [...entries].reverse();
-  let running = 0;
-  const withRunning = chronological.map((e) => {
-    running += e.amount;
-    return { ...e, running };
-  });
-  const display = [...withRunning].reverse();
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[140px_1fr_140px_140px_140px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
-        <span>Date</span>
-        <span>Particulars</span>
-        <span className="text-right">Debit</span>
-        <span className="text-right">Credit</span>
-        <span className="text-right">Balance</span>
-      </div>
-      <ul className="divide-y divide-border">
-        {display.map((e) => {
-          const isReceivable = e.amount > 0;
-          return (
-            <li
-              key={e.id}
-              className="grid grid-cols-2 gap-2 px-5 py-3 text-sm sm:grid-cols-[140px_1fr_140px_140px_140px] sm:items-center sm:gap-4"
-            >
-              <span className="text-muted-foreground">
-                {new Date(e.date).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </span>
-              <span className="font-medium text-foreground">{e.note}</span>
-              <span className="text-right font-mono tabular-nums text-success">
-                {isReceivable ? formatCurrency(e.amount, currency) : "—"}
-              </span>
-              <span className="text-right font-mono tabular-nums text-destructive">
-                {!isReceivable ? formatCurrency(e.amount, currency) : "—"}
-              </span>
-              <span
-                className={cn(
-                  "text-right font-mono font-semibold tabular-nums",
-                  e.running > 0 && "text-success",
-                  e.running < 0 && "text-destructive",
-                  e.running === 0 && "text-muted-foreground",
-                )}
-              >
-                {formatCurrency(e.running, currency)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
