@@ -1,22 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { createFileRoute } from "@tanstack/react-router";
+import { ItemForm } from "@/components/item/ItemForm";
 
 export const Route = createFileRoute("/items/$id/edit")({
-  head: () => ({ meta: [{ title: "Edit Item" }] }),
+  head: () => ({
+    meta: [
+      { title: "Edit Item — Products & Services" },
+      {
+        name: "description",
+        content: "Update item details, pricing, tax and unit of measure.",
+      },
+    ],
+  }),
   component: EditItemPage,
 });
 
 function EditItemPage() {
   const { id } = Route.useParams();
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="text-2xl font-bold tracking-tight">Edit Item</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Editor for item <span className="font-mono">{id}</span> coming next.
-      </p>
-      <Button asChild variant="outline" className="mt-6">
-        <Link to="/items">Back to Items</Link>
-      </Button>
-    </div>
-  );
+  return <ItemForm mode="edit" itemId={id} />;
 }
