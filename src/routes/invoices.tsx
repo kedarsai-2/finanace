@@ -161,7 +161,7 @@ function InvoicesPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="max-w-screen-2xl px-6 py-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -239,7 +239,7 @@ function InvoicesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="max-w-screen-2xl px-6 py-8">
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={invoices.length > 0} />
         ) : (

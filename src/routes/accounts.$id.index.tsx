@@ -156,7 +156,7 @@ function AccountDetailsPage() {
   }, [allTxns, search.from, search.to, search.kind]);
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">Loading…</div>;
+    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
   }
   if (!account) {
     return (
@@ -196,7 +196,7 @@ function AccountDetailsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
         <Link to="/accounts">
           <ArrowLeft className="h-4 w-4" /> Back to accounts
