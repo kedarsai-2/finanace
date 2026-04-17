@@ -52,6 +52,22 @@ export function useParties(businessId?: string | null) {
   }, []);
 
   /**
+   * Upserts a ledger entry by id (replace-by-id). Used by Invoices/Purchases to
+   * keep the party ledger in sync when documents are finalised or cancelled.
+   * Pass `null`/`undefined` to skip writes; call `removeLedgerEntry(id)` to drop.
+   */
+  const upsertLedgerEntry = useCallback((entry: LedgerEntry) => {
+    setLedger((prev) => {
+      const exists = prev.some((e) => e.id === entry.id);
+      return exists ? prev.map((e) => (e.id === entry.id ? entry : e)) : [...prev, entry];
+    });
+  }, []);
+
+  const removeLedgerEntry = useCallback((id: string) => {
+    setLedger((prev) => prev.filter((e) => e.id !== id));
+  }, []);
+
+  /**
    * Upserts a party. If `openingBalance` changes (or is set on create),
    * a single "Opening balance" ledger entry is recorded for that party.
    */
@@ -84,7 +100,7 @@ export function useParties(businessId?: string | null) {
     ? parties.filter((p) => p.businessId === businessId)
     : parties;
 
-  return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert };
+  return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
 }
 
 export function formatCurrency(amount: number, currency = "INR") {
