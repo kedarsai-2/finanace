@@ -45,7 +45,7 @@ import type { Invoice } from "@/types/invoice";
 import type { Purchase } from "@/types/purchase";
 
 export const Route = createFileRoute("/payments/new")({
-  head: () => ({ meta: [{ title: "Record Payment — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Record Payment — QOBOX" }] }),
   component: NewPaymentPage,
 });
 

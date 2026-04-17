@@ -41,7 +41,7 @@ export function AppHeader() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
                 <LayoutGrid className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold tracking-tight">Ledgerly</span>
+              <span className="text-sm font-semibold tracking-tight">QOBOX</span>
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">
               {navLinks.map((l) => (

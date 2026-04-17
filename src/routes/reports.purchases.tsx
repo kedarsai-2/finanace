@@ -19,7 +19,7 @@ import { downloadCsv } from "@/lib/reportExport";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports/purchases")({
-  head: () => ({ meta: [{ title: "Purchase Report — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Purchase Report — QOBOX" }] }),
   component: PurchaseReport,
 });
 

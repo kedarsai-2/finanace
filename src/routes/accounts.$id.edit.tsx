@@ -7,7 +7,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 
 export const Route = createFileRoute("/accounts/$id/edit")({
   head: () => ({
-    meta: [{ title: "Edit Account — Ledgerly" }],
+    meta: [{ title: "Edit Account — QOBOX" }],
   }),
   component: EditAccountPage,
   notFoundComponent: () => (

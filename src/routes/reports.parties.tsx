@@ -18,7 +18,7 @@ import { downloadCsv } from "@/lib/reportExport";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports/parties")({
-  head: () => ({ meta: [{ title: "Party Report — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Party Report — QOBOX" }] }),
   component: PartyReport,
 });
 
