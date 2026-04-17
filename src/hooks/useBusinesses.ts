@@ -8,24 +8,33 @@ const seed: Business[] = [
   {
     id: "b1",
     name: "Nimbus Trading Co.",
+    mobile: "9845012345",
     gstNumber: "29ABCDE1234F2Z5",
     city: "Bengaluru",
     state: "Karnataka",
+    currency: "INR",
+    fyStartMonth: 4,
     hasData: true,
   },
   {
     id: "b2",
     name: "Saffron Textiles",
+    mobile: "9928012345",
     city: "Jaipur",
     state: "Rajasthan",
+    currency: "INR",
+    fyStartMonth: 4,
     hasData: true,
   },
   {
     id: "b3",
     name: "Coastal Foods Pvt Ltd",
+    mobile: "9847012345",
     gstNumber: "32AAACR1234N1Z0",
     city: "Kochi",
     state: "Kerala",
+    currency: "INR",
+    fyStartMonth: 4,
   },
 ];
 
