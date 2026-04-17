@@ -1,15 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus, Trash2, Receipt, CalendarIcon, Loader2 } from "lucide-react";
+import {
+  CalendarIcon,
+  Plus,
+  Receipt,
+  Search,
+  Tags,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -33,13 +44,9 @@ import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
-import {
-  EXPENSE_CATEGORIES,
-  type Expense,
-  type ExpenseCategory,
-} from "@/types/expense";
-import { ACCOUNT_TYPE_LABEL } from "@/types/account";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
+import { useParties, formatCurrency } from "@/hooks/useParties";
+import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -48,7 +55,7 @@ export const Route = createFileRoute("/expenses")({
       {
         name: "description",
         content:
-          "Record business expenses against your accounts to keep balances accurate.",
+          "Search, filter and manage all business expenses by category, account and date.",
       },
     ],
   }),
@@ -59,63 +66,61 @@ function ExpensesPage() {
   const { activeId, businesses } = useBusinesses();
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
+
   const { accounts } = useAccounts(activeId, []);
-  const { expenses, add, remove } = useExpenses(activeId);
+  const { categories } = useExpenseCategories(activeId);
+  const { parties } = useParties(activeId);
+  const { expenses, remove } = useExpenses(activeId);
 
   const accountById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
     [accounts],
   );
-
-  const [showForm, setShowForm] = useState(false);
-  const [date, setDate] = useState<Date>(new Date());
-  const [accountId, setAccountId] = useState<string>("");
-  const [category, setCategory] = useState<ExpenseCategory>("Other");
-  const [amount, setAmount] = useState<number>(0);
-  const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const reset = () => {
-    setDate(new Date());
-    setAccountId(accounts[0]?.id ?? "");
-    setCategory("Other");
-    setAmount(0);
-    setNotes("");
-  };
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeId) return;
-    if (!accountId) return toast.error("Select an account");
-    if (!(amount > 0)) return toast.error("Enter an amount greater than 0");
-    setSubmitting(true);
-    try {
-      const exp: Expense = {
-        id: `exp_${Date.now()}`,
-        businessId: activeId,
-        accountId,
-        date: date.toISOString(),
-        amount,
-        category,
-        notes: notes.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      };
-      add(exp);
-      toast.success(`Expense of ${formatCurrency(amount, currency)} recorded`);
-      reset();
-      setShowForm(false);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const sorted = [...expenses].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  const partyById = useMemo(
+    () => Object.fromEntries(parties.map((p) => [p.id, p])),
+    [parties],
   );
-  const total = sorted.reduce((s, e) => s + e.amount, 0);
+
+  const [q, setQ] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [from, setFrom] = useState<Date | undefined>();
+  const [to, setTo] = useState<Date | undefined>();
+  const [showQuick, setShowQuick] = useState(false);
+
+  const filtered = useMemo(() => {
+    return expenses
+      .filter((e) => {
+        if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+        if (accountFilter !== "all" && e.accountId !== accountFilter) return false;
+        const t = new Date(e.date).getTime();
+        if (from && t < from.setHours(0, 0, 0, 0)) return false;
+        if (to && t > to.setHours(23, 59, 59, 999)) return false;
+        if (q) {
+          const needle = q.toLowerCase();
+          const partyName = e.partyId
+            ? partyById[e.partyId]?.name.toLowerCase() ?? ""
+            : "";
+          const hay = `${e.notes ?? ""} ${e.reference ?? ""} ${partyName} ${e.category}`.toLowerCase();
+          if (!hay.includes(needle)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [expenses, categoryFilter, accountFilter, from, to, q, partyById]);
+
+  const total = filtered.reduce((s, e) => s + e.amount, 0);
+
+  const clearFilters = () => {
+    setQ("");
+    setCategoryFilter("all");
+    setAccountFilter("all");
+    setFrom(undefined);
+    setTo(undefined);
+  };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -123,114 +128,103 @@ function ExpensesPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Total {formatCurrency(total, currency)} across {sorted.length} entries
+            {filtered.length} entries • Total{" "}
+            <span className="font-semibold text-foreground">
+              {formatCurrency(total, currency)}
+            </span>
           </p>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            reset();
-            setShowForm((v) => !v);
-          }}
-        >
-          <Plus className="h-4 w-4" /> {showForm ? "Close" : "Add expense"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/categories/expense">
+              <Tags className="h-4 w-4" /> Categories
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowQuick(true)}
+          >
+            <Zap className="h-4 w-4" /> Quick add
+          </Button>
+          <Button asChild className="gap-2">
+            <Link to="/expenses/new">
+              <Plus className="h-4 w-4" /> Add Expense
+            </Link>
+          </Button>
+        </div>
       </header>
 
-      {showForm && (
-        <form
-          onSubmit={onSubmit}
-          className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-6"
-        >
-          <div className="sm:col-span-2">
-            <Label>Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 w-full justify-between font-normal">
-                  {format(date, "dd MMM yyyy")}
-                  <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => d && setDate(d)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="sm:col-span-2">
-            <Label htmlFor="exp-acc">Account *</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger id="exp-acc">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="sm:col-span-2">
-            <Label htmlFor="exp-cat">Category</Label>
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(v as ExpenseCategory)}
-            >
-              <SelectTrigger id="exp-cat">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="sm:col-span-2">
-            <Label htmlFor="exp-amt">Amount *</Label>
-            <Input
-              id="exp-amt"
-              type="number"
-              min={0}
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="text-right tabular-nums"
-            />
-          </div>
-          <div className="sm:col-span-4">
-            <Label htmlFor="exp-notes">Notes</Label>
-            <Textarea
-              id="exp-notes"
-              rows={1}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
-          <div className="flex items-end justify-end sm:col-span-6">
-            <Button type="submit" disabled={submitting} className="gap-2">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Save expense
-            </Button>
-          </div>
-        </form>
+      {/* Filter bar */}
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-3 sm:grid-cols-12">
+        <div className="relative sm:col-span-4">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search notes, reference or party"
+            className="pl-8"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All accounts</SelectItem>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <DateField label="From" value={from} onChange={setFrom} />
+        </div>
+        <div className="sm:col-span-2">
+          <DateField label="To" value={to} onChange={setTo} />
+        </div>
+      </div>
+
+      {(q || categoryFilter !== "all" || accountFilter !== "all" || from || to) && (
+        <div className="mb-3 flex justify-end">
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        </div>
       )}
 
       <div className="overflow-hidden rounded-xl border border-border">
-        {sorted.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Receipt className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm font-medium">No expenses yet</p>
+            <p className="text-sm font-medium">No expenses recorded</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Track your outflows to keep account balances accurate.
+            </p>
+            <Button asChild className="mt-4 gap-2">
+              <Link to="/expenses/new">
+                <Plus className="h-4 w-4" /> Add Expense
+              </Link>
+            </Button>
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -238,6 +232,7 @@ function ExpensesPage() {
               <tr>
                 <th className="px-4 py-3 text-left">Date</th>
                 <th className="px-4 py-3 text-left">Category</th>
+                <th className="px-4 py-3 text-left">Party</th>
                 <th className="px-4 py-3 text-left">Account</th>
                 <th className="px-4 py-3 text-left">Notes</th>
                 <th className="px-4 py-3 text-right">Amount</th>
@@ -245,23 +240,49 @@ function ExpensesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {sorted.map((e) => (
+              {filtered.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    {format(new Date(e.date), "dd MMM yyyy")}
+                    <Link
+                      to="/expenses/$id"
+                      params={{ id: e.id }}
+                      className="hover:text-foreground"
+                    >
+                      {format(new Date(e.date), "dd MMM yyyy")}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3 font-medium">{e.category}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link
+                      to="/expenses/$id"
+                      params={{ id: e.id }}
+                      className="hover:underline"
+                    >
+                      {e.category}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {e.partyId ? partyById[e.partyId]?.name ?? "—" : "—"}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {accountById[e.accountId]?.name ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.notes ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <span className="line-clamp-1 max-w-[28ch]">
+                      {e.notes ?? "—"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-destructive">
                     {formatCurrency(e.amount, currency)}
                   </td>
                   <td className="px-2 py-3">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive"
+                          aria-label="Delete expense"
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </AlertDialogTrigger>
@@ -269,13 +290,18 @@ function ExpensesPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete expense?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This removes the entry and refunds the amount to{" "}
-                            {accountById[e.accountId]?.name}.
+                            This soft-deletes the entry and refunds the amount
+                            to {accountById[e.accountId]?.name ?? "the account"}.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => remove(e.id)}>
+                          <AlertDialogAction
+                            onClick={() => {
+                              remove(e.id);
+                              toast.success("Expense deleted");
+                            }}
+                          >
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -289,13 +315,45 @@ function ExpensesPage() {
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Need to add an account?{" "}
-        <Link to="/accounts/new" className="text-primary underline">
-          Add one here
-        </Link>
-        .
-      </p>
+      <QuickAddExpenseDialog open={showQuick} onOpenChange={setShowQuick} />
+    </div>
+  );
+}
+
+function DateField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Date | undefined;
+  onChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <div>
+      <Label className="sr-only">{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="h-10 w-full justify-between font-normal"
+          >
+            <span className={cn(!value && "text-muted-foreground")}>
+              {value ? format(value, "dd MMM") : label}
+            </span>
+            <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={onChange}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
