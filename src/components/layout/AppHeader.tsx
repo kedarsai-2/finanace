@@ -4,7 +4,8 @@ import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { to: "/", label: "Businesses" },
+  { to: "/", label: "Dashboard" },
+  { to: "/businesses", label: "Businesses" },
   { to: "/parties", label: "Parties" },
   { to: "/items", label: "Items" },
   { to: "/invoices", label: "Invoices" },
@@ -12,6 +13,7 @@ const navLinks = [
   { to: "/payments", label: "Payments" },
   { to: "/accounts", label: "Accounts" },
   { to: "/expenses", label: "Expenses" },
+  { to: "/reports", label: "Reports" },
 ] as const;
 
 export function AppHeader() {
