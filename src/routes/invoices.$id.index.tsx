@@ -62,7 +62,7 @@ import {
   shareInvoiceOnWhatsApp,
 } from "@/lib/share";
 
-export const Route = createFileRoute("/invoices/$id")({
+export const Route = createFileRoute("/invoices/$id/")({
   head: () => ({
     meta: [
       { title: "Invoice Details" },

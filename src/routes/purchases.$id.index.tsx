@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase, type Purchase } from "@/types/purchase";
 
-export const Route = createFileRoute("/purchases/$id")({
+export const Route = createFileRoute("/purchases/$id/")({
   head: () => ({
     meta: [
       { title: "Purchase Details" },
