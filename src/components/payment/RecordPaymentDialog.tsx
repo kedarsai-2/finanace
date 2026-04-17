@@ -74,6 +74,7 @@ export function RecordPaymentDialog({
 }: Props) {
   const { invoices, upsert } = useInvoices(businessId);
   const { add: addPayment } = usePayments(businessId);
+  const { accounts } = useAccounts(businessId);
 
   // ---------- Open invoices for this party (oldest first) -----------------
   const openInvoices = useMemo(() => {
@@ -94,8 +95,7 @@ export function RecordPaymentDialog({
 
   // ---------- Form state --------------------------------------------------
   const [date, setDate] = useState<Date>(new Date());
-  const [mode, setMode] = useState<PaymentMode>("upi");
-  const [account, setAccount] = useState("");
+  const [accountId, setAccountId] = useState<string>("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [amount, setAmount] = useState<number>(0);
@@ -103,12 +103,14 @@ export function RecordPaymentDialog({
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const mode: PaymentMode = selectedAccount?.type ?? "upi";
+
   // Reset whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setDate(new Date());
-    setMode("upi");
-    setAccount("");
+    setAccountId(accounts[0]?.id ?? "");
     setReference("");
     setNotes("");
     setAutoAllocate(true);
