@@ -97,7 +97,7 @@ function InvoiceDetailsPage() {
       invoice
         ? payments
             .filter((p) =>
-              p.allocations.some((a) => a.invoiceId === invoice.id),
+              p.allocations.some((a) => a.docId === invoice.id),
             )
             .sort(
               (a, b) =>
@@ -660,7 +660,7 @@ function Timeline({
     }
     for (const p of payments) {
       const allocated =
-        p.allocations.find((a) => a.invoiceId === invoice.id)?.amount ?? 0;
+        p.allocations.find((a) => a.docId === invoice.id)?.amount ?? 0;
       list.push({
         id: `payment-${p.id}`,
         at: p.date,
