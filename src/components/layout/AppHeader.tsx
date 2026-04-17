@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { to: "/", label: "Businesses" },
   { to: "/parties", label: "Parties" },
+  { to: "/items", label: "Items" },
 ] as const;
 
 export function AppHeader() {

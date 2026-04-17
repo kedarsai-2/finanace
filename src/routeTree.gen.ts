@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PartiesRouteImport } from './routes/parties'
+import { Route as ItemsRouteImport } from './routes/items'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PartiesNewRouteImport } from './routes/parties.new'
 import { Route as PartiesIdRouteImport } from './routes/parties.$id'
@@ -20,6 +21,11 @@ import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.ed
 const PartiesRoute = PartiesRouteImport.update({
   id: '/parties',
   path: '/parties',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ItemsRoute = ItemsRouteImport.update({
+  id: '/items',
+  path: '/items',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -55,6 +61,7 @@ const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/items': typeof ItemsRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/items': typeof ItemsRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/items': typeof ItemsRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/items'
     | '/parties'
     | '/businesses/new'
     | '/parties/$id'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/items'
     | '/parties'
     | '/businesses/new'
     | '/parties/$id'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/items'
     | '/parties'
     | '/businesses/new'
     | '/parties/$id'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ItemsRoute: typeof ItemsRoute
   PartiesRoute: typeof PartiesRouteWithChildren
   BusinessesNewRoute: typeof BusinessesNewRoute
   BusinessesIdEditRoute: typeof BusinessesIdEditRoute
@@ -125,6 +138,13 @@ declare module '@tanstack/react-router' {
       path: '/parties'
       fullPath: '/parties'
       preLoaderRoute: typeof PartiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/items': {
+      id: '/items'
+      path: '/items'
+      fullPath: '/items'
+      preLoaderRoute: typeof ItemsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -199,6 +219,7 @@ const PartiesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ItemsRoute: ItemsRoute,
   PartiesRoute: PartiesRouteWithChildren,
   BusinessesNewRoute: BusinessesNewRoute,
   BusinessesIdEditRoute: BusinessesIdEditRoute,
@@ -206,3 +227,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
