@@ -29,6 +29,7 @@ import {
 
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
+import { useAccounts } from "@/hooks/useAccounts";
 import { formatCurrency } from "@/hooks/useParties";
 import { cn } from "@/lib/utils";
 import { paymentStatusOf, type Invoice } from "@/types/invoice";
@@ -38,6 +39,7 @@ import {
   type PaymentAllocation,
   type PaymentMode,
 } from "@/types/payment";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 
 interface Props {
   open: boolean;
