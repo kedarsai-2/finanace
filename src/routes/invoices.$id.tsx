@@ -627,8 +627,8 @@ function Timeline({ invoice }: { invoice: Invoice }) {
             <span
               className={cn(
                 "absolute -left-[22px] flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background",
-                e.tone === "success" && "border-emerald-500/40 bg-emerald-500/15 text-emerald-600",
-                e.tone === "warning" && "border-amber-500/40 bg-amber-500/15 text-amber-600",
+                e.tone === "success" && "border-primary/40 bg-primary/15 text-primary",
+                e.tone === "warning" && "border-destructive/40 bg-destructive/10 text-destructive",
                 e.tone === "destructive" && "border-destructive/40 bg-destructive/15 text-destructive",
               )}
             >
