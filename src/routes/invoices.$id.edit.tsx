@@ -1,24 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { createFileRoute } from "@tanstack/react-router";
+import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 
 export const Route = createFileRoute("/invoices/$id/edit")({
-  head: () => ({ meta: [{ title: "Edit Invoice" }] }),
+  head: () => ({
+    meta: [
+      { title: "Edit Invoice" },
+      { name: "description", content: "Update an invoice that is still within the editable window." },
+    ],
+  }),
   component: EditInvoicePage,
 });
 
 function EditInvoicePage() {
   const { id } = Route.useParams();
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="text-2xl font-bold tracking-tight">Edit Invoice {id}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        The Edit Invoice form will be built next.
-      </p>
-      <Button asChild variant="outline" className="mt-6">
-        <Link to="/invoices" search={{ q: "", status: "all", payment: "all", from: "", to: "" }}>
-          Back to Invoices
-        </Link>
-      </Button>
-    </div>
-  );
+  return <InvoiceForm mode="edit" invoiceId={id} />;
 }
