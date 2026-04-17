@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
+import { PartyLedger } from "@/components/party/PartyLedger";
 import type { PartyType } from "@/types/party";
 
 export const Route = createFileRoute("/parties/$id")({
