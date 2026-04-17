@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PartiesNewRouteImport } from './routes/parties.new'
+import { Route as PartiesIdRouteImport } from './routes/parties.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as PartiesIdEditRouteImport } from './routes/parties.$id.edit'
 import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.edit'
@@ -31,15 +32,20 @@ const PartiesNewRoute = PartiesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => PartiesRoute,
 } as any)
+const PartiesIdRoute = PartiesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PartiesRoute,
+} as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/businesses/new',
   path: '/businesses/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartiesIdEditRoute = PartiesIdEditRouteImport.update({
-  id: '/$id/edit',
-  path: '/$id/edit',
-  getParentRoute: () => PartiesRoute,
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => PartiesIdRoute,
 } as any)
 const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
   id: '/businesses/$id/edit',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/parties/$id/edit': typeof PartiesIdEditRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/parties'
     | '/businesses/new'
+    | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
     | '/parties/$id/edit'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/parties'
     | '/businesses/new'
+    | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
     | '/parties/$id/edit'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/parties'
     | '/businesses/new'
+    | '/parties/$id'
     | '/parties/new'
     | '/businesses/$id/edit'
     | '/parties/$id/edit'
@@ -129,6 +141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartiesNewRouteImport
       parentRoute: typeof PartiesRoute
     }
+    '/parties/$id': {
+      id: '/parties/$id'
+      path: '/$id'
+      fullPath: '/parties/$id'
+      preLoaderRoute: typeof PartiesIdRouteImport
+      parentRoute: typeof PartiesRoute
+    }
     '/businesses/new': {
       id: '/businesses/new'
       path: '/businesses/new'
@@ -138,10 +157,10 @@ declare module '@tanstack/react-router' {
     }
     '/parties/$id/edit': {
       id: '/parties/$id/edit'
-      path: '/$id/edit'
+      path: '/edit'
       fullPath: '/parties/$id/edit'
       preLoaderRoute: typeof PartiesIdEditRouteImport
-      parentRoute: typeof PartiesRoute
+      parentRoute: typeof PartiesIdRoute
     }
     '/businesses/$id/edit': {
       id: '/businesses/$id/edit'
@@ -153,14 +172,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface PartiesRouteChildren {
-  PartiesNewRoute: typeof PartiesNewRoute
+interface PartiesIdRouteChildren {
   PartiesIdEditRoute: typeof PartiesIdEditRoute
 }
 
-const PartiesRouteChildren: PartiesRouteChildren = {
-  PartiesNewRoute: PartiesNewRoute,
+const PartiesIdRouteChildren: PartiesIdRouteChildren = {
   PartiesIdEditRoute: PartiesIdEditRoute,
+}
+
+const PartiesIdRouteWithChildren = PartiesIdRoute._addFileChildren(
+  PartiesIdRouteChildren,
+)
+
+interface PartiesRouteChildren {
+  PartiesIdRoute: typeof PartiesIdRouteWithChildren
+  PartiesNewRoute: typeof PartiesNewRoute
+}
+
+const PartiesRouteChildren: PartiesRouteChildren = {
+  PartiesIdRoute: PartiesIdRouteWithChildren,
+  PartiesNewRoute: PartiesNewRoute,
 }
 
 const PartiesRouteWithChildren =

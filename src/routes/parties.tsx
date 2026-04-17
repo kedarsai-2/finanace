@@ -279,7 +279,7 @@ function PartiesTable({
               className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_120px_140px_160px_120px]"
             >
               <Link
-                to="/parties/$id/edit"
+                to="/parties/$id"
                 params={{ id: p.id }}
                 className="flex min-w-0 items-center gap-3 text-left"
               >
