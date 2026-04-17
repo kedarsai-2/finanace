@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PartiesNewRouteImport } from './routes/parties.new'
 import { Route as PartiesIdRouteImport } from './routes/parties.$id'
 import { Route as ItemsNewRouteImport } from './routes/items.new'
+import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as PartiesIdEditRouteImport } from './routes/parties.$id.edit'
 import { Route as ItemsIdEditRouteImport } from './routes/items.$id.edit'
@@ -50,6 +51,11 @@ const ItemsNewRoute = ItemsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => ItemsRoute,
 } as any)
+const ItemsIdRoute = ItemsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ItemsRoute,
+} as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/businesses/new',
   path: '/businesses/new',
@@ -61,9 +67,9 @@ const PartiesIdEditRoute = PartiesIdEditRouteImport.update({
   getParentRoute: () => PartiesIdRoute,
 } as any)
 const ItemsIdEditRoute = ItemsIdEditRouteImport.update({
-  id: '/$id/edit',
-  path: '/$id/edit',
-  getParentRoute: () => ItemsRoute,
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => ItemsIdRoute,
 } as any)
 const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
   id: '/businesses/$id/edit',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/$id': typeof ItemsIdRouteWithChildren
   '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/$id': typeof ItemsIdRouteWithChildren
   '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/items': typeof ItemsRouteWithChildren
   '/parties': typeof PartiesRouteWithChildren
   '/businesses/new': typeof BusinessesNewRoute
+  '/items/$id': typeof ItemsIdRouteWithChildren
   '/items/new': typeof ItemsNewRoute
   '/parties/$id': typeof PartiesIdRouteWithChildren
   '/parties/new': typeof PartiesNewRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/$id'
     | '/items/new'
     | '/parties/$id'
     | '/parties/new'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/$id'
     | '/items/new'
     | '/parties/$id'
     | '/parties/new'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/items'
     | '/parties'
     | '/businesses/new'
+    | '/items/$id'
     | '/items/new'
     | '/parties/$id'
     | '/parties/new'
@@ -199,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemsNewRouteImport
       parentRoute: typeof ItemsRoute
     }
+    '/items/$id': {
+      id: '/items/$id'
+      path: '/$id'
+      fullPath: '/items/$id'
+      preLoaderRoute: typeof ItemsIdRouteImport
+      parentRoute: typeof ItemsRoute
+    }
     '/businesses/new': {
       id: '/businesses/new'
       path: '/businesses/new'
@@ -215,10 +234,10 @@ declare module '@tanstack/react-router' {
     }
     '/items/$id/edit': {
       id: '/items/$id/edit'
-      path: '/$id/edit'
+      path: '/edit'
       fullPath: '/items/$id/edit'
       preLoaderRoute: typeof ItemsIdEditRouteImport
-      parentRoute: typeof ItemsRoute
+      parentRoute: typeof ItemsIdRoute
     }
     '/businesses/$id/edit': {
       id: '/businesses/$id/edit'
@@ -230,14 +249,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface ItemsRouteChildren {
-  ItemsNewRoute: typeof ItemsNewRoute
+interface ItemsIdRouteChildren {
   ItemsIdEditRoute: typeof ItemsIdEditRoute
 }
 
-const ItemsRouteChildren: ItemsRouteChildren = {
-  ItemsNewRoute: ItemsNewRoute,
+const ItemsIdRouteChildren: ItemsIdRouteChildren = {
   ItemsIdEditRoute: ItemsIdEditRoute,
+}
+
+const ItemsIdRouteWithChildren =
+  ItemsIdRoute._addFileChildren(ItemsIdRouteChildren)
+
+interface ItemsRouteChildren {
+  ItemsIdRoute: typeof ItemsIdRouteWithChildren
+  ItemsNewRoute: typeof ItemsNewRoute
+}
+
+const ItemsRouteChildren: ItemsRouteChildren = {
+  ItemsIdRoute: ItemsIdRouteWithChildren,
+  ItemsNewRoute: ItemsNewRoute,
 }
 
 const ItemsRouteWithChildren = ItemsRoute._addFileChildren(ItemsRouteChildren)
@@ -277,3 +307,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
