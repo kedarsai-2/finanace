@@ -97,9 +97,9 @@ function PartiesPage() {
   }, [parties]);
 
   const setQuery = (next: string) =>
-    navigate({ search: (prev) => ({ ...prev, q: next }) });
+    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
   const setType = (next: Filter) =>
-    navigate({ search: (prev) => ({ ...prev, type: next }) });
+    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, type: next }) });
 
   const confirmDelete = () => {
     if (!deleting) return;
@@ -126,7 +126,7 @@ function PartiesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/parties" search={(p) => p}>
+              <Link to="/parties" search={(p: z.infer<typeof searchSchema>) => p}>
                 <Plus className="h-4 w-4" />
                 Add Party
               </Link>

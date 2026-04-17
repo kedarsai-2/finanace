@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid } from "lucide-react";
 import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
+import { cn } from "@/lib/utils";
+
+const navLinks = [
+  { to: "/", label: "Businesses" },
+  { to: "/parties", label: "Parties" },
+] as const;
 
 export function AppHeader() {
   return (
@@ -14,6 +20,22 @@ export function AppHeader() {
             Ledgerly
           </span>
         </Link>
+
+        <nav className="ml-2 hidden items-center gap-1 sm:flex">
+          {navLinks.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              activeOptions={{ exact: l.to === "/" }}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+              )}
+              activeProps={{ className: "bg-accent text-foreground" }}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="ml-auto flex items-center gap-2">
           <BusinessSwitcher />
