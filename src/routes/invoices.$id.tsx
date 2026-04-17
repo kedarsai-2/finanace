@@ -602,7 +602,15 @@ interface TimelineEvent {
   tone: "default" | "success" | "warning" | "destructive";
 }
 
-function Timeline({ invoice }: { invoice: Invoice }) {
+function Timeline({
+  invoice,
+  payments,
+  currency,
+}: {
+  invoice: Invoice;
+  payments: Payment[];
+  currency: string;
+}) {
   const events = useMemo<TimelineEvent[]>(() => {
     const list: TimelineEvent[] = [
       {
@@ -624,12 +632,16 @@ function Timeline({ invoice }: { invoice: Invoice }) {
         tone: "success",
       });
     }
-    if (invoice.paidAmount > 0) {
+    for (const p of payments) {
+      const allocated =
+        p.allocations.find((a) => a.invoiceId === invoice.id)?.amount ?? 0;
       list.push({
-        id: "payment",
-        at: invoice.finalizedAt ?? invoice.date,
-        title: "Payment recorded",
-        description: `Received ${invoice.paidAmount.toLocaleString("en-IN", { style: "currency", currency: "INR" })}`,
+        id: `payment-${p.id}`,
+        at: p.date,
+        title: `Payment recorded — ${formatCurrency(allocated, currency)}`,
+        description: `${PAYMENT_MODE_LABEL[p.mode]}${
+          p.account ? ` • ${p.account}` : ""
+        }${p.reference ? ` • Ref ${p.reference}` : ""}`,
         icon: IndianRupee,
         tone: "success",
       });
@@ -645,7 +657,7 @@ function Timeline({ invoice }: { invoice: Invoice }) {
       });
     }
     return list.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  }, [invoice]);
+  }, [invoice, payments, currency]);
 
   return (
     <ol className="relative space-y-4 border-l border-border pl-4">
