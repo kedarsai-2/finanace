@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Toaster } from "@/components/ui/sonner";
+
 
 import { FormSection } from "@/components/business/FormSection";
 import { LogoUpload } from "@/components/business/LogoUpload";
