@@ -12,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { BusinessCard } from "@/components/business/BusinessCard";
