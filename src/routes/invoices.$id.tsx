@@ -4,14 +4,16 @@ import { format } from "date-fns";
 import {
   ArrowLeft,
   Ban,
-  Download,
+  Copy,
   FileText,
   IndianRupee,
   Lock,
   MessageCircle,
   Pencil,
   Plus,
+  Printer,
   Receipt,
+  Share2,
   CircleCheck,
   CircleAlert,
   CircleDashed,
@@ -33,6 +35,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -47,6 +56,11 @@ import {
   type Invoice,
 } from "@/types/invoice";
 import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
+import {
+  copyShareText,
+  invoicePrintUrl,
+  shareInvoiceOnWhatsApp,
+} from "@/lib/share";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({
@@ -130,26 +144,12 @@ function InvoiceDetailsPage() {
     navigate({ to: "/invoices", search: LIST_SEARCH });
   };
 
-  const handlePdf = () => {
-    window.print();
-  };
-
-  const handleWhatsApp = () => {
-    const text = [
-      `Hi ${party?.name ?? ""},`,
-      ``,
-      `Sharing invoice ${invoice.number} dated ${format(new Date(invoice.date), "dd MMM yyyy")}.`,
-      `Total: ${formatCurrency(invoice.total, currency)}`,
-      `Paid: ${formatCurrency(invoice.paidAmount, currency)}`,
-      `Balance: ${formatCurrency(balance, currency)}`,
-      ``,
-      `Thank you for your business.`,
-    ].join("\n");
-    const phone = (party?.mobile ?? "").replace(/\D+/g, "");
-    const url = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  const shareArgs = {
+    partyName: invoice.partyName,
+    invoiceNumber: invoice.number,
+    pdfUrl: invoicePrintUrl(invoice.id),
+    summaryLine: `Total ${formatCurrency(invoice.total, currency)} • Balance ${formatCurrency(balance, currency)}`,
+    phone: party?.mobile,
   };
 
   return (
