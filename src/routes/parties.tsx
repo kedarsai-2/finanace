@@ -386,9 +386,11 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           ? "Try a different search term or clear the type filter."
           : "Add your first customer or supplier to start tracking balances."}
       </p>
-      <Button size="lg" className="mt-6 gap-2" onClick={() => toast.info("Add party flow")}>
-        <Plus className="h-4 w-4" />
-        Add Party
+      <Button asChild size="lg" className="mt-6 gap-2">
+        <Link to="/parties/new">
+          <Plus className="h-4 w-4" />
+          Add Party
+        </Link>
       </Button>
     </div>
   );
