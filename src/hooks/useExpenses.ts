@@ -27,17 +27,29 @@ export function useExpenses(businessId?: string | null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
   }, [expenses, hydrated]);
 
+  const upsert = useCallback((e: Expense) => {
+    setExpenses((prev) => {
+      const exists = prev.some((x) => x.id === e.id);
+      return exists ? prev.map((x) => (x.id === e.id ? e : x)) : [...prev, e];
+    });
+  }, []);
+
   const add = useCallback((e: Expense) => {
     setExpenses((prev) => [...prev, e]);
   }, []);
 
   const remove = useCallback((id: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    setExpenses((prev) =>
+      prev.map((e) =>
+        e.id === id ? { ...e, deleted: true, updatedAt: new Date().toISOString() } : e,
+      ),
+    );
   }, []);
 
-  const scoped = businessId
+  const scoped = (businessId
     ? expenses.filter((e) => e.businessId === businessId)
-    : expenses;
+    : expenses
+  ).filter((e) => !e.deleted);
 
-  return { expenses: scoped, allExpenses: expenses, hydrated, add, remove };
+  return { expenses: scoped, allExpenses: expenses, hydrated, add, upsert, remove };
 }
