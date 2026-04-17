@@ -516,8 +516,8 @@ function Row({
         className={cn(
           "tabular-nums",
           muted && "text-muted-foreground",
-          tone === "success" && "text-emerald-600 dark:text-emerald-400",
-          tone === "warning" && "text-amber-600 dark:text-amber-400",
+          tone === "success" && "text-foreground",
+          tone === "warning" && "text-destructive",
           emphasis && "text-base font-bold",
         )}
       >
