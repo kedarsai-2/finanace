@@ -122,10 +122,9 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           <p className="mt-1 text-base font-bold">{invoice.partyName}</p>
           {party && (
             <div className="mt-1 text-xs leading-relaxed text-slate-700">
-              {party.billingAddress?.line1 && <div>{party.billingAddress.line1}</div>}
-              {party.billingAddress?.line2 && <div>{party.billingAddress.line2}</div>}
+              {party.address?.line1 && <div>{party.address.line1}</div>}
               <div>
-                {[party.billingAddress?.city, party.state, party.billingAddress?.pincode]
+                {[party.address?.city ?? party.city, party.state, party.address?.pincode]
                   .filter(Boolean)
                   .join(", ")}
               </div>
