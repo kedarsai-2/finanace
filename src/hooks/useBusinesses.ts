@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Business } from "@/types/business";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.businesses";
 const ACTIVE_KEY = "bm.activeBusinessId";
@@ -73,20 +74,47 @@ export function useBusinesses() {
     if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
   }, [activeId, hydrated]);
 
+  const businessesRef = useRef<Business[]>(businesses);
+  useEffect(() => {
+    businessesRef.current = businesses;
+  }, [businesses]);
+
   const upsert = useCallback((b: Business) => {
+    const before = businessesRef.current.find((p) => p.id === b.id);
     setBusinesses((prev) => {
       const exists = prev.some((p) => p.id === b.id);
       return exists ? prev.map((p) => (p.id === b.id ? b : p)) : [...prev, b];
+    });
+    logAudit({
+      module: "business",
+      action: before ? "edit" : "create",
+      recordId: b.id,
+      reference: b.name,
+      refLink: `/businesses`,
+      businessId: b.id,
+      before: before ? snapshot(before) : null,
+      after: snapshot(b),
     });
   }, []);
 
   const remove = useCallback(
     (id: string) => {
+      const before = businessesRef.current.find((p) => p.id === id);
       setBusinesses((prev) => prev.filter((p) => p.id !== id));
       if (activeId === id) {
-        setActiveId((curr) => {
+        setActiveId(() => {
           const next = businesses.find((b) => b.id !== id);
           return next?.id ?? null;
+        });
+      }
+      if (before) {
+        logAudit({
+          module: "business",
+          action: "delete",
+          recordId: id,
+          reference: before.name,
+          businessId: id,
+          before: snapshot(before),
         });
       }
     },

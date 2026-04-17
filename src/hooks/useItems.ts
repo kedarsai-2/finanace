@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Item } from "@/types/item";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.items";
 
@@ -37,20 +38,59 @@ export function useItems(businessId?: string | null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
+  const itemsRef = useRef<Item[]>(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   const upsert = useCallback((it: Item) => {
+    const before = itemsRef.current.find((x) => x.id === it.id);
     setItems((prev) => {
       const exists = prev.some((x) => x.id === it.id);
       return exists ? prev.map((x) => (x.id === it.id ? it : x)) : [...prev, it];
+    });
+    logAudit({
+      module: "item",
+      action: before ? "edit" : "create",
+      recordId: it.id,
+      reference: it.name,
+      refLink: `/items/${it.id}`,
+      businessId: it.businessId,
+      before: before ? snapshot(before) : null,
+      after: snapshot(it),
     });
   }, []);
 
   /** Soft delete — keeps the row but hides it from all surfaces. */
   const remove = useCallback((id: string) => {
+    const before = itemsRef.current.find((x) => x.id === id);
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true, active: false } : x)));
+    if (before) {
+      logAudit({
+        module: "item",
+        action: "delete",
+        recordId: id,
+        reference: before.name,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   const toggleActive = useCallback((id: string) => {
+    const before = itemsRef.current.find((x) => x.id === id);
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
+    if (before) {
+      logAudit({
+        module: "item",
+        action: "edit",
+        recordId: id,
+        reference: before.name,
+        businessId: before.businessId,
+        before: { active: before.active },
+        after: { active: !before.active },
+      });
+    }
   }, []);
 
   // Scope to current business and hide soft-deleted items.

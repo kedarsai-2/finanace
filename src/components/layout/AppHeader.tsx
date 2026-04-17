@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid } from "lucide-react";
 import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -14,6 +15,7 @@ const navLinks = [
   { to: "/accounts", label: "Accounts" },
   { to: "/expenses", label: "Expenses" },
   { to: "/reports", label: "Reports" },
+  { to: "/audit", label: "Audit" },
 ] as const;
 
 export function AppHeader() {
@@ -46,6 +48,7 @@ export function AppHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <NotificationBell />
           <BusinessSwitcher />
         </div>
       </div>

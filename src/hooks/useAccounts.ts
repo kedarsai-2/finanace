@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Account } from "@/types/account";
 import { DEFAULT_ACCOUNT_SEEDS } from "@/types/account";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.accounts";
 const SEEDED_KEY = "bm.accountsSeeded";
@@ -75,15 +76,42 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
   }, [accounts, hydrated]);
 
+  const accountsRef = useRef<Account[]>(accounts);
+  useEffect(() => {
+    accountsRef.current = accounts;
+  }, [accounts]);
+
   const upsert = useCallback((a: Account) => {
+    const before = accountsRef.current.find((x) => x.id === a.id);
     setAccounts((prev) => {
       const exists = prev.some((x) => x.id === a.id);
       return exists ? prev.map((x) => (x.id === a.id ? a : x)) : [...prev, a];
     });
+    logAudit({
+      module: "account",
+      action: before ? "edit" : "create",
+      recordId: a.id,
+      reference: a.name,
+      refLink: `/accounts/${a.id}`,
+      businessId: a.businessId,
+      before: before ? snapshot(before) : null,
+      after: snapshot(a),
+    });
   }, []);
 
   const remove = useCallback((id: string) => {
+    const before = accountsRef.current.find((x) => x.id === id);
     setAccounts((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
+    if (before) {
+      logAudit({
+        module: "account",
+        action: "delete",
+        recordId: id,
+        reference: before.name,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   const scoped = accounts.filter(

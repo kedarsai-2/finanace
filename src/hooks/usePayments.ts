@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Payment } from "@/types/payment";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.payments";
 
@@ -29,6 +30,15 @@ export function usePayments(businessId?: string | null) {
 
   const add = useCallback((p: Payment) => {
     setPayments((prev) => [...prev, p]);
+    const dirLabel = p.direction === "in" ? "Received" : "Paid";
+    logAudit({
+      module: "payment",
+      action: "payment",
+      recordId: p.id,
+      reference: `${dirLabel} ₹${p.amount}`,
+      businessId: p.businessId,
+      after: snapshot(p),
+    });
   }, []);
 
   const scoped = businessId

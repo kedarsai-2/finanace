@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Transfer } from "@/types/account";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.transfers";
 
@@ -29,6 +30,14 @@ export function useTransfers(businessId?: string | null) {
 
   const add = useCallback((t: Transfer) => {
     setTransfers((prev) => [...prev, t]);
+    logAudit({
+      module: "transfer",
+      action: "create",
+      recordId: t.id,
+      reference: `Transfer · ₹${t.amount}`,
+      businessId: t.businessId,
+      after: snapshot(t),
+    });
   }, []);
 
   const scoped = businessId
