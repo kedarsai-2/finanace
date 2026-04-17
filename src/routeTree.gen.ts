@@ -19,6 +19,12 @@ import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsSalesRouteImport } from './routes/reports.sales'
+import { Route as ReportsPurchasesRouteImport } from './routes/reports.purchases'
+import { Route as ReportsPartiesRouteImport } from './routes/reports.parties'
+import { Route as ReportsGstRouteImport } from './routes/reports.gst'
+import { Route as ReportsExpensesRouteImport } from './routes/reports.expenses'
+import { Route as ReportsAccountsRouteImport } from './routes/reports.accounts'
 import { Route as PurchasesNewRouteImport } from './routes/purchases.new'
 import { Route as PurchasesIdRouteImport } from './routes/purchases.$id'
 import { Route as PaymentsNewRouteImport } from './routes/payments.new'
@@ -94,6 +100,36 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsSalesRoute = ReportsSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsPurchasesRoute = ReportsPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsPartiesRoute = ReportsPartiesRouteImport.update({
+  id: '/parties',
+  path: '/parties',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsGstRoute = ReportsGstRouteImport.update({
+  id: '/gst',
+  path: '/gst',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsExpensesRoute = ReportsExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsAccountsRoute = ReportsAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => ReportsRoute,
 } as any)
 const PurchasesNewRoute = PurchasesNewRouteImport.update({
   id: '/new',
@@ -231,7 +267,7 @@ export interface FileRoutesByFullPath {
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
@@ -246,6 +282,12 @@ export interface FileRoutesByFullPath {
   '/payments/new': typeof PaymentsNewRoute
   '/purchases/$id': typeof PurchasesIdRouteWithChildren
   '/purchases/new': typeof PurchasesNewRoute
+  '/reports/accounts': typeof ReportsAccountsRoute
+  '/reports/expenses': typeof ReportsExpensesRoute
+  '/reports/gst': typeof ReportsGstRoute
+  '/reports/parties': typeof ReportsPartiesRoute
+  '/reports/purchases': typeof ReportsPurchasesRoute
+  '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
@@ -268,7 +310,7 @@ export interface FileRoutesByTo {
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
@@ -283,6 +325,12 @@ export interface FileRoutesByTo {
   '/payments/new': typeof PaymentsNewRoute
   '/purchases/$id': typeof PurchasesIdRouteWithChildren
   '/purchases/new': typeof PurchasesNewRoute
+  '/reports/accounts': typeof ReportsAccountsRoute
+  '/reports/expenses': typeof ReportsExpensesRoute
+  '/reports/gst': typeof ReportsGstRoute
+  '/reports/parties': typeof ReportsPartiesRoute
+  '/reports/purchases': typeof ReportsPurchasesRoute
+  '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
@@ -306,7 +354,7 @@ export interface FileRoutesById {
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
@@ -321,6 +369,12 @@ export interface FileRoutesById {
   '/payments/new': typeof PaymentsNewRoute
   '/purchases/$id': typeof PurchasesIdRouteWithChildren
   '/purchases/new': typeof PurchasesNewRoute
+  '/reports/accounts': typeof ReportsAccountsRoute
+  '/reports/expenses': typeof ReportsExpensesRoute
+  '/reports/gst': typeof ReportsGstRoute
+  '/reports/parties': typeof ReportsPartiesRoute
+  '/reports/purchases': typeof ReportsPurchasesRoute
+  '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
@@ -360,6 +414,12 @@ export interface FileRouteTypes {
     | '/payments/new'
     | '/purchases/$id'
     | '/purchases/new'
+    | '/reports/accounts'
+    | '/reports/expenses'
+    | '/reports/gst'
+    | '/reports/parties'
+    | '/reports/purchases'
+    | '/reports/sales'
     | '/accounts/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
@@ -397,6 +457,12 @@ export interface FileRouteTypes {
     | '/payments/new'
     | '/purchases/$id'
     | '/purchases/new'
+    | '/reports/accounts'
+    | '/reports/expenses'
+    | '/reports/gst'
+    | '/reports/parties'
+    | '/reports/purchases'
+    | '/reports/sales'
     | '/accounts/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
@@ -434,6 +500,12 @@ export interface FileRouteTypes {
     | '/payments/new'
     | '/purchases/$id'
     | '/purchases/new'
+    | '/reports/accounts'
+    | '/reports/expenses'
+    | '/reports/gst'
+    | '/reports/parties'
+    | '/reports/purchases'
+    | '/reports/sales'
     | '/accounts/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
@@ -457,7 +529,7 @@ export interface RootRouteChildren {
   PartiesRoute: typeof PartiesRouteWithChildren
   PaymentsRoute: typeof PaymentsRouteWithChildren
   PurchasesRoute: typeof PurchasesRouteWithChildren
-  ReportsRoute: typeof ReportsRoute
+  ReportsRoute: typeof ReportsRouteWithChildren
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
 }
 
@@ -532,6 +604,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/reports/sales': {
+      id: '/reports/sales'
+      path: '/sales'
+      fullPath: '/reports/sales'
+      preLoaderRoute: typeof ReportsSalesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/purchases': {
+      id: '/reports/purchases'
+      path: '/purchases'
+      fullPath: '/reports/purchases'
+      preLoaderRoute: typeof ReportsPurchasesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/parties': {
+      id: '/reports/parties'
+      path: '/parties'
+      fullPath: '/reports/parties'
+      preLoaderRoute: typeof ReportsPartiesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/gst': {
+      id: '/reports/gst'
+      path: '/gst'
+      fullPath: '/reports/gst'
+      preLoaderRoute: typeof ReportsGstRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/expenses': {
+      id: '/reports/expenses'
+      path: '/expenses'
+      fullPath: '/reports/expenses'
+      preLoaderRoute: typeof ReportsExpensesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/accounts': {
+      id: '/reports/accounts'
+      path: '/accounts'
+      fullPath: '/reports/accounts'
+      preLoaderRoute: typeof ReportsAccountsRouteImport
+      parentRoute: typeof ReportsRoute
     }
     '/purchases/new': {
       id: '/purchases/new'
@@ -875,6 +989,27 @@ const PurchasesRouteWithChildren = PurchasesRoute._addFileChildren(
   PurchasesRouteChildren,
 )
 
+interface ReportsRouteChildren {
+  ReportsAccountsRoute: typeof ReportsAccountsRoute
+  ReportsExpensesRoute: typeof ReportsExpensesRoute
+  ReportsGstRoute: typeof ReportsGstRoute
+  ReportsPartiesRoute: typeof ReportsPartiesRoute
+  ReportsPurchasesRoute: typeof ReportsPurchasesRoute
+  ReportsSalesRoute: typeof ReportsSalesRoute
+}
+
+const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsAccountsRoute: ReportsAccountsRoute,
+  ReportsExpensesRoute: ReportsExpensesRoute,
+  ReportsGstRoute: ReportsGstRoute,
+  ReportsPartiesRoute: ReportsPartiesRoute,
+  ReportsPurchasesRoute: ReportsPurchasesRoute,
+  ReportsSalesRoute: ReportsSalesRoute,
+}
+
+const ReportsRouteWithChildren =
+  ReportsRoute._addFileChildren(ReportsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRouteWithChildren,
@@ -885,7 +1020,7 @@ const rootRouteChildren: RootRouteChildren = {
   PartiesRoute: PartiesRouteWithChildren,
   PaymentsRoute: PaymentsRouteWithChildren,
   PurchasesRoute: PurchasesRouteWithChildren,
-  ReportsRoute: ReportsRoute,
+  ReportsRoute: ReportsRouteWithChildren,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
 }
 export const routeTree = rootRouteImport
