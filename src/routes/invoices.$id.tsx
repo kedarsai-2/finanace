@@ -503,10 +503,20 @@ function InvoiceDetailsPage() {
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h3 className="text-sm font-semibold">Activity</h3>
             <Separator className="my-3" />
-            <Timeline invoice={invoice} />
+            <Timeline invoice={invoice} payments={invoicePayments} currency={currency} />
           </section>
         </aside>
       </div>
+
+      <RecordPaymentDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        partyId={invoice.partyId}
+        partyName={invoice.partyName}
+        businessId={invoice.businessId}
+        currency={currency}
+        focusInvoiceId={invoice.id}
+      />
     </div>
   );
 }
