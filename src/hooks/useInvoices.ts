@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Invoice, InvoiceLine } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.invoices";
 
@@ -114,20 +115,59 @@ export function useInvoices(businessId?: string | null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
   }, [invoices, hydrated]);
 
+  const invoicesRef = useRef<Invoice[]>(invoices);
+  useEffect(() => {
+    invoicesRef.current = invoices;
+  }, [invoices]);
+
   const upsert = useCallback((inv: Invoice) => {
+    const before = invoicesRef.current.find((x) => x.id === inv.id);
     setInvoices((prev) => {
       const exists = prev.some((x) => x.id === inv.id);
       return exists ? prev.map((x) => (x.id === inv.id ? inv : x)) : [...prev, inv];
+    });
+    logAudit({
+      module: "invoice",
+      action: before ? "edit" : "create",
+      recordId: inv.id,
+      reference: inv.number,
+      refLink: `/invoices/${inv.id}`,
+      businessId: inv.businessId,
+      before: before ? snapshot(before) : null,
+      after: snapshot(inv),
     });
   }, []);
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback((id: string) => {
+    const before = invoicesRef.current.find((x) => x.id === id);
     setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
+    if (before) {
+      logAudit({
+        module: "invoice",
+        action: "delete",
+        recordId: id,
+        reference: before.number,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   const cancel = useCallback((id: string) => {
+    const before = invoicesRef.current.find((x) => x.id === id);
     setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: "cancelled" } : x)));
+    if (before) {
+      logAudit({
+        module: "invoice",
+        action: "cancel",
+        recordId: id,
+        reference: before.number,
+        refLink: `/invoices/${id}`,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   const scoped = invoices.filter(

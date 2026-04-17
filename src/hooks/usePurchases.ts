@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Purchase, PurchaseLine } from "@/types/purchase";
 import { purchaseLedgerEntryId } from "@/types/purchase";
 import { computeTotals } from "@/types/invoice";
 import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.purchases";
 
@@ -130,13 +131,29 @@ export function usePurchases(businessId?: string | null) {
     [upsertLedgerEntry, removeLedgerEntry],
   );
 
+  const purchasesRef = useRef<Purchase[]>(purchases);
+  useEffect(() => {
+    purchasesRef.current = purchases;
+  }, [purchases]);
+
   const upsert = useCallback(
     (p: Purchase) => {
+      const before = purchasesRef.current.find((x) => x.id === p.id);
       setPurchases((prev) => {
         const exists = prev.some((x) => x.id === p.id);
         return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
       });
       syncLedger(p);
+      logAudit({
+        module: "purchase",
+        action: before ? "edit" : "create",
+        recordId: p.id,
+        reference: p.number,
+        refLink: `/purchases/${p.id}`,
+        businessId: p.businessId,
+        before: before ? snapshot(before) : null,
+        after: snapshot(p),
+      });
     },
     [syncLedger],
   );
@@ -144,6 +161,7 @@ export function usePurchases(businessId?: string | null) {
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(
     (id: string) => {
+      const before = purchasesRef.current.find((x) => x.id === id);
       setPurchases((prev) =>
         prev.map((x) => {
           if (x.id !== id) return x;
@@ -152,12 +170,23 @@ export function usePurchases(businessId?: string | null) {
           return next;
         }),
       );
+      if (before) {
+        logAudit({
+          module: "purchase",
+          action: "delete",
+          recordId: id,
+          reference: before.number,
+          businessId: before.businessId,
+          before: snapshot(before),
+        });
+      }
     },
     [syncLedger],
   );
 
   const cancel = useCallback(
     (id: string) => {
+      const before = purchasesRef.current.find((x) => x.id === id);
       setPurchases((prev) =>
         prev.map((x) => {
           if (x.id !== id) return x;
@@ -166,6 +195,17 @@ export function usePurchases(businessId?: string | null) {
           return next;
         }),
       );
+      if (before) {
+        logAudit({
+          module: "purchase",
+          action: "cancel",
+          recordId: id,
+          reference: before.number,
+          refLink: `/purchases/${id}`,
+          businessId: before.businessId,
+          before: snapshot(before),
+        });
+      }
     },
     [syncLedger],
   );
