@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -37,6 +37,8 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
+import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
 import {
   canEditInvoice,
@@ -44,6 +46,7 @@ import {
   paymentStatusOf,
   type Invoice,
 } from "@/types/invoice";
+import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({
@@ -72,6 +75,23 @@ function InvoiceDetailsPage() {
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
+  const { payments } = usePayments(invoice?.businessId);
+  const [payOpen, setPayOpen] = useState(false);
+
+  const invoicePayments = useMemo(
+    () =>
+      invoice
+        ? payments
+            .filter((p) =>
+              p.allocations.some((a) => a.invoiceId === invoice.id),
+            )
+            .sort(
+              (a, b) =>
+                new Date(a.date).getTime() - new Date(b.date).getTime(),
+            )
+        : [],
+    [payments, invoice],
+  );
 
   if (!invoice) {
     return (
@@ -163,9 +183,8 @@ function InvoiceDetailsPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() =>
-                toast.info("Record Payment dialog ships in the next phase")
-              }
+              onClick={() => setPayOpen(true)}
+              disabled={invoice.status === "cancelled" || balance <= 0}
               className="gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -472,7 +491,7 @@ function InvoiceDetailsPage() {
             </dl>
             <Button
               className="mt-4 w-full gap-2"
-              onClick={() => toast.info("Record Payment dialog ships in the next phase")}
+              onClick={() => setPayOpen(true)}
               disabled={invoice.status === "cancelled" || balance <= 0}
             >
               <IndianRupee className="h-4 w-4" />
@@ -484,10 +503,20 @@ function InvoiceDetailsPage() {
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h3 className="text-sm font-semibold">Activity</h3>
             <Separator className="my-3" />
-            <Timeline invoice={invoice} />
+            <Timeline invoice={invoice} payments={invoicePayments} currency={currency} />
           </section>
         </aside>
       </div>
+
+      <RecordPaymentDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        partyId={invoice.partyId}
+        partyName={invoice.partyName}
+        businessId={invoice.businessId}
+        currency={currency}
+        focusInvoiceId={invoice.id}
+      />
     </div>
   );
 }
@@ -573,7 +602,15 @@ interface TimelineEvent {
   tone: "default" | "success" | "warning" | "destructive";
 }
 
-function Timeline({ invoice }: { invoice: Invoice }) {
+function Timeline({
+  invoice,
+  payments,
+  currency,
+}: {
+  invoice: Invoice;
+  payments: Payment[];
+  currency: string;
+}) {
   const events = useMemo<TimelineEvent[]>(() => {
     const list: TimelineEvent[] = [
       {
@@ -595,12 +632,16 @@ function Timeline({ invoice }: { invoice: Invoice }) {
         tone: "success",
       });
     }
-    if (invoice.paidAmount > 0) {
+    for (const p of payments) {
+      const allocated =
+        p.allocations.find((a) => a.invoiceId === invoice.id)?.amount ?? 0;
       list.push({
-        id: "payment",
-        at: invoice.finalizedAt ?? invoice.date,
-        title: "Payment recorded",
-        description: `Received ${invoice.paidAmount.toLocaleString("en-IN", { style: "currency", currency: "INR" })}`,
+        id: `payment-${p.id}`,
+        at: p.date,
+        title: `Payment recorded — ${formatCurrency(allocated, currency)}`,
+        description: `${PAYMENT_MODE_LABEL[p.mode]}${
+          p.account ? ` • ${p.account}` : ""
+        }${p.reference ? ` • Ref ${p.reference}` : ""}`,
         icon: IndianRupee,
         tone: "success",
       });
@@ -616,7 +657,7 @@ function Timeline({ invoice }: { invoice: Invoice }) {
       });
     }
     return list.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  }, [invoice]);
+  }, [invoice, payments, currency]);
 
   return (
     <ol className="relative space-y-4 border-l border-border pl-4">
