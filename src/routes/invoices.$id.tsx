@@ -75,6 +75,23 @@ function InvoiceDetailsPage() {
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
+  const { payments } = usePayments(invoice?.businessId);
+  const [payOpen, setPayOpen] = useState(false);
+
+  const invoicePayments = useMemo(
+    () =>
+      invoice
+        ? payments
+            .filter((p) =>
+              p.allocations.some((a) => a.invoiceId === invoice.id),
+            )
+            .sort(
+              (a, b) =>
+                new Date(a.date).getTime() - new Date(b.date).getTime(),
+            )
+        : [],
+    [payments, invoice],
+  );
 
   if (!invoice) {
     return (
@@ -166,9 +183,8 @@ function InvoiceDetailsPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() =>
-                toast.info("Record Payment dialog ships in the next phase")
-              }
+              onClick={() => setPayOpen(true)}
+              disabled={invoice.status === "cancelled" || balance <= 0}
               className="gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -475,7 +491,7 @@ function InvoiceDetailsPage() {
             </dl>
             <Button
               className="mt-4 w-full gap-2"
-              onClick={() => toast.info("Record Payment dialog ships in the next phase")}
+              onClick={() => setPayOpen(true)}
               disabled={invoice.status === "cancelled" || balance <= 0}
             >
               <IndianRupee className="h-4 w-4" />
