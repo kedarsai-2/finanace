@@ -103,7 +103,7 @@ function PaymentsPage() {
           <Select
             value={search.dir}
             onValueChange={(v) =>
-              navigate({ search: (s) => ({ ...s, dir: v as DirFilter }) })
+              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, dir: v as DirFilter }) })
             }
           >
             <SelectTrigger>
@@ -121,7 +121,7 @@ function PaymentsPage() {
           <Select
             value={search.account || "_all"}
             onValueChange={(v) =>
-              navigate({ search: (s) => ({ ...s, account: v === "_all" ? "" : v }) })
+              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, account: v === "_all" ? "" : v }) })
             }
           >
             <SelectTrigger>
@@ -142,7 +142,7 @@ function PaymentsPage() {
           <Input
             type="date"
             value={search.from}
-            onChange={(e) => navigate({ search: (s) => ({ ...s, from: e.target.value }) })}
+            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }) })}
           />
         </div>
         <div>
@@ -150,7 +150,7 @@ function PaymentsPage() {
           <Input
             type="date"
             value={search.to}
-            onChange={(e) => navigate({ search: (s) => ({ ...s, to: e.target.value }) })}
+            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }) })}
           />
         </div>
       </section>

@@ -268,7 +268,7 @@ function AccountDetailsPage() {
             id="from"
             type="date"
             value={search.from}
-            onChange={(e) => navigate({ search: (s) => ({ ...s, from: e.target.value }) })}
+            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }) })}
           />
         </div>
         <div>
@@ -277,7 +277,7 @@ function AccountDetailsPage() {
             id="to"
             type="date"
             value={search.to}
-            onChange={(e) => navigate({ search: (s) => ({ ...s, to: e.target.value }) })}
+            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }) })}
           />
         </div>
         <div>
@@ -285,7 +285,7 @@ function AccountDetailsPage() {
           <Select
             value={search.kind}
             onValueChange={(v) =>
-              navigate({ search: (s) => ({ ...s, kind: v as KindFilter }) })
+              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, kind: v as KindFilter }) })
             }
           >
             <SelectTrigger>
@@ -304,7 +304,7 @@ function AccountDetailsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate({ search: () => ({ from: "", to: "", kind: "all" }) })}
+            onClick={() => navigate({ search: (_: z.infer<typeof searchSchema>) => ({ from: "", to: "", kind: "all" }) })}
           >
             Reset
           </Button>
