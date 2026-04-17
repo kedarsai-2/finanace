@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -37,6 +37,8 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
+import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
 import {
   canEditInvoice,
@@ -44,6 +46,7 @@ import {
   paymentStatusOf,
   type Invoice,
 } from "@/types/invoice";
+import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({
