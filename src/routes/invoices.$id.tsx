@@ -173,13 +173,39 @@ function InvoiceDetailsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={handleWhatsApp} className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">WhatsApp</span>
-            </Button>
-            <Button variant="outline" onClick={handlePdf} className="gap-2">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">PDF</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Share2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => shareInvoiceOnWhatsApp(shareArgs)}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Send on WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyShareText(shareArgs)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy message + link
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(shareArgs.pdfUrl);
+                    toast.success("PDF link copied");
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy PDF link only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/invoices/$id/print" params={{ id: invoice.id }}>
+                <Printer className="h-4 w-4" />
+                <span className="hidden sm:inline">Print / PDF</span>
+              </Link>
             </Button>
             <Button
               variant="outline"
