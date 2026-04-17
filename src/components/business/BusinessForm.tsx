@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Toaster } from "@/components/ui/sonner";
+
 
 import { FormSection } from "@/components/business/FormSection";
 import { LogoUpload } from "@/components/business/LogoUpload";
@@ -132,7 +132,7 @@ export function BusinessForm({ mode, businessId }: Props) {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <Toaster richColors position="top-right" />
+      
 
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-5">
