@@ -8,7 +8,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useItems } from "@/hooks/useItems";
 import { formatCurrency } from "@/hooks/useParties";
 
-export const Route = createFileRoute("/items/$id")({
+export const Route = createFileRoute("/items/$id/")({
   head: () => ({
     meta: [
       { title: "Item Details" },
