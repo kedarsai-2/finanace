@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_EXPENSE_CATEGORIES,
   type ExpenseCategoryRecord,
 } from "@/types/expense";
+import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.expenseCategories";
 const SEEDED_KEY = "bm.expenseCategoriesSeeded";
@@ -57,17 +58,43 @@ export function useExpenseCategories(businessId?: string | null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
   }, [categories, hydrated]);
 
+  const categoriesRef = useRef<ExpenseCategoryRecord[]>(categories);
+  useEffect(() => {
+    categoriesRef.current = categories;
+  }, [categories]);
+
   const upsert = useCallback((c: ExpenseCategoryRecord) => {
+    const before = categoriesRef.current.find((x) => x.id === c.id);
     setCategories((prev) => {
       const exists = prev.some((x) => x.id === c.id);
       return exists ? prev.map((x) => (x.id === c.id ? c : x)) : [...prev, c];
     });
+    logAudit({
+      module: "expenseCategory",
+      action: before ? "edit" : "create",
+      recordId: c.id,
+      reference: c.name,
+      businessId: c.businessId,
+      before: before ? snapshot(before) : null,
+      after: snapshot(c),
+    });
   }, []);
 
   const remove = useCallback((id: string) => {
+    const before = categoriesRef.current.find((x) => x.id === id);
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, deleted: true } : c)),
     );
+    if (before) {
+      logAudit({
+        module: "expenseCategory",
+        action: "delete",
+        recordId: id,
+        reference: before.name,
+        businessId: before.businessId,
+        before: snapshot(before),
+      });
+    }
   }, []);
 
   const scoped = categories.filter(
