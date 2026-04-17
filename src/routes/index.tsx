@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { BusinessCard } from "@/components/business/BusinessCard";
-import { BusinessFormDialog } from "@/components/business/BusinessFormDialog";
 import type { Business } from "@/types/business";
 
 export const Route = createFileRoute("/")({
@@ -33,26 +32,14 @@ export const Route = createFileRoute("/")({
   component: BusinessesPage,
 });
 
-// Pretend the user has unsaved work elsewhere — wire to real state later.
 const hasUnsavedWork = () => false;
 
 function BusinessesPage() {
-  const { businesses, activeId, setActiveId, upsert, remove, hydrated } =
-    useBusinesses();
+  const navigate = useNavigate();
+  const { businesses, activeId, setActiveId, remove, hydrated } = useBusinesses();
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Business | null>(null);
   const [deleting, setDeleting] = useState<Business | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<Business | null>(null);
-
-  const openAdd = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (b: Business) => {
-    setEditing(b);
-    setFormOpen(true);
-  };
 
   const handleSelect = (b: Business) => {
     if (b.id === activeId) return;
@@ -82,18 +69,18 @@ function BusinessesPage() {
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               Workspace
             </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">
-              Your Businesses
-            </h1>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Your Businesses</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {hydrated
                 ? `${businesses.length} ${businesses.length === 1 ? "business" : "businesses"} • Switch anytime`
                 : "Loading…"}
             </p>
           </div>
-          <Button onClick={openAdd} size="lg" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Business
+          <Button asChild size="lg" className="gap-2">
+            <Link to="/businesses/new">
+              <Plus className="h-4 w-4" />
+              Add Business
+            </Link>
           </Button>
         </div>
       </header>
@@ -106,12 +93,13 @@ function BusinessesPage() {
             </div>
             <h2 className="mt-6 text-xl font-semibold">No businesses added yet</h2>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Create your first business profile to start tracking invoices,
-              GST and reports.
+              Create your first business profile to start tracking invoices, GST and reports.
             </p>
-            <Button onClick={openAdd} size="lg" className="mt-6 gap-2">
-              <Plus className="h-4 w-4" />
-              Add Your First Business
+            <Button asChild size="lg" className="mt-6 gap-2">
+              <Link to="/businesses/new">
+                <Plus className="h-4 w-4" />
+                Add Your First Business
+              </Link>
             </Button>
           </div>
         ) : (
@@ -122,7 +110,9 @@ function BusinessesPage() {
                 business={b}
                 active={b.id === activeId}
                 onSelect={() => handleSelect(b)}
-                onEdit={() => openEdit(b)}
+                onEdit={() =>
+                  navigate({ to: "/businesses/$id/edit", params: { id: b.id } })
+                }
                 onDelete={() => setDeleting(b)}
               />
             ))}
@@ -130,21 +120,7 @@ function BusinessesPage() {
         )}
       </main>
 
-      <BusinessFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        initial={editing}
-        onSave={(b) => {
-          upsert(b);
-          toast.success(editing ? "Business updated" : "Business added");
-          if (!editing && !activeId) setActiveId(b.id);
-        }}
-      />
-
-      <AlertDialog
-        open={!!deleting}
-        onOpenChange={(v) => !v && setDeleting(null)}
-      >
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
@@ -174,8 +150,7 @@ function BusinessesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved work in the current business. Switching will
-              discard those changes.
+              You have unsaved work in the current business. Switching will discard those changes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

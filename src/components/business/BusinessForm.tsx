@@ -236,7 +236,7 @@ export function BusinessForm({ mode, businessId }: Props) {
             prefix="billingAddress"
             register={register}
             control={control}
-            errors={errors.billingAddress}
+            errors={errors.billingAddress as AddressFieldsProps["errors"]}
             onPincode={(p) => {
               // Optional auto-fill hook — wire to a pincode API later.
               if (p.length === 6) {
@@ -268,7 +268,7 @@ export function BusinessForm({ mode, businessId }: Props) {
               prefix="shippingAddress"
               register={register}
               control={control}
-              errors={errors.shippingAddress}
+              errors={errors.shippingAddress as AddressFieldsProps["errors"]}
             />
           )}
         </FormSection>
@@ -392,7 +392,7 @@ interface AddressFieldsProps {
   prefix: "billingAddress" | "shippingAddress";
   register: ReturnType<typeof useForm<BusinessFormValues>>["register"];
   control: ReturnType<typeof useForm<BusinessFormValues>>["control"];
-  errors?: Record<string, { message?: string } | undefined>;
+  errors?: { pincode?: { message?: string } };
   onPincode?: (value: string) => void;
 }
 
