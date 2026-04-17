@@ -36,7 +36,7 @@ import {
 const schema = z.object({
   name: z.string().trim().min(1, "Account name is required"),
   type: z.enum(["cash", "bank", "upi"]),
-  openingBalance: z.coerce.number().default(0),
+  openingBalance: z.coerce.number(),
   accountNumber: z.string().trim().optional(),
   ifsc: z.string().trim().optional(),
   upiId: z.string().trim().optional(),
