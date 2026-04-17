@@ -207,7 +207,7 @@ function ItemsTable({
             className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_110px_140px_90px_90px_110px_120px]"
           >
             <Link
-              to="/items/$id/edit"
+              to="/items/$id"
               params={{ id: it.id }}
               className="flex min-w-0 items-center gap-3 text-left"
             >
