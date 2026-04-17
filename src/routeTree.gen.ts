@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.edit'
 
+const PartiesRoute = PartiesRouteImport.update({
+  id: '/parties',
+  path: '/parties',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,36 +37,47 @@ const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/parties': typeof PartiesRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/parties': typeof PartiesRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/parties': typeof PartiesRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/businesses/new' | '/businesses/$id/edit'
+  fullPaths: '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/businesses/new' | '/businesses/$id/edit'
-  id: '__root__' | '/' | '/businesses/new' | '/businesses/$id/edit'
+  to: '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
+  id: '__root__' | '/' | '/parties' | '/businesses/new' | '/businesses/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PartiesRoute: typeof PartiesRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
   BusinessesIdEditRoute: typeof BusinessesIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/parties': {
+      id: '/parties'
+      path: '/parties'
+      fullPath: '/parties'
+      preLoaderRoute: typeof PartiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,9 +104,19 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PartiesRoute: PartiesRoute,
   BusinessesNewRoute: BusinessesNewRoute,
   BusinessesIdEditRoute: BusinessesIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
