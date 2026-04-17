@@ -4,14 +4,16 @@ import { format } from "date-fns";
 import {
   ArrowLeft,
   Ban,
-  Download,
+  Copy,
   FileText,
   IndianRupee,
   Lock,
   MessageCircle,
   Pencil,
   Plus,
+  Printer,
   Receipt,
+  Share2,
   CircleCheck,
   CircleAlert,
   CircleDashed,
@@ -33,6 +35,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -47,6 +56,11 @@ import {
   type Invoice,
 } from "@/types/invoice";
 import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
+import {
+  copyShareText,
+  invoicePrintUrl,
+  shareInvoiceOnWhatsApp,
+} from "@/lib/share";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({
@@ -130,26 +144,12 @@ function InvoiceDetailsPage() {
     navigate({ to: "/invoices", search: LIST_SEARCH });
   };
 
-  const handlePdf = () => {
-    window.print();
-  };
-
-  const handleWhatsApp = () => {
-    const text = [
-      `Hi ${party?.name ?? ""},`,
-      ``,
-      `Sharing invoice ${invoice.number} dated ${format(new Date(invoice.date), "dd MMM yyyy")}.`,
-      `Total: ${formatCurrency(invoice.total, currency)}`,
-      `Paid: ${formatCurrency(invoice.paidAmount, currency)}`,
-      `Balance: ${formatCurrency(balance, currency)}`,
-      ``,
-      `Thank you for your business.`,
-    ].join("\n");
-    const phone = (party?.mobile ?? "").replace(/\D+/g, "");
-    const url = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  const shareArgs = {
+    partyName: invoice.partyName,
+    invoiceNumber: invoice.number,
+    pdfUrl: invoicePrintUrl(invoice.id),
+    summaryLine: `Total ${formatCurrency(invoice.total, currency)} • Balance ${formatCurrency(balance, currency)}`,
+    phone: party?.mobile,
   };
 
   return (
@@ -173,13 +173,39 @@ function InvoiceDetailsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={handleWhatsApp} className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">WhatsApp</span>
-            </Button>
-            <Button variant="outline" onClick={handlePdf} className="gap-2">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">PDF</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Share2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => shareInvoiceOnWhatsApp(shareArgs)}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Send on WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyShareText(shareArgs)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy message + link
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(shareArgs.pdfUrl);
+                    toast.success("PDF link copied");
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy PDF link only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/invoices/$id/print" params={{ id: invoice.id }}>
+                <Printer className="h-4 w-4" />
+                <span className="hidden sm:inline">Print / PDF</span>
+              </Link>
             </Button>
             <Button
               variant="outline"
