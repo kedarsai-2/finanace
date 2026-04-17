@@ -35,6 +35,12 @@ export const Route = createRootRoute({
       { title: "QOBOX — Invoicing, Billing, Accounting" },
       { name: "description", content: "Manage all your businesses, GST profiles and books in one place." },
       { name: "author", content: "QOBOX" },
+      { property: "og:title", content: "QOBOX — Invoicing, Billing, Accounting" },
+      { name: "twitter:title", content: "QOBOX — Invoicing, Billing, Accounting" },
+      { property: "og:description", content: "Manage all your businesses, GST profiles and books in one place." },
+      { name: "twitter:description", content: "Manage all your businesses, GST profiles and books in one place." },
+      { name: "twitter:card", content: "summary" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       {
