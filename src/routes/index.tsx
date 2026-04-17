@@ -60,7 +60,7 @@ function BusinessesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Toaster richColors position="top-right" />
+      
 
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
