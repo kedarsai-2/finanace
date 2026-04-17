@@ -17,7 +17,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { BusinessCard } from "@/components/business/BusinessCard";
 import type { Business } from "@/types/business";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/businesses")({
   head: () => ({
     meta: [
       { title: "Your Businesses — Multi-Business Accounting" },

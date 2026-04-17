@@ -15,8 +15,8 @@ import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as ItemsRouteImport } from './routes/items'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as AccountsRouteImport } from './routes/accounts'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as PurchasesNewRouteImport } from './routes/purchases.new'
 import { Route as PurchasesIdRouteImport } from './routes/purchases.$id'
 import { Route as PaymentsNewRouteImport } from './routes/payments.new'
@@ -73,14 +73,14 @@ const ExpensesRoute = ExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessesRoute = BusinessesRouteImport.update({
+  id: '/businesses',
+  path: '/businesses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PurchasesNewRoute = PurchasesNewRouteImport.update({
@@ -139,9 +139,9 @@ const CategoriesExpenseRoute = CategoriesExpenseRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
-  id: '/businesses/new',
-  path: '/businesses/new',
-  getParentRoute: () => rootRouteImport,
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => BusinessesRoute,
 } as any)
 const AccountsTransferRoute = AccountsTransferRouteImport.update({
   id: '/transfer',
@@ -199,9 +199,9 @@ const ExpensesIdEditRoute = ExpensesIdEditRouteImport.update({
   getParentRoute: () => ExpensesRoute,
 } as any)
 const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
-  id: '/businesses/$id/edit',
-  path: '/businesses/$id/edit',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => BusinessesRoute,
 } as any)
 const AccountsIdEditRoute = AccountsIdEditRouteImport.update({
   id: '/$id/edit',
@@ -210,8 +210,8 @@ const AccountsIdEditRoute = AccountsIdEditRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/businesses': typeof BusinessesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
@@ -245,8 +245,8 @@ export interface FileRoutesByFullPath {
   '/expenses/$id/': typeof ExpensesIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/businesses': typeof BusinessesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
@@ -281,8 +281,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/businesses': typeof BusinessesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
@@ -318,8 +318,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/accounts'
+    | '/businesses'
     | '/expenses'
     | '/invoices'
     | '/items'
@@ -353,8 +353,8 @@ export interface FileRouteTypes {
     | '/expenses/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/accounts'
+    | '/businesses'
     | '/expenses'
     | '/invoices'
     | '/items'
@@ -388,8 +388,8 @@ export interface FileRouteTypes {
     | '/expenses/$id'
   id:
     | '__root__'
-    | '/'
     | '/accounts'
+    | '/businesses'
     | '/expenses'
     | '/invoices'
     | '/items'
@@ -424,17 +424,15 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRouteWithChildren
+  BusinessesRoute: typeof BusinessesRouteWithChildren
   ExpensesRoute: typeof ExpensesRouteWithChildren
   InvoicesRoute: typeof InvoicesRouteWithChildren
   ItemsRoute: typeof ItemsRouteWithChildren
   PartiesRoute: typeof PartiesRouteWithChildren
   PaymentsRoute: typeof PaymentsRouteWithChildren
   PurchasesRoute: typeof PurchasesRouteWithChildren
-  BusinessesNewRoute: typeof BusinessesNewRoute
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
-  BusinessesIdEditRoute: typeof BusinessesIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -481,18 +479,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExpensesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/businesses': {
+      id: '/businesses'
+      path: '/businesses'
+      fullPath: '/businesses'
+      preLoaderRoute: typeof BusinessesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accounts': {
       id: '/accounts'
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AccountsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/purchases/new': {
@@ -574,10 +572,10 @@ declare module '@tanstack/react-router' {
     }
     '/businesses/new': {
       id: '/businesses/new'
-      path: '/businesses/new'
+      path: '/new'
       fullPath: '/businesses/new'
       preLoaderRoute: typeof BusinessesNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BusinessesRoute
     }
     '/accounts/transfer': {
       id: '/accounts/transfer'
@@ -658,10 +656,10 @@ declare module '@tanstack/react-router' {
     }
     '/businesses/$id/edit': {
       id: '/businesses/$id/edit'
-      path: '/businesses/$id/edit'
+      path: '/$id/edit'
       fullPath: '/businesses/$id/edit'
       preLoaderRoute: typeof BusinessesIdEditRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BusinessesRoute
     }
     '/accounts/$id/edit': {
       id: '/accounts/$id/edit'
@@ -689,6 +687,20 @@ const AccountsRouteChildren: AccountsRouteChildren = {
 
 const AccountsRouteWithChildren = AccountsRoute._addFileChildren(
   AccountsRouteChildren,
+)
+
+interface BusinessesRouteChildren {
+  BusinessesNewRoute: typeof BusinessesNewRoute
+  BusinessesIdEditRoute: typeof BusinessesIdEditRoute
+}
+
+const BusinessesRouteChildren: BusinessesRouteChildren = {
+  BusinessesNewRoute: BusinessesNewRoute,
+  BusinessesIdEditRoute: BusinessesIdEditRoute,
+}
+
+const BusinessesRouteWithChildren = BusinessesRoute._addFileChildren(
+  BusinessesRouteChildren,
 )
 
 interface ExpensesRouteChildren {
@@ -824,18 +836,25 @@ const PurchasesRouteWithChildren = PurchasesRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AccountsRoute: AccountsRouteWithChildren,
+  BusinessesRoute: BusinessesRouteWithChildren,
   ExpensesRoute: ExpensesRouteWithChildren,
   InvoicesRoute: InvoicesRouteWithChildren,
   ItemsRoute: ItemsRouteWithChildren,
   PartiesRoute: PartiesRouteWithChildren,
   PaymentsRoute: PaymentsRouteWithChildren,
   PurchasesRoute: PurchasesRouteWithChildren,
-  BusinessesNewRoute: BusinessesNewRoute,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
-  BusinessesIdEditRoute: BusinessesIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
