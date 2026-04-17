@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import type { AccountTxnKind } from "@/types/account";
 
 export const Route = createFileRoute("/reports/accounts")({
-  head: () => ({ meta: [{ title: "Account Report — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Account Report — QOBOX" }] }),
   component: AccountReport,
 });
 

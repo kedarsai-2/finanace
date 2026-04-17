@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Reports — Ledgerly" },
+      { title: "Reports — QOBOX" },
       { name: "description", content: "Sales, purchase, expense, party, account and GST reports." },
     ],
   }),

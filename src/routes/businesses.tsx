@@ -20,7 +20,7 @@ import type { Business } from "@/types/business";
 export const Route = createFileRoute("/businesses")({
   head: () => ({
     meta: [
-      { title: "Your Businesses — Multi-Business Accounting" },
+      { title: "Your Businesses — Invoicing, Billing, Accounting" },
       {
         name: "description",
         content:

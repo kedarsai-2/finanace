@@ -29,7 +29,7 @@ import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 
 export const Route = createFileRoute("/accounts/transfer")({
-  head: () => ({ meta: [{ title: "Account Transfer — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Account Transfer — QOBOX" }] }),
   component: TransferPage,
 });
 

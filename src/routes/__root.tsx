@@ -32,9 +32,9 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Ledgerly — Multi-Business Accounting" },
+      { title: "Ledgerly — Invoicing, Billing, Accounting" },
       { name: "description", content: "Manage all your businesses, GST profiles and books in one place." },
-      { name: "author", content: "Ledgerly" },
+      { name: "author", content: "QOBOX" },
     ],
     links: [
       {

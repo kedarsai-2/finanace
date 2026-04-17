@@ -38,7 +38,7 @@ import { buildAccountTxns } from "@/lib/accountLedger";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Ledgerly" },
+      { title: "Dashboard — QOBOX" },
       { name: "description", content: "Sales, expenses, receivables and payables at a glance." },
     ],
   }),
@@ -168,7 +168,7 @@ function DashboardPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
             <Building2 className="h-8 w-8" />
           </div>
-          <h2 className="mt-6 text-xl font-semibold">Welcome to Ledgerly</h2>
+          <h2 className="mt-6 text-xl font-semibold">Welcome to QOBOX</h2>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Create your first business to start tracking invoices, expenses, and GST.
           </p>

@@ -4,7 +4,7 @@ import { BusinessForm } from "@/components/business/BusinessForm";
 export const Route = createFileRoute("/businesses/$id/edit")({
   head: () => ({
     meta: [
-      { title: "Edit Business — Multi-Business Accounting" },
+      { title: "Edit Business — Invoicing, Billing, Accounting" },
       { name: "description", content: "Update business details, addresses, tax info and branding." },
     ],
   }),

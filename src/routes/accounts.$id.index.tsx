@@ -52,7 +52,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/accounts/$id/")({
   validateSearch: zodValidator(searchSchema),
-  head: () => ({ meta: [{ title: "Account details — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "Account details — QOBOX" }] }),
   component: AccountDetailsPage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md px-4 py-16 text-center">

@@ -11,7 +11,7 @@ import { downloadCsv } from "@/lib/reportExport";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/reports/gst")({
-  head: () => ({ meta: [{ title: "GST Report — Ledgerly" }] }),
+  head: () => ({ meta: [{ title: "GST Report — QOBOX" }] }),
   component: GstReport,
 });
 
