@@ -1,22 +1,29 @@
 export type PaymentMode = "cash" | "bank" | "upi";
+export type PaymentDirection = "in" | "out";
 
 export interface Payment {
   id: string;
   businessId: string;
   partyId: string;
+  /** "in" = received from a customer; "out" = paid to a supplier. */
+  direction: PaymentDirection;
   date: string; // ISO
   amount: number;
   mode: PaymentMode;
-  account?: string; // e.g. "HDFC ****1234", "Cash drawer", UPI VPA
-  reference?: string; // cheque/UTR/UPI txn ref
+  /** Linked account (required for new payments; may be undefined on legacy data). */
+  accountId?: string;
+  /** Free-text label kept for legacy display when accountId is missing. */
+  account?: string;
+  reference?: string;
   notes?: string;
-  /** Allocations against invoices. Sum should equal amount. */
+  /** Allocations against invoices (direction "in") or purchases (direction "out"). */
   allocations: PaymentAllocation[];
 }
 
 export interface PaymentAllocation {
-  invoiceId: string;
-  invoiceNumber: string;
+  /** Invoice id (for direction "in") or purchase id (for direction "out"). */
+  docId: string;
+  docNumber: string;
   amount: number;
 }
 
@@ -24,4 +31,9 @@ export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = {
   cash: "Cash",
   bank: "Bank",
   upi: "UPI",
+};
+
+export const PAYMENT_DIRECTION_LABEL: Record<PaymentDirection, string> = {
+  in: "Receive",
+  out: "Pay",
 };

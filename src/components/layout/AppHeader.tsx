@@ -9,6 +9,9 @@ const navLinks = [
   { to: "/items", label: "Items" },
   { to: "/invoices", label: "Invoices" },
   { to: "/purchases", label: "Purchases" },
+  { to: "/payments", label: "Payments" },
+  { to: "/accounts", label: "Accounts" },
+  { to: "/expenses", label: "Expenses" },
 ] as const;
 
 export function AppHeader() {

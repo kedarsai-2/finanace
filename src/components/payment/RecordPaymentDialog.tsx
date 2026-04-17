@@ -29,6 +29,7 @@ import {
 
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
+import { useAccounts } from "@/hooks/useAccounts";
 import { formatCurrency } from "@/hooks/useParties";
 import { cn } from "@/lib/utils";
 import { paymentStatusOf, type Invoice } from "@/types/invoice";
@@ -38,6 +39,7 @@ import {
   type PaymentAllocation,
   type PaymentMode,
 } from "@/types/payment";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 
 interface Props {
   open: boolean;
@@ -72,6 +74,7 @@ export function RecordPaymentDialog({
 }: Props) {
   const { invoices, upsert } = useInvoices(businessId);
   const { add: addPayment } = usePayments(businessId);
+  const { accounts } = useAccounts(businessId);
 
   // ---------- Open invoices for this party (oldest first) -----------------
   const openInvoices = useMemo(() => {
@@ -92,8 +95,7 @@ export function RecordPaymentDialog({
 
   // ---------- Form state --------------------------------------------------
   const [date, setDate] = useState<Date>(new Date());
-  const [mode, setMode] = useState<PaymentMode>("upi");
-  const [account, setAccount] = useState("");
+  const [accountId, setAccountId] = useState<string>("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [amount, setAmount] = useState<number>(0);
@@ -101,12 +103,14 @@ export function RecordPaymentDialog({
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const mode: PaymentMode = selectedAccount?.type ?? "upi";
+
   // Reset whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setDate(new Date());
-    setMode("upi");
-    setAccount("");
+    setAccountId(accounts[0]?.id ?? "");
     setReference("");
     setNotes("");
     setAutoAllocate(true);
@@ -211,6 +215,7 @@ export function RecordPaymentDialog({
   // ---------- Submit ------------------------------------------------------
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
+    if (!accountId) return "Select an account";
     if (amount - totalOutstanding > 0.01)
       return `Amount exceeds outstanding ${formatCurrency(totalOutstanding, currency)}`;
     if (!rows.some((r) => r.selected && r.amount > 0))
@@ -232,8 +237,8 @@ export function RecordPaymentDialog({
       const allocations: PaymentAllocation[] = rows
         .filter((r) => r.selected && r.amount > 0)
         .map((r) => ({
-          invoiceId: r.invoice.id,
-          invoiceNumber: r.invoice.number,
+          docId: r.invoice.id,
+          docNumber: r.invoice.number,
           amount: r.amount,
         }));
 
@@ -241,10 +246,12 @@ export function RecordPaymentDialog({
         id: `pay_${Date.now()}`,
         businessId,
         partyId,
+        direction: "in",
         date: date.toISOString(),
         amount,
         mode,
-        account: account.trim() || undefined,
+        accountId,
+        account: selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
         allocations,
@@ -253,7 +260,7 @@ export function RecordPaymentDialog({
 
       // Update each affected invoice's paidAmount.
       for (const alloc of allocations) {
-        const inv = rows.find((r) => r.invoice.id === alloc.invoiceId)?.invoice;
+        const inv = rows.find((r) => r.invoice.id === alloc.docId)?.invoice;
         if (!inv) continue;
         const updated: Invoice = {
           ...inv,
@@ -345,35 +352,38 @@ export function RecordPaymentDialog({
                   </PopoverContent>
                 </Popover>
               </div>
-              <div>
-                <Label htmlFor="mode">Mode</Label>
-                <Select value={mode} onValueChange={(v) => setMode(v as PaymentMode)}>
-                  <SelectTrigger id="mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(PAYMENT_MODE_LABEL) as PaymentMode[]).map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {PAYMENT_MODE_LABEL[m]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="account">Account</Label>
-                <Input
-                  id="account"
-                  value={account}
-                  onChange={(e) => setAccount(e.target.value)}
-                  placeholder={
-                    mode === "cash"
-                      ? "Cash drawer"
-                      : mode === "upi"
-                      ? "UPI VPA"
-                      : "HDFC ****1234"
-                  }
-                />
+              <div className="sm:col-span-2">
+                <Label htmlFor="account">Account *</Label>
+                {accounts.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    No accounts yet.{" "}
+                    <a href="/accounts/new" className="font-medium text-primary underline">
+                      Add an account
+                    </a>{" "}
+                    first.
+                  </p>
+                ) : (
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger id="account">
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            • {ACCOUNT_TYPE_LABEL[a.type]}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {selectedAccount && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Mode auto-set to {PAYMENT_MODE_LABEL[mode]}
+                  </p>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="reference">Reference</Label>
