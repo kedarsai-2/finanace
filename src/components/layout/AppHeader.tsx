@@ -24,7 +24,7 @@ const navLinks = [
 export function AppHeader() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-30 glass border-b border-border/40">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -32,16 +32,16 @@ export function AppHeader() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="w-64 bg-sidebar text-sidebar-foreground p-0">
             <Link
               to="/"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-4"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl primary-gradient primary-glow">
                 <LayoutGrid className="h-4 w-4" />
               </div>
-              <span className="text-sm font-semibold tracking-tight">QOBOX</span>
+              <span className="text-sm font-bold tracking-tight">QOBOX</span>
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">
               {navLinks.map((l) => (
@@ -51,9 +51,9 @@ export function AppHeader() {
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: l.to === "/" }}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                    "rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
-                  activeProps={{ className: "bg-accent text-foreground" }}
+                  activeProps={{ className: "bg-sidebar-accent text-sidebar-foreground" }}
                 >
                   {l.label}
                 </Link>
