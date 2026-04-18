@@ -110,6 +110,19 @@ function DashboardPage() {
 
   const trendData = useMemo(() => buildTrend(range, liveInvoices, expenses), [range, liveInvoices, expenses]);
 
+  const aiSnapshot = useMemo(
+    () =>
+      buildDashboardSnapshot({
+        currency,
+        invoices,
+        purchases,
+        payments,
+        expenses,
+        parties: allParties,
+      }),
+    [currency, invoices, purchases, payments, expenses, allParties],
+  );
+
   const recent = useMemo(() => {
     type Item = {
       id: string;
