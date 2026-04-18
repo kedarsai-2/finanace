@@ -4,6 +4,13 @@ import { logAudit, snapshot } from "@/lib/audit";
 
 const STORAGE_KEY = "bm.payments";
 
+function newPaymentId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `pay_${crypto.randomUUID()}`;
+  }
+  return `pay_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function read(): Payment[] {
   if (typeof window === "undefined") return [];
   try {
@@ -28,22 +35,27 @@ export function usePayments(businessId?: string | null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
   }, [payments, hydrated]);
 
-  const add = useCallback((p: Payment) => {
-    setPayments((prev) => [...prev, p]);
-    const dirLabel = p.direction === "in" ? "Received" : "Paid";
+  const create = useCallback(async (p: Omit<Payment, "id">) => {
+    const id = newPaymentId();
+    const created: Payment = { ...p, id };
+    setPayments((prev) => [created, ...prev]);
+
+    const dirLabel = created.direction === "in" ? "Received" : "Paid";
     logAudit({
       module: "payment",
       action: "payment",
-      recordId: p.id,
-      reference: `${dirLabel} ₹${p.amount}`,
-      businessId: p.businessId,
-      after: snapshot(p),
+      recordId: created.id,
+      reference: `${dirLabel} ₹${created.amount}`,
+      businessId: created.businessId,
+      after: snapshot(created),
     });
+
+    return created;
   }, []);
 
   const scoped = businessId
     ? payments.filter((p) => p.businessId === businessId)
     : payments;
 
-  return { payments: scoped, allPayments: payments, hydrated, add };
+  return { payments: scoped, allPayments: payments, hydrated, create };
 }

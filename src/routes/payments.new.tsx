@@ -69,7 +69,7 @@ function NewPaymentPage() {
   const { accounts } = useAccounts(activeId, []);
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);
   const { purchases, upsert: upsertPurchase } = usePurchases(activeId);
-  const { add: addPayment } = usePayments(activeId);
+  const { create: createPayment } = usePayments(activeId);
 
   const [direction, setDirection] = useState<PaymentDirection>("in");
   const [partyId, setPartyId] = useState<string>("");
@@ -214,7 +214,7 @@ function NewPaymentPage() {
     return null;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validate();
     if (err) {
@@ -232,8 +232,7 @@ function NewPaymentPage() {
           amount: r.amount,
         }));
 
-      const payment: Payment = {
-        id: `pay_${Date.now()}`,
+      const payment: Omit<Payment, "id"> = {
         businessId: activeId,
         partyId: partyId || "_advance",
         direction,
@@ -246,7 +245,7 @@ function NewPaymentPage() {
         notes: notes.trim() || undefined,
         allocations,
       };
-      addPayment(payment);
+      await createPayment(payment);
 
       // Update document paidAmount.
       for (const alloc of allocations) {

@@ -73,7 +73,7 @@ export function RecordPaymentDialog({
   onRecorded,
 }: Props) {
   const { invoices, upsert } = useInvoices(businessId);
-  const { add: addPayment } = usePayments(businessId);
+  const { create: createPayment } = usePayments(businessId);
   const { accounts } = useAccounts(businessId);
 
   // ---------- Open invoices for this party (oldest first) -----------------
@@ -226,7 +226,7 @@ export function RecordPaymentDialog({
     return null;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const err = validate();
     if (err) {
       toast.error(err);
@@ -242,8 +242,7 @@ export function RecordPaymentDialog({
           amount: r.amount,
         }));
 
-      const payment: Payment = {
-        id: `pay_${Date.now()}`,
+      const payment: Omit<Payment, "id"> = {
         businessId,
         partyId,
         direction: "in",
@@ -256,7 +255,7 @@ export function RecordPaymentDialog({
         notes: notes.trim() || undefined,
         allocations,
       };
-      addPayment(payment);
+      const created = await createPayment(payment);
 
       // Update each affected invoice's paidAmount.
       for (const alloc of allocations) {
@@ -274,7 +273,7 @@ export function RecordPaymentDialog({
           allocations.length === 1 ? "invoice" : "invoices"
         }`,
       );
-      onRecorded?.(payment);
+      onRecorded?.(created);
       onOpenChange(false);
     } finally {
       setSubmitting(false);
