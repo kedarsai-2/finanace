@@ -2,7 +2,9 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { AIAskDrawer } from "@/components/ai/AIAskDrawer";
 import { Toaster } from "@/components/ui/sonner";
+import { useDashboardSnapshot } from "@/hooks/useDashboardSnapshot";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -43,14 +45,13 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: appCss,
-      },
-      {
-        rel: "icon",
-        type: "image/png",
-        href: "/favicon.png",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
     ],
   }),
@@ -74,6 +75,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const snapshot = useDashboardSnapshot();
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -81,6 +83,7 @@ function RootComponent() {
         <AppHeader />
         <Outlet />
       </div>
+      <AIAskDrawer snapshot={snapshot} />
       <Toaster richColors position="top-right" />
     </div>
   );

@@ -32,8 +32,11 @@ import { usePayments } from "@/hooks/usePayments";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
-import { formatCurrency } from "@/hooks/useParties";
+import { useParties, formatCurrency } from "@/hooks/useParties";
 import { buildAccountTxns } from "@/lib/accountLedger";
+import { buildDashboardSnapshot } from "@/lib/aiContext";
+import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { CashflowProjectionCard } from "@/components/ai/CashflowProjectionCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -64,6 +67,7 @@ function DashboardPage() {
   const { expenses } = useExpenses(activeId);
   const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
   const { transfers } = useTransfers(activeId);
+  const { allParties } = useParties(activeId);
 
   const [range, setRange] = useState<Range>("6m");
 
@@ -105,6 +109,19 @@ function DashboardPage() {
   );
 
   const trendData = useMemo(() => buildTrend(range, liveInvoices, expenses), [range, liveInvoices, expenses]);
+
+  const aiSnapshot = useMemo(
+    () =>
+      buildDashboardSnapshot({
+        currency,
+        invoices,
+        purchases,
+        payments,
+        expenses,
+        parties: allParties,
+      }),
+    [currency, invoices, purchases, payments, expenses, allParties],
+  );
 
   const recent = useMemo(() => {
     type Item = {
@@ -283,7 +300,14 @@ function DashboardPage() {
         />
       </section>
 
-      {/* Section 3: Charts */}
+      {/* AI Section */}
+      {!isEmpty && (
+        <section className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <AIInsightsCard snapshot={aiSnapshot} />
+          <CashflowProjectionCard snapshot={aiSnapshot} currency={currency} />
+        </section>
+      )}
+
       <section className="mb-6 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
