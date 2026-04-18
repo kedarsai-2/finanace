@@ -18,7 +18,10 @@ import { cn } from "@/lib/utils";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
+import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
 import { PartyLedger } from "@/components/party/PartyLedger";
+import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
 import type { PartyType } from "@/types/party";
 
 export const Route = createFileRoute("/parties/$id/")({
@@ -74,6 +77,8 @@ function PartyDetailsPage() {
   const party = allParties.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === party?.businessId);
   const currency = business?.currency ?? "INR";
+  const { invoices } = useInvoices(activeId);
+  const { payments } = usePayments(activeId);
 
   const entries = useMemo(
     () =>
