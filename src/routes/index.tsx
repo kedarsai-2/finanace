@@ -300,7 +300,14 @@ function DashboardPage() {
         />
       </section>
 
-      {/* Section 3: Charts */}
+      {/* AI Section */}
+      {!isEmpty && (
+        <section className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <AIInsightsCard snapshot={aiSnapshot} />
+          <CashflowProjectionCard snapshot={aiSnapshot} currency={currency} />
+        </section>
+      )}
+
       <section className="mb-6 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">

@@ -2,7 +2,9 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { AIAskDrawer } from "@/components/ai/AIAskDrawer";
 import { Toaster } from "@/components/ui/sonner";
+import { useDashboardSnapshot } from "@/hooks/useDashboardSnapshot";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
