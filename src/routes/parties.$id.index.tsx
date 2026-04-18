@@ -215,7 +215,10 @@ function PartyDetailsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="ledger" className="mt-4">
+          <TabsContent value="ledger" className="mt-4 space-y-4">
+            {(party.type === "customer" || party.type === "both") && (
+              <PartyPredictionCard party={party} invoices={invoices} payments={payments} />
+            )}
             <PartyLedger party={party} entries={entries} currency={currency} />
           </TabsContent>
 
