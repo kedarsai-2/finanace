@@ -75,6 +75,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const snapshot = useDashboardSnapshot();
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -82,6 +83,7 @@ function RootComponent() {
         <AppHeader />
         <Outlet />
       </div>
+      <AIAskDrawer snapshot={snapshot} />
       <Toaster richColors position="top-right" />
     </div>
   );
