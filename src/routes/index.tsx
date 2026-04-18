@@ -32,8 +32,11 @@ import { usePayments } from "@/hooks/usePayments";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
-import { formatCurrency } from "@/hooks/useParties";
+import { useParties, formatCurrency } from "@/hooks/useParties";
 import { buildAccountTxns } from "@/lib/accountLedger";
+import { buildDashboardSnapshot } from "@/lib/aiContext";
+import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { CashflowProjectionCard } from "@/components/ai/CashflowProjectionCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -64,6 +67,7 @@ function DashboardPage() {
   const { expenses } = useExpenses(activeId);
   const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
   const { transfers } = useTransfers(activeId);
+  const { allParties } = useParties(activeId);
 
   const [range, setRange] = useState<Range>("6m");
 
