@@ -1,0 +1,322 @@
+/**
+ * QOBOX domain model (generated from frontend src/types/*).
+ *
+ * Notes:
+ * - We model Business-scoped multi-tenancy via required Business relationships.
+ * - Money uses BigDecimal.
+ * - Dates: Instant (ISO timestamps) and LocalDate where date-only makes sense.
+ * - Soft deletes are represented with a boolean `deleted`.
+ */
+
+// -------------------- Enums --------------------
+enum PartyType {
+  CUSTOMER,
+  SUPPLIER,
+  BOTH
+}
+
+enum AccountType {
+  CASH,
+  BANK,
+  UPI
+}
+
+enum InvoiceStatus {
+  DRAFT,
+  FINAL,
+  CANCELLED
+}
+
+enum PurchaseStatus {
+  DRAFT,
+  FINAL,
+  CANCELLED
+}
+
+enum DiscountKind {
+  PERCENT,
+  AMOUNT
+}
+
+enum PaymentMode {
+  CASH,
+  BANK,
+  UPI
+}
+
+enum PaymentDirection {
+  IN,
+  OUT
+}
+
+// -------------------- Core entities --------------------
+entity Business {
+  name String required minlength(2) maxlength(200)
+  ownerName String maxlength(120)
+  mobile String required pattern(/^[6-9][0-9]{9}$/) maxlength(10)
+  email String maxlength(254)
+  logoUrl String maxlength(1024)
+  gstNumber String pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/) maxlength(15)
+  panNumber String pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/) maxlength(10)
+  city String required maxlength(120)
+  state String required maxlength(80)
+
+  // Billing address (flattened)
+  billingLine1 String maxlength(200)
+  billingLine2 String maxlength(200)
+  billingCity String maxlength(120)
+  billingState String maxlength(80)
+  billingPincode String pattern(/^[1-9][0-9]{5}$/) maxlength(6)
+
+  // Shipping address (flattened)
+  shippingLine1 String maxlength(200)
+  shippingLine2 String maxlength(200)
+  shippingCity String maxlength(120)
+  shippingState String maxlength(80)
+  shippingPincode String pattern(/^[1-9][0-9]{5}$/) maxlength(6)
+  shippingSameAsBilling Boolean
+
+  currency String maxlength(3)
+  fyStartMonth Integer min(1) max(12)
+  hasData Boolean
+
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity Party {
+  name String required minlength(2) maxlength(200)
+  type PartyType required
+  mobile String required pattern(/^[6-9][0-9]{9}$/) maxlength(10)
+  email String maxlength(254)
+
+  // Party address (flattened)
+  addressLine1 String maxlength(200)
+  addressCity String maxlength(120)
+  addressState String maxlength(80)
+  addressPincode String pattern(/^[1-9][0-9]{5}$/) maxlength(6)
+
+  gstNumber String pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/) maxlength(15)
+  panNumber String pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/) maxlength(10)
+  creditLimit BigDecimal min(0)
+  paymentTermsDays Integer min(0) max(3650)
+  openingBalance BigDecimal
+  balance BigDecimal required
+
+  createdAt Instant required
+  updatedAt Instant
+  deleted Boolean
+}
+
+entity Account {
+  name String required minlength(1) maxlength(120)
+  type AccountType required
+  openingBalance BigDecimal required
+  accountNumber String maxlength(32)
+  ifsc String maxlength(16)
+  upiId String maxlength(64)
+  notes String maxlength(1000)
+  deleted Boolean
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity Item {
+  name String required minlength(1) maxlength(200)
+  sku String maxlength(64)
+  type String required // "product" | "service" (kept as String to avoid migration friction)
+  sellingPrice BigDecimal required min(0)
+  purchasePrice BigDecimal min(0)
+  taxPercent BigDecimal required min(0) max(100)
+  unit String required maxlength(20)
+  active Boolean required
+  deleted Boolean
+  description String maxlength(2000)
+  openingStock BigDecimal min(0)
+  reorderLevel BigDecimal min(0)
+  createdAt Instant required
+  updatedAt Instant
+}
+
+// -------------------- Invoices --------------------
+entity Invoice {
+  number String required maxlength(32)
+  date Instant required
+  dueDate Instant
+  paymentTermsDays Integer min(0) max(3650)
+
+  // denormalized display/cache
+  partyName String required maxlength(200)
+  partyState String maxlength(80)
+  businessState String maxlength(80)
+
+  subtotal BigDecimal required min(0)
+  itemDiscountTotal BigDecimal required min(0)
+  overallDiscountKind DiscountKind required
+  overallDiscountValue BigDecimal required min(0)
+  overallDiscountAmount BigDecimal required min(0)
+  taxableValue BigDecimal required min(0)
+  cgst BigDecimal required min(0)
+  sgst BigDecimal required min(0)
+  igst BigDecimal required min(0)
+  taxTotal BigDecimal required min(0)
+  total BigDecimal required min(0)
+  paidAmount BigDecimal required min(0)
+
+  status InvoiceStatus required
+  notes String maxlength(4000)
+  terms String maxlength(4000)
+  finalizedAt Instant
+  deleted Boolean
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity InvoiceLine {
+  name String required maxlength(200)
+  qty BigDecimal required min(0)
+  unit String required maxlength(20)
+  rate BigDecimal required min(0)
+  discountKind DiscountKind required
+  discountValue BigDecimal required min(0)
+  taxPercent BigDecimal required min(0) max(100)
+  lineOrder Integer min(0) // stable ordering
+}
+
+// -------------------- Purchases --------------------
+entity Purchase {
+  number String required maxlength(32)
+  date Instant required
+  dueDate Instant
+
+  partyName String required maxlength(200)
+  partyState String maxlength(80)
+  businessState String maxlength(80)
+
+  subtotal BigDecimal required min(0)
+  itemDiscountTotal BigDecimal required min(0)
+  overallDiscountKind DiscountKind required
+  overallDiscountValue BigDecimal required min(0)
+  overallDiscountAmount BigDecimal required min(0)
+  taxableValue BigDecimal required min(0)
+  cgst BigDecimal required min(0)
+  sgst BigDecimal required min(0)
+  igst BigDecimal required min(0)
+  taxTotal BigDecimal required min(0)
+  total BigDecimal required min(0)
+  paidAmount BigDecimal required min(0)
+
+  status PurchaseStatus required
+  notes String maxlength(4000)
+  terms String maxlength(4000)
+  finalizedAt Instant
+  deleted Boolean
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity PurchaseLine {
+  name String required maxlength(200)
+  qty BigDecimal required min(0)
+  unit String required maxlength(20)
+  rate BigDecimal required min(0)
+  discountKind DiscountKind required
+  discountValue BigDecimal required min(0)
+  taxPercent BigDecimal required min(0) max(100)
+  lineOrder Integer min(0)
+}
+
+// -------------------- Payments --------------------
+entity Payment {
+  direction PaymentDirection required
+  date Instant required
+  amount BigDecimal required min(0)
+  mode PaymentMode required
+  reference String maxlength(120)
+  notes String maxlength(2000)
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity PaymentAllocation {
+  docId String required maxlength(64)
+  docNumber String required maxlength(32)
+  amount BigDecimal required min(0)
+}
+
+// -------------------- Expenses --------------------
+entity ExpenseCategory {
+  name String required minlength(1) maxlength(120)
+  deleted Boolean
+  createdAt Instant required
+  updatedAt Instant
+}
+
+entity Expense {
+  date Instant required
+  amount BigDecimal required min(0)
+  category String required maxlength(120) // denormalised for reporting
+  mode PaymentMode
+  reference String maxlength(120)
+  notes String maxlength(2000)
+  deleted Boolean
+  createdAt Instant required
+  updatedAt Instant
+}
+
+// -------------------- Transfers --------------------
+entity Transfer {
+  date Instant required
+  amount BigDecimal required min(0)
+  notes String maxlength(2000)
+  createdAt Instant required
+  updatedAt Instant
+}
+
+// -------------------- Relationships --------------------
+relationship ManyToOne {
+  Party{business(name)} to Business
+  Account{business(name)} to Business
+  Item{business(name)} to Business
+  Invoice{business(name)} to Business
+  Purchase{business(name)} to Business
+  Payment{business(name)} to Business
+  ExpenseCategory{business(name)} to Business
+  Expense{business(name)} to Business
+  Transfer{business(name)} to Business
+}
+
+relationship ManyToOne {
+  Invoice{party(name)} to Party
+  Purchase{party(name)} to Party
+  Payment{party(name)} to Party
+  Expense{party(name)} to Party
+}
+
+relationship ManyToOne {
+  Payment{account(name)} to Account
+  Expense{account(name)} to Account
+}
+
+relationship OneToMany {
+  Invoice{lines} to InvoiceLine{invoice(number) required}
+  Purchase{lines} to PurchaseLine{purchase(number) required}
+  Payment{allocations} to PaymentAllocation{payment required}
+}
+
+relationship ManyToOne {
+  InvoiceLine{item(name)} to Item
+  PurchaseLine{item(name)} to Item
+}
+
+relationship ManyToOne {
+  Transfer{fromAccount(name)} to Account
+  Transfer{toAccount(name)} to Account
+}
+
+// -------------------- Generation options --------------------
+dto * with mapstruct
+service * with serviceClass
+paginate Business, Party, Account, Item, Invoice, Purchase, Payment, Expense, ExpenseCategory, Transfer with pagination
+filter Party, Account, Item, Invoice, Purchase, Payment, Expense, Transfer
+
