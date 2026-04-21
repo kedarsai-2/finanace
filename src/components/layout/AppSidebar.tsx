@@ -12,8 +12,12 @@ import {
   Receipt,
   BarChart3,
   History,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "@tanstack/react-router";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -30,6 +34,9 @@ const navLinks = [
 ] as const;
 
 export function AppSidebar() {
+  const navigate = useNavigate();
+  const { isAuthed, logout } = useAuth();
+
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
       <Link to="/" className="flex items-center gap-2.5 px-4 py-5">
@@ -65,9 +72,23 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
-        © {new Date().getFullYear()} QOBOX
+      <div className="px-2 pb-2">
+        {isAuthed ? (
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 rounded-xl text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            onClick={() => {
+              logout();
+              navigate({ to: "/login", replace: true });
+            }}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
+        ) : null}
       </div>
+
+      <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">© {new Date().getFullYear()} QOBOX</div>
     </aside>
   );
 }

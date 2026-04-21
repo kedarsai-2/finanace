@@ -6,7 +6,6 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
@@ -69,14 +68,14 @@ export function AppHeader() {
         <div className="ml-auto flex items-center gap-2">
           <NotificationBell />
           <BusinessSwitcher />
-          {USE_BACKEND && isAuthed ? (
+          {isAuthed ? (
             <Button
               variant="ghost"
               size="icon"
               aria-label="Logout"
               onClick={() => {
                 logout();
-                navigate({ to: "/login" });
+                navigate({ to: "/login", replace: true });
               }}
             >
               <LogOut className="h-4 w-4" />

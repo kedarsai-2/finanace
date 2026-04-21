@@ -20,14 +20,14 @@ COPY src ./src
 RUN mvn -q -DskipTests -Pprod package
 
 
-FROM eclipse-temurin:21-jre AS runtime
+FROM eclipse-temurin:21-jre-noble AS runtime
 WORKDIR /app
 
 # Run as non-root
-RUN useradd -r -u 1000 appuser
-USER 1000
+RUN if ! getent passwd 1000 >/dev/null 2>&1; then useradd -r -u 1000 appuser; fi
 
-COPY --from=build /workspace/target/*.jar /app/app.jar
+COPY --from=build --chown=1000:1000 /workspace/target/*.jar /app/app.jar
+USER 1000
 
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_OPTS=""

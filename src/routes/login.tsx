@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
-import { USE_BACKEND } from "@/lib/flags";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -25,16 +24,11 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!USE_BACKEND) return;
     if (isAuthed) navigate({ to: "/" });
   }, [isAuthed, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!USE_BACKEND) {
-      toast.info("Backend mode is disabled. Set VITE_USE_BACKEND=1 to enable login.");
-      return;
-    }
     setLoading(true);
     try {
       await login(username.trim(), password);
