@@ -57,17 +57,17 @@ const RANGE_LABEL: Record<Range, string> = {
 };
 
 function DashboardPage() {
-  const { businesses, activeId, hydrated } = useBusinesses();
+  const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
-  const { invoices } = useInvoices(activeId);
-  const { purchases } = usePurchases(activeId);
-  const { payments } = usePayments(activeId);
-  const { expenses } = useExpenses(activeId);
-  const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
-  const { transfers } = useTransfers(activeId);
-  const { allParties } = useParties(activeId);
+  const { invoices } = useInvoices(scopedBusinessId);
+  const { purchases } = usePurchases(scopedBusinessId);
+  const { payments } = usePayments(scopedBusinessId);
+  const { expenses } = useExpenses(scopedBusinessId);
+  const { accounts } = useAccounts(scopedBusinessId, businesses.map((b) => b.id));
+  const { transfers } = useTransfers(scopedBusinessId);
+  const { allParties } = useParties(scopedBusinessId);
 
   const [range, setRange] = useState<Range>("6m");
 
@@ -208,7 +208,7 @@ function DashboardPage() {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            {business?.name ?? "Workspace"}
+            {isAll ? "All Companies" : business?.name ?? "Workspace"}
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Dashboard</h1>
         </div>

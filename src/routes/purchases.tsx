@@ -92,8 +92,8 @@ function PurchasesRouteLayout() {
 function PurchasesPage() {
   const navigate = useNavigate({ from: "/purchases" });
   const { q, status, from, to } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { purchases, hydrated, remove, cancel } = usePurchases(activeId);
+  const { activeId, scopedBusinessId, businesses } = useBusinesses();
+  const { purchases, hydrated, remove, cancel } = usePurchases(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);

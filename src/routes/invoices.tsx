@@ -107,8 +107,8 @@ function InvoicesRouteLayout() {
 function InvoicesPage() {
   const navigate = useNavigate({ from: "/invoices" });
   const { q, status, payment, from, to } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { invoices, hydrated, remove, cancel } = useInvoices(activeId);
+  const { activeId, scopedBusinessId, isAll, businesses } = useBusinesses();
+  const { invoices, hydrated, remove, cancel } = useInvoices(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Invoice | null>(null);
