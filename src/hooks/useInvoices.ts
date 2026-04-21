@@ -478,10 +478,89 @@ export function useInvoices(businessId?: string | null) {
   const scoped = useMemo(
     () =>
       invoices.filter(
-        (x) => !x.deleted && (!businessId || x.businessId === businessId),
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "invoice") === "invoice" &&
+          (!businessId || x.businessId === businessId),
       ),
     [invoices, businessId],
   );
 
-  return { invoices: scoped, allInvoices: invoices, hydrated, upsert, remove, cancel, ensureLines, refresh };
+  const creditNotes = useMemo(
+    () =>
+      invoices.filter(
+        (x) =>
+          !x.deleted &&
+          x.kind === "credit-note" &&
+          (!businessId || x.businessId === businessId),
+      ),
+    [invoices, businessId],
+  );
+
+  /**
+   * Convert a finalised invoice into a draft credit-note that mirrors its
+   * lines. The user can edit qty/lines before finalising.
+   */
+  const convertToCreditNote = useCallback(
+    async (sourceId: string): Promise<Invoice | null> => {
+      const src = invoicesRef.current.find((x) => x.id === sourceId);
+      if (!src) return null;
+      const allCN = invoicesRef.current.filter((x) => x.kind === "credit-note");
+      const number = nextDocNumber(allCN, src.businessId, "CN-");
+      const id = `cn_${Date.now()}`;
+      const now = new Date().toISOString();
+      const cn: Invoice = {
+        ...src,
+        id,
+        number,
+        date: now,
+        finalizedAt: undefined,
+        status: "draft",
+        paidAmount: 0,
+        deleted: false,
+        kind: "credit-note",
+        sourceInvoiceId: src.id,
+        notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
+        lines: src.lines.map((l, i) => ({ ...l, id: `cnl_${id}_${i}` })),
+      };
+      await upsert(cn);
+      return cn;
+    },
+    [upsert],
+  );
+
+  return {
+    invoices: scoped,
+    creditNotes,
+    allInvoices: invoices,
+    hydrated,
+    upsert,
+    remove,
+    cancel,
+    ensureLines,
+    refresh,
+    convertToCreditNote,
+  };
+}
+
+/** Next sequential document number with the given prefix, scoped per business. */
+function nextDocNumber(
+  existing: { number: string; businessId: string }[],
+  businessId: string,
+  prefix: string,
+): string {
+  const re = /^([A-Z]+-?)(\d+)$/i;
+  let max = 0;
+  let pad = 4;
+  for (const x of existing) {
+    if (x.businessId !== businessId) continue;
+    const m = x.number.match(re);
+    if (!m) continue;
+    const n = parseInt(m[2], 10);
+    if (!isNaN(n) && n > max) {
+      max = n;
+      pad = Math.max(pad, m[2].length);
+    }
+  }
+  return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
