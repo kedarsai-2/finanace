@@ -210,11 +210,8 @@ function PartyDetailsPage() {
               <Receipt className="h-3.5 w-3.5" />
               Ledger
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="gap-1.5" disabled>
+            <TabsTrigger value="transactions" className="gap-1.5">
               Transactions
-              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Soon
-              </span>
             </TabsTrigger>
           </TabsList>
 
@@ -226,9 +223,13 @@ function PartyDetailsPage() {
           </TabsContent>
 
           <TabsContent value="transactions" className="mt-4">
-            <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center text-sm text-muted-foreground">
-              Transactions view coming soon.
-            </div>
+            <PartyTimeline
+              partyId={party.id}
+              invoices={allInvoices}
+              purchases={allPurchases}
+              payments={payments}
+              currency={currency}
+            />
           </TabsContent>
         </Tabs>
       </main>
