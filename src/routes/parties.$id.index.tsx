@@ -20,6 +20,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
+import { usePurchases } from "@/hooks/usePurchases";
 import { PartyLedger } from "@/components/party/PartyLedger";
 import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
 import type { PartyType } from "@/types/party";
@@ -79,6 +80,8 @@ function PartyDetailsPage() {
   const currency = business?.currency ?? "INR";
   const { invoices } = useInvoices(activeId);
   const { payments } = usePayments(activeId);
+  const { allPurchases } = usePurchases(activeId);
+  const { allInvoices } = useInvoices(activeId);
 
   const entries = useMemo(
     () =>

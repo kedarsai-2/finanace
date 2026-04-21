@@ -61,6 +61,7 @@ import {
   copyShareText,
   invoicePrintUrl,
   shareInvoiceOnWhatsApp,
+  shareInvoiceByEmail,
 } from "@/lib/share";
 
 export const Route = createFileRoute("/invoices/$id/")({
@@ -196,6 +197,10 @@ function InvoiceDetailsPage() {
                 <DropdownMenuItem onClick={() => copyShareText(shareArgs)}>
                   <Copy className="mr-2 h-4 w-4" />
                   Copy message + link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => shareInvoiceByEmail({ ...shareArgs, email: party?.email })}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Send via Email
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
