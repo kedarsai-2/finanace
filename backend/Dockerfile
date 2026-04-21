@@ -13,6 +13,8 @@ WORKDIR /workspace
 
 # Cache deps first
 COPY pom.xml ./
+COPY sonar-project.properties ./
+COPY checkstyle.xml ./
 RUN mvn -B -DskipTests dependency:go-offline
 
 # Build
