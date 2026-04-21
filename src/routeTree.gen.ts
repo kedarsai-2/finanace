@@ -30,12 +30,14 @@ import { Route as ReportsGstRouteImport } from './routes/reports.gst'
 import { Route as ReportsExpensesRouteImport } from './routes/reports.expenses'
 import { Route as ReportsAccountsRouteImport } from './routes/reports.accounts'
 import { Route as PurchasesNewRouteImport } from './routes/purchases.new'
+import { Route as PurchaseReturnsIdRouteImport } from './routes/purchase-returns.$id'
 import { Route as PaymentsNewRouteImport } from './routes/payments.new'
 import { Route as PartiesNewRouteImport } from './routes/parties.new'
 import { Route as NotificationsSettingsRouteImport } from './routes/notifications.settings'
 import { Route as ItemsNewRouteImport } from './routes/items.new'
 import { Route as InvoicesNewRouteImport } from './routes/invoices.new'
 import { Route as ExpensesNewRouteImport } from './routes/expenses.new'
+import { Route as CreditNotesIdRouteImport } from './routes/credit-notes.$id'
 import { Route as CategoriesExpenseRouteImport } from './routes/categories.expense'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as AccountsTransferRouteImport } from './routes/accounts.transfer'
@@ -161,6 +163,11 @@ const PurchasesNewRoute = PurchasesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => PurchasesRoute,
 } as any)
+const PurchaseReturnsIdRoute = PurchaseReturnsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PurchaseReturnsRoute,
+} as any)
 const PaymentsNewRoute = PaymentsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -190,6 +197,11 @@ const ExpensesNewRoute = ExpensesNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => ExpensesRoute,
+} as any)
+const CreditNotesIdRoute = CreditNotesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CreditNotesRoute,
 } as any)
 const CategoriesExpenseRoute = CategoriesExpenseRouteImport.update({
   id: '/categories/expense',
@@ -292,26 +304,28 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/credit-notes': typeof CreditNotesRoute
+  '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
-  '/purchase-returns': typeof PurchaseReturnsRoute
+  '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
+  '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
   '/invoices/new': typeof InvoicesNewRoute
   '/items/new': typeof ItemsNewRoute
   '/notifications/settings': typeof NotificationsSettingsRoute
   '/parties/new': typeof PartiesNewRoute
   '/payments/new': typeof PaymentsNewRoute
+  '/purchase-returns/$id': typeof PurchaseReturnsIdRoute
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
@@ -340,26 +354,28 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/credit-notes': typeof CreditNotesRoute
+  '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
-  '/purchase-returns': typeof PurchaseReturnsRoute
+  '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
+  '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
   '/invoices/new': typeof InvoicesNewRoute
   '/items/new': typeof ItemsNewRoute
   '/notifications/settings': typeof NotificationsSettingsRoute
   '/parties/new': typeof PartiesNewRoute
   '/payments/new': typeof PaymentsNewRoute
+  '/purchase-returns/$id': typeof PurchaseReturnsIdRoute
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
@@ -389,26 +405,28 @@ export interface FileRoutesById {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/credit-notes': typeof CreditNotesRoute
+  '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
-  '/purchase-returns': typeof PurchaseReturnsRoute
+  '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
+  '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
   '/invoices/new': typeof InvoicesNewRoute
   '/items/new': typeof ItemsNewRoute
   '/notifications/settings': typeof NotificationsSettingsRoute
   '/parties/new': typeof PartiesNewRoute
   '/payments/new': typeof PaymentsNewRoute
+  '/purchase-returns/$id': typeof PurchaseReturnsIdRoute
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
@@ -453,12 +471,14 @@ export interface FileRouteTypes {
     | '/accounts/transfer'
     | '/businesses/new'
     | '/categories/expense'
+    | '/credit-notes/$id'
     | '/expenses/new'
     | '/invoices/new'
     | '/items/new'
     | '/notifications/settings'
     | '/parties/new'
     | '/payments/new'
+    | '/purchase-returns/$id'
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
@@ -501,12 +521,14 @@ export interface FileRouteTypes {
     | '/accounts/transfer'
     | '/businesses/new'
     | '/categories/expense'
+    | '/credit-notes/$id'
     | '/expenses/new'
     | '/invoices/new'
     | '/items/new'
     | '/notifications/settings'
     | '/parties/new'
     | '/payments/new'
+    | '/purchase-returns/$id'
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
@@ -549,12 +571,14 @@ export interface FileRouteTypes {
     | '/accounts/transfer'
     | '/businesses/new'
     | '/categories/expense'
+    | '/credit-notes/$id'
     | '/expenses/new'
     | '/invoices/new'
     | '/items/new'
     | '/notifications/settings'
     | '/parties/new'
     | '/payments/new'
+    | '/purchase-returns/$id'
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
@@ -584,14 +608,14 @@ export interface RootRouteChildren {
   AccountsRoute: typeof AccountsRouteWithChildren
   AuditRoute: typeof AuditRoute
   BusinessesRoute: typeof BusinessesRouteWithChildren
-  CreditNotesRoute: typeof CreditNotesRoute
+  CreditNotesRoute: typeof CreditNotesRouteWithChildren
   ExpensesRoute: typeof ExpensesRouteWithChildren
   InvoicesRoute: typeof InvoicesRouteWithChildren
   ItemsRoute: typeof ItemsRouteWithChildren
   LoginRoute: typeof LoginRoute
   PartiesRoute: typeof PartiesRouteWithChildren
   PaymentsRoute: typeof PaymentsRouteWithChildren
-  PurchaseReturnsRoute: typeof PurchaseReturnsRoute
+  PurchaseReturnsRoute: typeof PurchaseReturnsRouteWithChildren
   PurchasesRoute: typeof PurchasesRouteWithChildren
   ReportsRoute: typeof ReportsRouteWithChildren
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
@@ -747,6 +771,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurchasesNewRouteImport
       parentRoute: typeof PurchasesRoute
     }
+    '/purchase-returns/$id': {
+      id: '/purchase-returns/$id'
+      path: '/$id'
+      fullPath: '/purchase-returns/$id'
+      preLoaderRoute: typeof PurchaseReturnsIdRouteImport
+      parentRoute: typeof PurchaseReturnsRoute
+    }
     '/payments/new': {
       id: '/payments/new'
       path: '/new'
@@ -788,6 +819,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/expenses/new'
       preLoaderRoute: typeof ExpensesNewRouteImport
       parentRoute: typeof ExpensesRoute
+    }
+    '/credit-notes/$id': {
+      id: '/credit-notes/$id'
+      path: '/$id'
+      fullPath: '/credit-notes/$id'
+      preLoaderRoute: typeof CreditNotesIdRouteImport
+      parentRoute: typeof CreditNotesRoute
     }
     '/categories/expense': {
       id: '/categories/expense'
@@ -957,6 +995,18 @@ const BusinessesRouteWithChildren = BusinessesRoute._addFileChildren(
   BusinessesRouteChildren,
 )
 
+interface CreditNotesRouteChildren {
+  CreditNotesIdRoute: typeof CreditNotesIdRoute
+}
+
+const CreditNotesRouteChildren: CreditNotesRouteChildren = {
+  CreditNotesIdRoute: CreditNotesIdRoute,
+}
+
+const CreditNotesRouteWithChildren = CreditNotesRoute._addFileChildren(
+  CreditNotesRouteChildren,
+)
+
 interface ExpensesRouteChildren {
   ExpensesNewRoute: typeof ExpensesNewRoute
   ExpensesIdEditRoute: typeof ExpensesIdEditRoute
@@ -1032,6 +1082,18 @@ const PaymentsRouteWithChildren = PaymentsRoute._addFileChildren(
   PaymentsRouteChildren,
 )
 
+interface PurchaseReturnsRouteChildren {
+  PurchaseReturnsIdRoute: typeof PurchaseReturnsIdRoute
+}
+
+const PurchaseReturnsRouteChildren: PurchaseReturnsRouteChildren = {
+  PurchaseReturnsIdRoute: PurchaseReturnsIdRoute,
+}
+
+const PurchaseReturnsRouteWithChildren = PurchaseReturnsRoute._addFileChildren(
+  PurchaseReturnsRouteChildren,
+)
+
 interface PurchasesRouteChildren {
   PurchasesNewRoute: typeof PurchasesNewRoute
   PurchasesIdEditRoute: typeof PurchasesIdEditRoute
@@ -1076,14 +1138,14 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsRoute: AccountsRouteWithChildren,
   AuditRoute: AuditRoute,
   BusinessesRoute: BusinessesRouteWithChildren,
-  CreditNotesRoute: CreditNotesRoute,
+  CreditNotesRoute: CreditNotesRouteWithChildren,
   ExpensesRoute: ExpensesRouteWithChildren,
   InvoicesRoute: InvoicesRouteWithChildren,
   ItemsRoute: ItemsRouteWithChildren,
   LoginRoute: LoginRoute,
   PartiesRoute: PartiesRouteWithChildren,
   PaymentsRoute: PaymentsRouteWithChildren,
-  PurchaseReturnsRoute: PurchaseReturnsRoute,
+  PurchaseReturnsRoute: PurchaseReturnsRouteWithChildren,
   PurchasesRoute: PurchasesRouteWithChildren,
   ReportsRoute: ReportsRouteWithChildren,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
