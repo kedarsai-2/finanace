@@ -1,4 +1,10 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
@@ -33,7 +39,9 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/payments")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Payments — Receive & Pay" },

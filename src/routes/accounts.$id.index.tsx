@@ -1,4 +1,9 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useRouter,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -50,7 +55,9 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/accounts/$id/")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({ meta: [{ title: "Account details — QOBOX" }] }),
   component: AccountDetailsPage,
   notFoundComponent: () => (

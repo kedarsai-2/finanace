@@ -4,6 +4,7 @@ import {
   Link,
   useNavigate,
   useRouterState,
+  type SearchSchemaInput,
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
@@ -58,7 +59,9 @@ const searchSchema = z.object({
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<SearchValues> & SearchSchemaInput,
+  ): SearchValues => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Purchases — Bills & Payables" },
