@@ -367,12 +367,13 @@ export function useInvoices(businessId?: string | null) {
         const exists = prev.some((x) => x.id === inv.id);
         return exists ? prev.map((x) => (x.id === inv.id ? inv : x)) : [...prev, inv];
       });
+      syncLedger(inv);
       logAudit({
-        module: "invoice",
+        module: inv.kind === "credit-note" ? "invoice" : "invoice",
         action: before ? "edit" : "create",
         recordId: inv.id,
         reference: inv.number,
-        refLink: `/invoices/${inv.id}`,
+        refLink: inv.kind === "credit-note" ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
         businessId: inv.businessId,
         before: before ? snapshot(before) : null,
         after: snapshot(inv),
@@ -405,13 +406,20 @@ export function useInvoices(businessId?: string | null) {
       const exists = prev.some((x) => x.id === savedId);
       return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
     });
-  }, []);
+  }, [syncLedger]);
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(async (id: string) => {
     if (!USE_BACKEND) {
       const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
+      setInvoices((prev) =>
+        prev.map((x) => {
+          if (x.id !== id) return x;
+          const next = { ...x, deleted: true };
+          syncLedger(next);
+          return next;
+        }),
+      );
       if (before) {
         logAudit({
           module: "invoice",
@@ -428,12 +436,19 @@ export function useInvoices(businessId?: string | null) {
     if (idNum == null) return;
     await apiFetch<void>(`/api/invoices/${idNum}`, { method: "DELETE" });
     setInvoices((prev) => prev.filter((x) => x.id !== id));
-  }, []);
+  }, [syncLedger]);
 
   const cancel = useCallback(async (id: string) => {
     if (!USE_BACKEND) {
       const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: "cancelled" } : x)));
+      setInvoices((prev) =>
+        prev.map((x) => {
+          if (x.id !== id) return x;
+          const next = { ...x, status: "cancelled" as const };
+          syncLedger(next);
+          return next;
+        }),
+      );
       if (before) {
         logAudit({
           module: "invoice",
@@ -458,7 +473,7 @@ export function useInvoices(businessId?: string | null) {
       body: JSON.stringify(patch),
     });
     setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: fromBackendInvoiceStatus(saved.status) } : x)));
-  }, []);
+  }, [syncLedger]);
 
   const scoped = useMemo(
     () =>
