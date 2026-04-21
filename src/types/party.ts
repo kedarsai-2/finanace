@@ -13,7 +13,9 @@ export type LedgerTxnType =
   | "invoice"
   | "payment"
   | "purchase"
-  | "expense";
+  | "expense"
+  | "credit-note"
+  | "purchase-return";
 
 export interface LedgerEntry {
   id: string;

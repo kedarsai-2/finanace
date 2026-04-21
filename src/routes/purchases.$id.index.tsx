@@ -33,6 +33,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { usePurchases } from "@/hooks/usePurchases";
+import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase, type Purchase } from "@/types/purchase";
@@ -58,7 +59,7 @@ function PurchaseDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allPurchases, cancel, remove, ensureLines } = usePurchases(activeId);
+  const { allPurchases, cancel, remove, ensureLines, convertToReturn } = usePurchases(activeId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
@@ -172,6 +173,22 @@ function PurchaseDetailsPage() {
               <Button disabled className="gap-2">
                 <Lock className="h-4 w-4" />
                 Locked
+              </Button>
+            )}
+            {purchase.status === "final" && purchase.kind !== "return" && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={async () => {
+                  const ret = await convertToReturn(purchase.id);
+                  if (ret) {
+                    toast.success(`Return ${ret.number} created`);
+                    navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
+                  }
+                }}
+              >
+                <Undo2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Return</span>
               </Button>
             )}
           </div>

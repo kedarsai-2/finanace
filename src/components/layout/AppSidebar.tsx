@@ -12,6 +12,8 @@ import {
   Receipt,
   BarChart3,
   History,
+  FileMinus,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +23,9 @@ const navLinks = [
   { to: "/parties", label: "Parties", icon: Users },
   { to: "/items", label: "Items", icon: Package },
   { to: "/invoices", label: "Invoices", icon: FileText },
+  { to: "/credit-notes", label: "Credit Notes", icon: FileMinus },
   { to: "/purchases", label: "Purchases", icon: ShoppingCart },
+  { to: "/purchase-returns", label: "Purchase Returns", icon: Undo2 },
   { to: "/payments", label: "Payments", icon: Wallet },
   { to: "/accounts", label: "Accounts", icon: Landmark },
   { to: "/expenses", label: "Expenses", icon: Receipt },

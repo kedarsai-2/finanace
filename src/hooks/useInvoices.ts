@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Invoice, InvoiceLine } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
+import { useParties } from "@/hooks/useParties";
+import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.invoices";
+
+/** Stable ledger row id for a credit-note's mirror entry. */
+export function creditNoteLedgerEntryId(invoiceId: string) {
+  return `le_cn_${invoiceId}`;
+}
 
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendInvoiceStatus = "DRAFT" | "FINAL" | "CANCELLED";
@@ -274,6 +281,35 @@ function read(): Invoice[] {
 export function useInvoices(businessId?: string | null) {
   const [invoices, setInvoices] = useState<Invoice[]>(seed);
   const [hydrated, setHydrated] = useState(false);
+  const { upsertLedgerEntry, removeLedgerEntry } = useParties();
+
+  /**
+   * Mirror credit-notes into the party ledger as receivable reductions.
+   * Standard invoices remain ledger-agnostic (tracked via payments).
+   */
+  const syncLedger = useCallback(
+    (inv: Invoice) => {
+      if (USE_BACKEND) return;
+      if (inv.kind !== "credit-note") return;
+      const id = creditNoteLedgerEntryId(inv.id);
+      if (inv.status === "final" && !inv.deleted) {
+        const entry: LedgerEntry = {
+          id,
+          partyId: inv.partyId,
+          date: inv.finalizedAt ?? inv.date,
+          note: `Credit Note ${inv.number}`,
+          amount: -Math.abs(inv.total),
+          type: "credit-note",
+          refNo: inv.number,
+          refLink: `/credit-notes/${inv.id}`,
+        };
+        upsertLedgerEntry(entry);
+      } else {
+        removeLedgerEntry(id);
+      }
+    },
+    [upsertLedgerEntry, removeLedgerEntry],
+  );
 
   useEffect(() => {
     if (!USE_BACKEND) {
@@ -331,12 +367,13 @@ export function useInvoices(businessId?: string | null) {
         const exists = prev.some((x) => x.id === inv.id);
         return exists ? prev.map((x) => (x.id === inv.id ? inv : x)) : [...prev, inv];
       });
+      syncLedger(inv);
       logAudit({
-        module: "invoice",
+        module: inv.kind === "credit-note" ? "invoice" : "invoice",
         action: before ? "edit" : "create",
         recordId: inv.id,
         reference: inv.number,
-        refLink: `/invoices/${inv.id}`,
+        refLink: inv.kind === "credit-note" ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
         businessId: inv.businessId,
         before: before ? snapshot(before) : null,
         after: snapshot(inv),
@@ -369,13 +406,20 @@ export function useInvoices(businessId?: string | null) {
       const exists = prev.some((x) => x.id === savedId);
       return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
     });
-  }, []);
+  }, [syncLedger]);
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(async (id: string) => {
     if (!USE_BACKEND) {
       const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
+      setInvoices((prev) =>
+        prev.map((x) => {
+          if (x.id !== id) return x;
+          const next = { ...x, deleted: true };
+          syncLedger(next);
+          return next;
+        }),
+      );
       if (before) {
         logAudit({
           module: "invoice",
@@ -392,12 +436,19 @@ export function useInvoices(businessId?: string | null) {
     if (idNum == null) return;
     await apiFetch<void>(`/api/invoices/${idNum}`, { method: "DELETE" });
     setInvoices((prev) => prev.filter((x) => x.id !== id));
-  }, []);
+  }, [syncLedger]);
 
   const cancel = useCallback(async (id: string) => {
     if (!USE_BACKEND) {
       const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: "cancelled" } : x)));
+      setInvoices((prev) =>
+        prev.map((x) => {
+          if (x.id !== id) return x;
+          const next = { ...x, status: "cancelled" as const };
+          syncLedger(next);
+          return next;
+        }),
+      );
       if (before) {
         logAudit({
           module: "invoice",
@@ -422,15 +473,94 @@ export function useInvoices(businessId?: string | null) {
       body: JSON.stringify(patch),
     });
     setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: fromBackendInvoiceStatus(saved.status) } : x)));
-  }, []);
+  }, [syncLedger]);
 
   const scoped = useMemo(
     () =>
       invoices.filter(
-        (x) => !x.deleted && (!businessId || x.businessId === businessId),
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "invoice") === "invoice" &&
+          (!businessId || x.businessId === businessId),
       ),
     [invoices, businessId],
   );
 
-  return { invoices: scoped, allInvoices: invoices, hydrated, upsert, remove, cancel, ensureLines, refresh };
+  const creditNotes = useMemo(
+    () =>
+      invoices.filter(
+        (x) =>
+          !x.deleted &&
+          x.kind === "credit-note" &&
+          (!businessId || x.businessId === businessId),
+      ),
+    [invoices, businessId],
+  );
+
+  /**
+   * Convert a finalised invoice into a draft credit-note that mirrors its
+   * lines. The user can edit qty/lines before finalising.
+   */
+  const convertToCreditNote = useCallback(
+    async (sourceId: string): Promise<Invoice | null> => {
+      const src = invoicesRef.current.find((x) => x.id === sourceId);
+      if (!src) return null;
+      const allCN = invoicesRef.current.filter((x) => x.kind === "credit-note");
+      const number = nextDocNumber(allCN, src.businessId, "CN-");
+      const id = `cn_${Date.now()}`;
+      const now = new Date().toISOString();
+      const cn: Invoice = {
+        ...src,
+        id,
+        number,
+        date: now,
+        finalizedAt: undefined,
+        status: "draft",
+        paidAmount: 0,
+        deleted: false,
+        kind: "credit-note",
+        sourceInvoiceId: src.id,
+        notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
+        lines: src.lines.map((l, i) => ({ ...l, id: `cnl_${id}_${i}` })),
+      };
+      await upsert(cn);
+      return cn;
+    },
+    [upsert],
+  );
+
+  return {
+    invoices: scoped,
+    creditNotes,
+    allInvoices: invoices,
+    hydrated,
+    upsert,
+    remove,
+    cancel,
+    ensureLines,
+    refresh,
+    convertToCreditNote,
+  };
+}
+
+/** Next sequential document number with the given prefix, scoped per business. */
+function nextDocNumber(
+  existing: { number: string; businessId: string }[],
+  businessId: string,
+  prefix: string,
+): string {
+  const re = /^([A-Z]+-?)(\d+)$/i;
+  let max = 0;
+  let pad = 4;
+  for (const x of existing) {
+    if (x.businessId !== businessId) continue;
+    const m = x.number.match(re);
+    if (!m) continue;
+    const n = parseInt(m[2], 10);
+    if (!isNaN(n) && n > max) {
+      max = n;
+      pad = Math.max(pad, m[2].length);
+    }
+  }
+  return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }

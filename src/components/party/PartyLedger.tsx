@@ -35,6 +35,8 @@ const TYPE_FILTERS: { value: "all" | LedgerTxnType; label: string }[] = [
   { value: "payment", label: "Payment" },
   { value: "purchase", label: "Purchase" },
   { value: "expense", label: "Expense" },
+  { value: "credit-note", label: "Credit Note" },
+  { value: "purchase-return", label: "Purch. Return" },
 ];
 
 const TYPE_BADGE: Record<LedgerTxnType, string> = {
@@ -43,6 +45,8 @@ const TYPE_BADGE: Record<LedgerTxnType, string> = {
   payment: "bg-success/15 text-success",
   purchase: "bg-warning/15 text-warning-foreground/80",
   expense: "bg-destructive/10 text-destructive",
+  "credit-note": "bg-destructive/10 text-destructive",
+  "purchase-return": "bg-success/15 text-success",
 };
 
 const TYPE_LABEL: Record<LedgerTxnType, string> = {
@@ -51,6 +55,8 @@ const TYPE_LABEL: Record<LedgerTxnType, string> = {
   payment: "Payment",
   purchase: "Purchase",
   expense: "Expense",
+  "credit-note": "Credit Note",
+  "purchase-return": "Purch. Return",
 };
 
 interface Row extends LedgerEntry {

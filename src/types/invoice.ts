@@ -2,6 +2,15 @@ export type InvoiceStatus = "draft" | "final" | "cancelled";
 export type PaymentStatus = "unpaid" | "partial" | "paid";
 export type DiscountKind = "percent" | "amount";
 
+/**
+ * Discriminator for sale-side documents.
+ *  - "invoice"    : standard sales invoice (default).
+ *  - "credit-note": sales return / credit note. Stored with positive amounts;
+ *                   the ledger mirror is written as a negative (receivable
+ *                   reduction) automatically.
+ */
+export type InvoiceKind = "invoice" | "credit-note";
+
 export interface InvoiceLine {
   id: string;
   itemId?: string;
@@ -46,6 +55,10 @@ export interface Invoice {
   terms?: string;
   /** Set when status moves to 'final' for the 24h edit window. */
   finalizedAt?: string;
+  /** Document kind. Defaults to "invoice". Credit notes are listed separately. */
+  kind?: InvoiceKind;
+  /** When kind = "credit-note", the source invoice id (for traceability). */
+  sourceInvoiceId?: string;
 }
 
 export function paymentStatusOf(

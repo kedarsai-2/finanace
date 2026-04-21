@@ -46,6 +46,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { FileMinus } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ import {
   copyShareText,
   invoicePrintUrl,
   shareInvoiceOnWhatsApp,
+  shareInvoiceByEmail,
 } from "@/lib/share";
 
 export const Route = createFileRoute("/invoices/$id/")({
@@ -84,7 +86,7 @@ function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allInvoices, cancel, remove, ensureLines } = useInvoices(activeId);
+  const { allInvoices, cancel, remove, ensureLines, convertToCreditNote } = useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
@@ -196,6 +198,10 @@ function InvoiceDetailsPage() {
                   <Copy className="mr-2 h-4 w-4" />
                   Copy message + link
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => shareInvoiceByEmail({ ...shareArgs, email: party?.email })}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Send via Email
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => {
@@ -263,6 +269,22 @@ function InvoiceDetailsPage() {
               <Button disabled className="gap-2">
                 <Lock className="h-4 w-4" />
                 Locked
+              </Button>
+            )}
+            {invoice.status === "final" && invoice.kind !== "credit-note" && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={async () => {
+                  const cn = await convertToCreditNote(invoice.id);
+                  if (cn) {
+                    toast.success(`Credit note ${cn.number} created`);
+                    navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
+                  }
+                }}
+              >
+                <FileMinus className="h-4 w-4" />
+                <span className="hidden sm:inline">Credit Note</span>
               </Button>
             )}
           </div>
