@@ -32,10 +32,10 @@ spring:
     livereload:
       enabled: false
   datasource:
-    type: postgresql
-    url: jdbc:postgresql://localhost:5432/finance_app
-    username: postgres
-    password: 1234
+    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/finance_app}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
   liquibase:
     contexts: prod
