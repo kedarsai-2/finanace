@@ -11,6 +11,11 @@ import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.purchases";
 
+/** Stable ledger row id for a purchase-return's mirror entry. */
+export function purchaseReturnLedgerEntryId(purchaseId: string) {
+  return `le_pret_${purchaseId}`;
+}
+
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendPurchaseStatus = "DRAFT" | "FINAL" | "CANCELLED";
 
@@ -283,17 +288,19 @@ export function usePurchases(businessId?: string | null) {
   const syncLedger = useCallback(
     (p: Purchase) => {
       if (USE_BACKEND) return;
-      const id = purchaseLedgerEntryId(p.id);
+      const isReturn = p.kind === "return";
+      const id = isReturn ? purchaseReturnLedgerEntryId(p.id) : purchaseLedgerEntryId(p.id);
       if (p.status === "final" && !p.deleted) {
         const entry: LedgerEntry = {
           id,
           partyId: p.partyId,
           date: p.finalizedAt ?? p.date,
-          note: `Purchase ${p.number}`,
-          amount: -Math.abs(p.total), // payable
-          type: "purchase",
+          note: isReturn ? `Purchase Return ${p.number}` : `Purchase ${p.number}`,
+          // Returns reduce payable → positive (debit); standard purchase → negative.
+          amount: isReturn ? Math.abs(p.total) : -Math.abs(p.total),
+          type: isReturn ? "purchase-return" : "purchase",
           refNo: p.number,
-          refLink: `/purchases/${p.id}`,
+          refLink: isReturn ? `/purchase-returns/${p.id}` : `/purchases/${p.id}`,
         };
         upsertLedgerEntry(entry);
       } else {
@@ -458,10 +465,88 @@ export function usePurchases(businessId?: string | null) {
   const scoped = useMemo(
     () =>
       purchases.filter(
-        (x) => !x.deleted && (!businessId || x.businessId === businessId),
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "purchase") === "purchase" &&
+          (!businessId || x.businessId === businessId),
       ),
     [purchases, businessId],
   );
 
-  return { purchases: scoped, allPurchases: purchases, hydrated, upsert, remove, cancel, ensureLines, refresh };
+  const returns = useMemo(
+    () =>
+      purchases.filter(
+        (x) =>
+          !x.deleted &&
+          x.kind === "return" &&
+          (!businessId || x.businessId === businessId),
+      ),
+    [purchases, businessId],
+  );
+
+  /**
+   * Convert a finalised purchase into a draft purchase-return mirroring its
+   * lines. The user can edit before finalising.
+   */
+  const convertToReturn = useCallback(
+    async (sourceId: string): Promise<Purchase | null> => {
+      const src = purchasesRef.current.find((x) => x.id === sourceId);
+      if (!src) return null;
+      const allRet = purchasesRef.current.filter((x) => x.kind === "return");
+      const number = nextDocNumber(allRet, src.businessId, "PRET-");
+      const id = `pret_${Date.now()}`;
+      const now = new Date().toISOString();
+      const ret: Purchase = {
+        ...src,
+        id,
+        number,
+        date: now,
+        finalizedAt: undefined,
+        status: "draft",
+        paidAmount: 0,
+        deleted: false,
+        kind: "return",
+        sourcePurchaseId: src.id,
+        notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
+        lines: src.lines.map((l, i) => ({ ...l, id: `pretl_${id}_${i}` })),
+      };
+      await upsert(ret);
+      return ret;
+    },
+    [upsert],
+  );
+
+  return {
+    purchases: scoped,
+    returns,
+    allPurchases: purchases,
+    hydrated,
+    upsert,
+    remove,
+    cancel,
+    ensureLines,
+    refresh,
+    convertToReturn,
+  };
+}
+
+function nextDocNumber(
+  existing: { number: string; businessId: string }[],
+  businessId: string,
+  prefix: string,
+): string {
+  const re = /^([A-Z]+-?)(\d+)$/i;
+  let max = 0;
+  let pad = 4;
+  for (const x of existing) {
+    if (x.businessId !== businessId) continue;
+    const m = x.number.match(re);
+    if (!m) continue;
+    const n = parseInt(m[2], 10);
+    if (!isNaN(n) && n > max) {
+      max = n;
+      pad = Math.max(pad, m[2].length);
+    }
+  }
+  return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
