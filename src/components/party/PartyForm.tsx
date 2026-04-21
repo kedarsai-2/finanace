@@ -91,7 +91,7 @@ export function PartyForm({ mode, partyId }: Props) {
     msg ? <p className="mt-1 text-xs text-destructive">{msg}</p> : null;
 
   const onSubmit = handleSubmit(
-    (values) => {
+    async (values) => {
       if (!activeId) {
         toast.error("Select an active business first");
         return;
@@ -113,7 +113,8 @@ export function PartyForm({ mode, partyId }: Props) {
         };
 
         const party: Party = {
-          id: existing?.id ?? `p_${Date.now()}`,
+          // In backend mode, a numeric id will be assigned server-side on create.
+          id: existing?.id ?? "",
           businessId: existing?.businessId ?? activeId,
           name: values.name.trim(),
           type: values.type,
@@ -132,7 +133,7 @@ export function PartyForm({ mode, partyId }: Props) {
           openingBalance: opening || undefined,
           balance: opening,
         };
-        upsert(party);
+        await upsert(party);
         toast.success(mode === "edit" ? "Party updated" : "Party added");
         navigate({ to: "/parties", search: { q: "", type: "all" } });
       } catch {

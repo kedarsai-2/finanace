@@ -110,7 +110,7 @@ export function ItemForm({ mode, itemId }: Props) {
   const cancelHref = { to: "/items" as const, search: { q: "", type: "all" as const } };
 
   const onSubmit = handleSubmit(
-    (values) => {
+    async (values) => {
       if (!activeId) {
         toast.error("Select an active business first");
         return;
@@ -118,7 +118,7 @@ export function ItemForm({ mode, itemId }: Props) {
       setSubmitting(true);
       try {
         const item: Item = {
-          id: existing?.id ?? `i_${Date.now()}`,
+          id: existing?.id ?? "",
           businessId: existing?.businessId ?? activeId,
           name: values.name.trim(),
           type: values.type,
@@ -142,7 +142,7 @@ export function ItemForm({ mode, itemId }: Props) {
           active: values.active,
           deleted: existing?.deleted,
         };
-        upsert(item);
+        await upsert(item);
         toast.success(mode === "edit" ? "Item updated" : "Item added");
         navigate(cancelHref);
       } catch {

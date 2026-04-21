@@ -56,6 +56,7 @@ export function ExpenseForm({
   const navigate = useNavigate();
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { add, upsert } = useExpenses(activeId);
@@ -88,15 +89,15 @@ export function ExpenseForm({
         ? localStorage.getItem(LAST_ACCOUNT_KEY)
         : null;
     const candidate =
-      (last && accounts.find((a) => a.id === last)?.id) || accounts[0]?.id;
+      (last && safeAccounts.find((a) => a.id === last)?.id) || safeAccounts[0]?.id;
     if (candidate) setAccountId(candidate);
-  }, [accounts, accountId, initial]);
+  }, [safeAccounts, accountId, initial]);
 
   // Sync mode → account type on account change
   useEffect(() => {
-    const a = accounts.find((x) => x.id === accountId);
+    const a = safeAccounts.find((x) => x.id === accountId);
     if (a) setMode(modeFromAccountType(a.type));
-  }, [accountId, accounts]);
+  }, [accountId, safeAccounts]);
 
   // Default category when categories load
   useEffect(() => {
@@ -210,7 +211,7 @@ export function ExpenseForm({
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((a) => (
+                {safeAccounts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                   </SelectItem>

@@ -1,8 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -27,14 +26,14 @@ const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
 
 const searchSchema = z.object({
-  dir: fallback(z.enum(DIRS), "all").default("all"),
-  from: fallback(z.string(), "").default(""),
-  to: fallback(z.string(), "").default(""),
-  account: fallback(z.string(), "").default(""),
+  dir: z.enum(DIRS).catch("all"),
+  from: z.string().catch(""),
+  to: z.string().catch(""),
+  account: z.string().catch(""),
 });
 
 export const Route = createFileRoute("/payments")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Payments — Receive & Pay" },
@@ -45,8 +44,14 @@ export const Route = createFileRoute("/payments")({
       },
     ],
   }),
-  component: PaymentsPage,
+  component: PaymentsRouteLayout,
 });
+
+function PaymentsRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/payments") return <Outlet />;
+  return <PaymentsPage />;
+}
 
 function PaymentsPage() {
   const search = Route.useSearch();
@@ -56,6 +61,7 @@ function PaymentsPage() {
   const { payments } = usePayments(activeId);
   const { accounts } = useAccounts(activeId, []);
   const { parties } = useParties(activeId);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
@@ -64,8 +70,8 @@ function PaymentsPage() {
     [parties],
   );
   const accountById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts],
+    () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
+    [safeAccounts],
   );
 
   const filtered = useMemo(() => {
@@ -129,7 +135,7 @@ function PaymentsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="_all">All accounts</SelectItem>
-              {accounts.map((a) => (
+              {safeAccounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.name}
                 </SelectItem>

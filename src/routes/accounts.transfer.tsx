@@ -37,6 +37,7 @@ function TransferPage() {
   const navigate = useNavigate();
   const { activeId, businesses } = useBusinesses();
   const { accounts, hydrated } = useAccounts(activeId, []);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { payments } = usePayments(activeId);
   const { transfers, add } = useTransfers(activeId);
   const { expenses } = useExpenses(activeId);
@@ -45,20 +46,20 @@ function TransferPage() {
   const currency = business?.currency ?? "INR";
 
   const accountsById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts],
+    () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
+    [safeAccounts],
   );
 
   const balances = useMemo(() => {
     return Object.fromEntries(
-      accounts.map((a) => [
+      safeAccounts.map((a) => [
         a.id,
         accountBalance(
           buildAccountTxns({ account: a, payments, transfers, expenses, accountsById }),
         ),
       ]),
     );
-  }, [accounts, payments, transfers, expenses, accountsById]);
+  }, [safeAccounts, payments, transfers, expenses, accountsById]);
 
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
@@ -79,7 +80,7 @@ function TransferPage() {
     return null;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validate();
     if (err) {
@@ -89,8 +90,8 @@ function TransferPage() {
     if (!activeId) return;
     setSubmitting(true);
     try {
-      add({
-        id: `tr_${Date.now()}`,
+      await add({
+        id: "",
         businessId: activeId,
         date: date.toISOString(),
         fromAccountId: fromId,
@@ -140,7 +141,7 @@ function TransferPage() {
                   <SelectValue placeholder="Select source" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map((a) => (
+                  {safeAccounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                     </SelectItem>
@@ -163,7 +164,7 @@ function TransferPage() {
                   <SelectValue placeholder="Select destination" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts
+                  {safeAccounts
                     .filter((a) => a.id !== fromId)
                     .map((a) => (
                       <SelectItem key={a.id} value={a.id}>

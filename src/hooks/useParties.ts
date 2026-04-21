@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LedgerEntry, Party } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
+import { USE_BACKEND } from "@/lib/flags";
+import { apiFetch } from "@/lib/api";
+import { getJwt } from "@/lib/auth";
 
 const STORAGE_KEY = "bm.parties";
 const LEDGER_KEY = "bm.partyLedger";
@@ -26,26 +29,138 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+type PartyDTO = {
+  id?: number;
+  name: string;
+  type: "CUSTOMER" | "SUPPLIER" | "BOTH";
+  mobile?: string | null;
+  email?: string | null;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  creditLimit?: number | null;
+  paymentTermsDays?: number | null;
+  openingBalance?: number | null;
+  balance?: number | null;
+  addressLine1?: string | null;
+  addressCity?: string | null;
+  addressState?: string | null;
+  addressPincode?: string | null;
+  deleted?: boolean | null;
+  business?: { id: number; name?: string | null } | null;
+};
+
+function dtoToParty(dto: PartyDTO): Party {
+  const type =
+    dto.type === "CUSTOMER" ? "customer" : dto.type === "SUPPLIER" ? "supplier" : "both";
+  const bizId = dto.business?.id;
+  const address = {
+    line1: dto.addressLine1 ?? undefined,
+    city: dto.addressCity ?? undefined,
+    state: dto.addressState ?? undefined,
+    pincode: dto.addressPincode ?? undefined,
+  };
+  const opening = dto.openingBalance ?? undefined;
+  const bal = dto.balance ?? opening ?? 0;
+  return {
+    id: String(dto.id ?? ""),
+    businessId: bizId != null ? String(bizId) : "",
+    name: dto.name,
+    type,
+    mobile: dto.mobile ?? "",
+    email: dto.email ?? undefined,
+    address,
+    city: address.city,
+    state: address.state,
+    gstNumber: dto.gstNumber ?? undefined,
+    panNumber: dto.panNumber ?? undefined,
+    creditLimit: dto.creditLimit ?? undefined,
+    paymentTermsDays: dto.paymentTermsDays ?? undefined,
+    openingBalance: opening,
+    balance: bal,
+  };
+}
+
+function partyToDto(p: Party): PartyDTO {
+  const type = p.type === "customer" ? "CUSTOMER" : p.type === "supplier" ? "SUPPLIER" : "BOTH";
+  const businessId = parseInt(p.businessId, 10);
+  return {
+    id: /^\d+$/.test(p.id) ? parseInt(p.id, 10) : undefined,
+    name: p.name,
+    type,
+    mobile: p.mobile || null,
+    email: p.email ?? null,
+    gstNumber: p.gstNumber ?? null,
+    panNumber: p.panNumber ?? null,
+    creditLimit: p.creditLimit ?? null,
+    paymentTermsDays: p.paymentTermsDays ?? null,
+    openingBalance: p.openingBalance ?? null,
+    balance: p.balance ?? null,
+    addressLine1: p.address?.line1 ?? null,
+    addressCity: p.address?.city ?? p.city ?? null,
+    addressState: p.address?.state ?? p.state ?? null,
+    addressPincode: p.address?.pincode ?? null,
+    deleted: false,
+    business: isNaN(businessId) ? null : { id: businessId },
+  };
+}
+
 export function useParties(businessId?: string | null) {
   const [parties, setParties] = useState<Party[]>(seed);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setParties(readJson<Party[]>(STORAGE_KEY, seed));
-    setLedger(readJson<LedgerEntry[]>(LEDGER_KEY, []));
+    const token = getJwt();
+    if (!USE_BACKEND || !token) {
+      setParties(readJson<Party[]>(STORAGE_KEY, seed));
+      setLedger(readJson<LedgerEntry[]>(LEDGER_KEY, []));
+      setHydrated(true);
+      return;
+    }
+    // Backend mode: load parties from API when businessId changes.
+    setLedger([]); // ledger is local-only today
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
+    const token = getJwt();
+    if (USE_BACKEND && token) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(parties));
   }, [parties, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
+    const token = getJwt();
+    if (USE_BACKEND && token) return;
     localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger));
   }, [ledger, hydrated]);
+
+  useEffect(() => {
+    const token = getJwt();
+    if (!USE_BACKEND || !token) return;
+    const biz = businessId ? parseInt(businessId, 10) : NaN;
+    if (!businessId || isNaN(biz)) {
+      setParties([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await apiFetch<PartyDTO[]>(
+          `/api/parties?businessId.equals=${biz}&size=200&sort=id,desc`,
+        );
+        if (cancelled) return;
+        setParties(list.map(dtoToParty));
+      } catch {
+        if (cancelled) return;
+        setParties([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   const partiesRef = useRef<Party[]>(parties);
   useEffect(() => {
@@ -54,6 +169,19 @@ export function useParties(businessId?: string | null) {
 
   const remove = useCallback((id: string) => {
     const before = partiesRef.current.find((p) => p.id === id);
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      (async () => {
+        try {
+          await apiFetch<void>(`/api/parties/${id}`, { method: "DELETE" });
+          setParties((prev) => prev.filter((p) => p.id !== id));
+        } catch {
+          // ignore; UI will remain unchanged
+        }
+      })();
+      return;
+    }
+
     setParties((prev) => prev.filter((p) => p.id !== id));
     setLedger((prev) => prev.filter((e) => e.partyId !== id));
     if (before) {
@@ -89,6 +217,30 @@ export function useParties(businessId?: string | null) {
    * a single "Opening balance" ledger entry is recorded for that party.
    */
   const upsert = useCallback((p: Party) => {
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      return (async () => {
+        const isUpdate = /^\d+$/.test(p.id);
+        const dto = partyToDto(p);
+        // For create, omit id to avoid error.idexists.
+        if (!isUpdate) delete dto.id;
+
+        const saved = await apiFetch<PartyDTO>(
+          isUpdate ? `/api/parties/${p.id}` : "/api/parties",
+          {
+            method: isUpdate ? "PUT" : "POST",
+            body: JSON.stringify(dto),
+          },
+        );
+        const mapped = dtoToParty(saved);
+        setParties((prev) => {
+          const exists = prev.some((x) => x.id === mapped.id);
+          return exists ? prev.map((x) => (x.id === mapped.id ? mapped : x)) : [mapped, ...prev];
+        });
+        return mapped;
+      })();
+    }
+
     const before = partiesRef.current.find((x) => x.id === p.id);
     setParties((prev) => {
       const exists = prev.some((x) => x.id === p.id);
@@ -122,11 +274,14 @@ export function useParties(businessId?: string | null) {
         },
       ];
     });
+    return Promise.resolve(p);
   }, []);
 
-  const scoped = businessId
-    ? parties.filter((p) => p.businessId === businessId)
-    : parties;
+  const scoped = useMemo(
+    () =>
+      businessId ? parties.filter((p) => p.businessId === businessId) : parties,
+    [parties, businessId],
+  );
 
   return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
 }

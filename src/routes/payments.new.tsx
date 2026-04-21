@@ -66,7 +66,8 @@ function NewPaymentPage() {
   const currency = business?.currency ?? "INR";
 
   const { parties } = useParties(activeId);
-  const { accounts } = useAccounts(activeId, []);
+  const { accounts, hydrated: accountsHydrated } = useAccounts(activeId, []);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);
   const { purchases, upsert: upsertPurchase } = usePurchases(activeId);
   const { create: createPayment } = usePayments(activeId);
@@ -82,7 +83,13 @@ function NewPaymentPage() {
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const firstAccountId = safeAccounts[0]?.id ?? "";
+  useEffect(() => {
+    if (!accountsHydrated || accountId) return;
+    if (firstAccountId) setAccountId(firstAccountId);
+  }, [accountsHydrated, firstAccountId, accountId]);
+
+  const selectedAccount = safeAccounts.find((a) => a.id === accountId);
   const mode = selectedAccount?.type ?? "upi";
 
   // Filter parties relevant to direction.
@@ -247,16 +254,18 @@ function NewPaymentPage() {
       };
       await createPayment(payment);
 
-      // Update document paidAmount.
+      // Update document paidAmount (must await in backend-mode).
       for (const alloc of allocations) {
         if (direction === "in") {
           const inv = invoices.find((i) => i.id === alloc.docId);
-          if (inv)
-            upsertInvoice({ ...inv, paidAmount: inv.paidAmount + alloc.amount });
+          if (inv) {
+            await upsertInvoice({ ...inv, paidAmount: inv.paidAmount + alloc.amount });
+          }
         } else {
           const pur = purchases.find((p) => p.id === alloc.docId);
-          if (pur)
-            upsertPurchase({ ...pur, paidAmount: pur.paidAmount + alloc.amount });
+          if (pur) {
+            await upsertPurchase({ ...pur, paidAmount: pur.paidAmount + alloc.amount });
+          }
         }
       }
 
@@ -266,7 +275,7 @@ function NewPaymentPage() {
           currency,
         )}`,
       );
-      navigate({ to: "/payments" });
+      navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } });
     } finally {
       setSubmitting(false);
     }
@@ -275,7 +284,7 @@ function NewPaymentPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
-        <Link to="/payments">
+        <Link to="/payments" search={{ dir: "all", from: "", to: "", account: "" }}>
           <ArrowLeft className="h-4 w-4" /> Back to payments
         </Link>
       </Button>
@@ -348,7 +357,7 @@ function NewPaymentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">No party (general / advance)</SelectItem>
-                  {filteredParties.map((p) => (
+                  {filteredParties.filter((p) => !!p.id).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
                     </SelectItem>
@@ -410,7 +419,7 @@ function NewPaymentPage() {
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="account">Account *</Label>
-              {accounts.length === 0 ? (
+              {safeAccounts.length === 0 ? (
                 <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                   No accounts yet.{" "}
                   <Link to="/accounts/new" className="font-medium text-primary underline">
@@ -419,12 +428,15 @@ function NewPaymentPage() {
                   first.
                 </p>
               ) : (
-                <Select value={accountId} onValueChange={setAccountId}>
+                <Select
+                  value={accountId || undefined}
+                  onValueChange={(v) => setAccountId(v)}
+                >
                   <SelectTrigger id="account">
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.map((a) => (
+                    {safeAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                       </SelectItem>
@@ -564,7 +576,11 @@ function NewPaymentPage() {
         )}
 
         <div className="flex items-center justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => navigate({ to: "/payments" })}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } })}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={submitting} className="gap-2">

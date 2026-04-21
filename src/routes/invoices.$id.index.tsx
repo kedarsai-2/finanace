@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -83,14 +83,21 @@ const LIST_SEARCH = {
 function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { businesses } = useBusinesses();
-  const { allInvoices, cancel, remove } = useInvoices();
+  const { businesses, activeId } = useBusinesses();
+  const { allInvoices, cancel, remove, ensureLines } = useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
   const { payments } = usePayments(invoice?.businessId);
   const [payOpen, setPayOpen] = useState(false);
+
+  useEffect(() => {
+    if (!invoice) return;
+    if (invoice.lines.length === 0) {
+      void ensureLines(invoice.id).catch(() => {});
+    }
+  }, [invoice, ensureLines]);
 
   const invoicePayments = useMemo(
     () =>
@@ -208,8 +215,9 @@ function InvoiceDetailsPage() {
               </Link>
             </Button>
             <Button
+              type="button"
               variant="outline"
-              onClick={() => setPayOpen(true)}
+              onClick={() => queueMicrotask(() => setPayOpen(true))}
               disabled={invoice.status === "cancelled" || balance <= 0}
               className="gap-2"
             >
@@ -516,8 +524,9 @@ function InvoiceDetailsPage() {
               />
             </dl>
             <Button
+              type="button"
               className="mt-4 w-full gap-2"
-              onClick={() => setPayOpen(true)}
+              onClick={() => queueMicrotask(() => setPayOpen(true))}
               disabled={invoice.status === "cancelled" || balance <= 0}
             >
               <IndianRupee className="h-4 w-4" />

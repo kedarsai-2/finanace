@@ -74,7 +74,8 @@ export function RecordPaymentDialog({
 }: Props) {
   const { invoices, upsert } = useInvoices(businessId);
   const { create: createPayment } = usePayments(businessId);
-  const { accounts } = useAccounts(businessId);
+  const { accounts, hydrated: accountsHydrated } = useAccounts(businessId);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
 
   // ---------- Open invoices for this party (oldest first) -----------------
   const openInvoices = useMemo(() => {
@@ -103,14 +104,15 @@ export function RecordPaymentDialog({
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const selectedAccount = safeAccounts.find((a) => a.id === accountId);
   const mode: PaymentMode = selectedAccount?.type ?? "upi";
+  const firstAccountId = safeAccounts[0]?.id ?? "";
 
   // Reset whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setDate(new Date());
-    setAccountId(accounts[0]?.id ?? "");
+    setAccountId(firstAccountId);
     setReference("");
     setNotes("");
     setAutoAllocate(true);
@@ -138,7 +140,13 @@ export function RecordPaymentDialog({
     }
     // We intentionally only re-init on open / party change — not on every row tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, partyId, focusInvoiceId]);
+  }, [open, partyId, focusInvoiceId, firstAccountId]);
+
+  // Default account after accounts hydrate (reset effect often runs before accounts load).
+  useEffect(() => {
+    if (!open || !accountsHydrated) return;
+    setAccountId((id) => (id ? id : firstAccountId));
+  }, [open, accountsHydrated, firstAccountId]);
 
   // ---------- Auto-allocation --------------------------------------------
   // Allocate `amount` across selected rows in order (oldest first).
@@ -257,7 +265,7 @@ export function RecordPaymentDialog({
       };
       const created = await createPayment(payment);
 
-      // Update each affected invoice's paidAmount.
+      // Update each affected invoice's paidAmount (must await in backend-mode).
       for (const alloc of allocations) {
         const inv = rows.find((r) => r.invoice.id === alloc.docId)?.invoice;
         if (!inv) continue;
@@ -265,7 +273,7 @@ export function RecordPaymentDialog({
           ...inv,
           paidAmount: inv.paidAmount + alloc.amount,
         };
-        upsert(updated);
+        await upsert(updated);
       }
 
       toast.success(
@@ -282,7 +290,11 @@ export function RecordPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className="max-w-2xl"
+        // Opening from a click can be treated as an outside interaction and close immediately (Radix).
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
@@ -353,7 +365,7 @@ export function RecordPaymentDialog({
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="account">Account *</Label>
-                {accounts.length === 0 ? (
+                {safeAccounts.length === 0 ? (
                   <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                     No accounts yet.{" "}
                     <a href="/accounts/new" className="font-medium text-primary underline">
@@ -362,12 +374,15 @@ export function RecordPaymentDialog({
                     first.
                   </p>
                 ) : (
-                  <Select value={accountId} onValueChange={setAccountId}>
+                  <Select
+                    value={accountId || undefined}
+                    onValueChange={(v) => setAccountId(v)}
+                  >
                     <SelectTrigger id="account">
                       <SelectValue placeholder="Select account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {accounts.map((a) => (
+                      {safeAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.name}{" "}
                           <span className="text-xs text-muted-foreground">

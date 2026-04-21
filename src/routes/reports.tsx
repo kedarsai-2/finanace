@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import {
   TrendingUp,
   ShoppingCart,
@@ -16,8 +16,14 @@ export const Route = createFileRoute("/reports")({
       { name: "description", content: "Sales, purchase, expense, party, account and GST reports." },
     ],
   }),
-  component: ReportsHub,
+  component: ReportsRouteLayout,
 });
+
+function ReportsRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/reports") return <Outlet />;
+  return <ReportsHub />;
+}
 
 const REPORTS = [
   {

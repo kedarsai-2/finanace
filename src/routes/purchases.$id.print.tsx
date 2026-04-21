@@ -21,12 +21,19 @@ export const Route = createFileRoute("/purchases/$id/print")({
 
 function PurchasePrintPage() {
   const { id } = Route.useParams();
-  const { businesses } = useBusinesses();
-  const { allPurchases, hydrated } = usePurchases();
+  const { businesses, activeId } = useBusinesses();
+  const { allPurchases, hydrated, ensureLines } = usePurchases(activeId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
+
+  useEffect(() => {
+    if (!purchase) return;
+    if (purchase.lines.length === 0) {
+      void ensureLines(purchase.id).catch(() => {});
+    }
+  }, [purchase, ensureLines]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

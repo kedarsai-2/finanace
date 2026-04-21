@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -59,8 +59,14 @@ export const Route = createFileRoute("/expenses")({
       },
     ],
   }),
-  component: ExpensesPage,
+  component: ExpensesRouteLayout,
 });
+
+function ExpensesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/expenses") return <Outlet />;
+  return <ExpensesPage />;
+}
 
 function ExpensesPage() {
   const { activeId, businesses } = useBusinesses();
@@ -68,13 +74,14 @@ function ExpensesPage() {
   const currency = business?.currency ?? "INR";
 
   const { accounts } = useAccounts(activeId, []);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { expenses, remove } = useExpenses(activeId);
 
   const accountById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts],
+    () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
+    [safeAccounts],
   );
   const partyById = useMemo(
     () => Object.fromEntries(parties.map((p) => [p.id, p])),
@@ -188,7 +195,7 @@ function ExpensesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All accounts</SelectItem>
-              {accounts.map((a) => (
+              {safeAccounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.name}
                 </SelectItem>

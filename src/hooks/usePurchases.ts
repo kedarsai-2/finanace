@@ -1,12 +1,177 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Purchase, PurchaseLine } from "@/types/purchase";
 import { purchaseLedgerEntryId } from "@/types/purchase";
 import { computeTotals } from "@/types/invoice";
 import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
+import { USE_BACKEND } from "@/lib/flags";
+import { apiFetch } from "@/lib/api";
+import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.purchases";
+
+type BackendDiscountKind = "PERCENT" | "AMOUNT";
+type BackendPurchaseStatus = "DRAFT" | "FINAL" | "CANCELLED";
+
+type PurchaseDTO = {
+  id?: number;
+  number: string;
+  date: string;
+  dueDate?: string | null;
+  partyName: string;
+  partyState?: string | null;
+  businessState?: string | null;
+  subtotal: number;
+  itemDiscountTotal: number;
+  overallDiscountKind: BackendDiscountKind;
+  overallDiscountValue: number;
+  overallDiscountAmount: number;
+  taxableValue: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  taxTotal: number;
+  total: number;
+  paidAmount: number;
+  status: BackendPurchaseStatus;
+  notes?: string | null;
+  terms?: string | null;
+  finalizedAt?: string | null;
+  deleted?: boolean | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  business?: { id: number } | null;
+  party?: { id: number } | null;
+};
+
+type PurchaseLineDTO = {
+  id?: number;
+  name: string;
+  qty: number;
+  unit: string;
+  rate: number;
+  discountKind: BackendDiscountKind;
+  discountValue: number;
+  taxPercent: number;
+  lineOrder?: number | null;
+  item?: { id: number } | null;
+  purchase: { id: number };
+};
+
+function toBackendDiscountKind(k: PurchaseLine["discountKind"]): BackendDiscountKind {
+  return k === "amount" ? "AMOUNT" : "PERCENT";
+}
+function fromBackendDiscountKind(k: BackendDiscountKind | null | undefined): PurchaseLine["discountKind"] {
+  return k === "AMOUNT" ? "amount" : "percent";
+}
+
+function toBackendPurchaseStatus(s: Purchase["status"]): BackendPurchaseStatus {
+  if (s === "final") return "FINAL";
+  if (s === "cancelled") return "CANCELLED";
+  return "DRAFT";
+}
+function fromBackendPurchaseStatus(s: BackendPurchaseStatus | null | undefined): Purchase["status"] {
+  if (s === "FINAL") return "final";
+  if (s === "CANCELLED") return "cancelled";
+  return "draft";
+}
+
+function dtoToPurchase(dto: PurchaseDTO): Purchase {
+  return {
+    id: toStrId(dto.id),
+    businessId: toStrId(dto.business?.id),
+    number: dto.number ?? "",
+    date: dto.date,
+    dueDate: dto.dueDate ?? undefined,
+    partyId: toStrId(dto.party?.id),
+    partyName: dto.partyName ?? "",
+    partyState: dto.partyState ?? undefined,
+    businessState: dto.businessState ?? undefined,
+    lines: [],
+    subtotal: Number(dto.subtotal ?? 0),
+    itemDiscountTotal: Number(dto.itemDiscountTotal ?? 0),
+    overallDiscountKind: fromBackendDiscountKind(dto.overallDiscountKind),
+    overallDiscountValue: Number(dto.overallDiscountValue ?? 0),
+    overallDiscountAmount: Number(dto.overallDiscountAmount ?? 0),
+    taxableValue: Number(dto.taxableValue ?? 0),
+    cgst: Number(dto.cgst ?? 0),
+    sgst: Number(dto.sgst ?? 0),
+    igst: Number(dto.igst ?? 0),
+    taxTotal: Number(dto.taxTotal ?? 0),
+    total: Number(dto.total ?? 0),
+    paidAmount: Number(dto.paidAmount ?? 0),
+    status: fromBackendPurchaseStatus(dto.status),
+    deleted: dto.deleted ?? undefined,
+    notes: dto.notes ?? undefined,
+    terms: dto.terms ?? undefined,
+    finalizedAt: dto.finalizedAt ?? undefined,
+  };
+}
+
+function lineDtoToLine(dto: PurchaseLineDTO): PurchaseLine {
+  return {
+    id: toStrId(dto.id),
+    itemId: dto.item?.id != null ? toStrId(dto.item.id) : undefined,
+    name: dto.name ?? "",
+    qty: Number(dto.qty ?? 0),
+    unit: dto.unit ?? "pcs",
+    rate: Number(dto.rate ?? 0),
+    discountKind: fromBackendDiscountKind(dto.discountKind),
+    discountValue: Number(dto.discountValue ?? 0),
+    taxPercent: Number(dto.taxPercent ?? 0),
+  };
+}
+
+function purchaseToDto(p: Purchase): PurchaseDTO {
+  return {
+    id: toNumId(p.id) ?? undefined,
+    number: p.number,
+    date: p.date,
+    dueDate: p.dueDate ?? null,
+    partyName: p.partyName,
+    partyState: p.partyState ?? null,
+    businessState: p.businessState ?? null,
+    subtotal: p.subtotal,
+    itemDiscountTotal: p.itemDiscountTotal,
+    overallDiscountKind: toBackendDiscountKind(p.overallDiscountKind),
+    overallDiscountValue: p.overallDiscountValue,
+    overallDiscountAmount: p.overallDiscountAmount,
+    taxableValue: p.taxableValue,
+    cgst: p.cgst,
+    sgst: p.sgst,
+    igst: p.igst,
+    taxTotal: p.taxTotal,
+    total: p.total,
+    paidAmount: p.paidAmount,
+    status: toBackendPurchaseStatus(p.status),
+    notes: p.notes ?? null,
+    terms: p.terms ?? null,
+    finalizedAt: p.finalizedAt ?? null,
+    deleted: p.deleted ?? false,
+    business: businessRefFromId(p.businessId),
+    party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
+  };
+}
+
+function lineToDto(purchaseId: string, line: PurchaseLine, lineOrder: number): PurchaseLineDTO {
+  const purId = toNumId(purchaseId);
+  if (purId == null) throw new Error("Invalid purchaseId");
+  const itemId = line.itemId ? toNumId(line.itemId) : null;
+  return {
+    id: toNumId(line.id) ?? undefined,
+    name: line.name,
+    qty: line.qty,
+    unit: line.unit,
+    rate: line.rate,
+    discountKind: toBackendDiscountKind(line.discountKind),
+    discountValue: line.discountValue,
+    taxPercent: line.taxPercent,
+    lineOrder,
+    item: itemId == null ? null : { id: itemId },
+    purchase: { id: purId },
+  };
+}
 
 function seedPurchase(args: {
   id: string;
@@ -95,14 +260,20 @@ export function usePurchases(businessId?: string | null) {
   const { upsertLedgerEntry, removeLedgerEntry } = useParties();
 
   useEffect(() => {
-    setPurchases(read());
+    if (!USE_BACKEND) {
+      setPurchases(read());
+      setHydrated(true);
+      return;
+    }
+    setPurchases([]);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
+    if (!USE_BACKEND) localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
   }, [purchases, hydrated]);
+
 
   /**
    * Mirror the purchase into the supplier's party ledger.
@@ -111,6 +282,7 @@ export function usePurchases(businessId?: string | null) {
    */
   const syncLedger = useCallback(
     (p: Purchase) => {
+      if (USE_BACKEND) return;
       const id = purchaseLedgerEntryId(p.id);
       if (p.status === "final" && !p.deleted) {
         const entry: LedgerEntry = {
@@ -131,13 +303,40 @@ export function usePurchases(businessId?: string | null) {
     [upsertLedgerEntry, removeLedgerEntry],
   );
 
+  const refresh = useCallback(async () => {
+    if (!USE_BACKEND) return;
+    if (!businessId) {
+      setPurchases([]);
+      return;
+    }
+    const list = await apiFetch<PurchaseDTO[]>(
+      `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
+    );
+    setPurchases(list.map(dtoToPurchase));
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!USE_BACKEND) return;
+    void refresh().catch(() => setPurchases([]));
+  }, [refresh]);
+
   const purchasesRef = useRef<Purchase[]>(purchases);
   useEffect(() => {
     purchasesRef.current = purchases;
   }, [purchases]);
 
-  const upsert = useCallback(
-    (p: Purchase) => {
+  const ensureLines = useCallback(async (purchaseId: string) => {
+    if (!USE_BACKEND) return;
+    const idNum = toNumId(purchaseId);
+    if (idNum == null) return;
+    const lines = await apiFetch<PurchaseLineDTO[]>(`/api/purchases/${idNum}/lines`);
+    setPurchases((prev) =>
+      prev.map((x) => (x.id === purchaseId ? { ...x, lines: lines.map(lineDtoToLine) } : x)),
+    );
+  }, []);
+
+  const upsert = useCallback(async (p: Purchase) => {
+    if (!USE_BACKEND) {
       const before = purchasesRef.current.find((x) => x.id === p.id);
       setPurchases((prev) => {
         const exists = prev.some((x) => x.id === p.id);
@@ -154,22 +353,54 @@ export function usePurchases(businessId?: string | null) {
         before: before ? snapshot(before) : null,
         after: snapshot(p),
       });
-    },
-    [syncLedger],
-  );
+      return;
+    }
+
+    const dto = purchaseToDto(p);
+    const isUpdate = toNumId(p.id) != null;
+    const saved = isUpdate
+      ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, { method: "PUT", body: JSON.stringify(dto) })
+      : await apiFetch<PurchaseDTO>(`/api/purchases`, { method: "POST", body: JSON.stringify({ ...dto, id: undefined }) });
+
+    const savedId = toStrId(saved.id);
+
+    const existingLines = await apiFetch<PurchaseLineDTO[]>(`/api/purchases/${savedId}/lines`).catch(() => []);
+    await Promise.all(existingLines.map((l) => apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" })));
+    for (let i = 0; i < p.lines.length; i++) {
+      const line = p.lines[i];
+      const lineDto = lineToDto(savedId, line, i);
+      await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
+        method: "POST",
+        body: JSON.stringify({ ...lineDto, id: undefined }),
+      });
+    }
+
+    const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
+    setPurchases((prev) => {
+      const exists = prev.some((x) => x.id === savedId);
+      return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
+    });
+  }, [syncLedger]);
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const before = purchasesRef.current.find((x) => x.id === id);
-      setPurchases((prev) =>
-        prev.map((x) => {
-          if (x.id !== id) return x;
-          const next = { ...x, deleted: true };
-          syncLedger(next);
-          return next;
-        }),
-      );
+      if (USE_BACKEND) {
+        const idNum = toNumId(id);
+        if (idNum == null) return;
+        await apiFetch<void>(`/api/purchases/${idNum}`, { method: "DELETE" });
+        setPurchases((prev) => prev.filter((x) => x.id !== id));
+      } else {
+        setPurchases((prev) =>
+          prev.map((x) => {
+            if (x.id !== id) return x;
+            const next = { ...x, deleted: true };
+            syncLedger(next);
+            return next;
+          }),
+        );
+      }
       if (before) {
         logAudit({
           module: "purchase",
@@ -185,16 +416,30 @@ export function usePurchases(businessId?: string | null) {
   );
 
   const cancel = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const before = purchasesRef.current.find((x) => x.id === id);
-      setPurchases((prev) =>
-        prev.map((x) => {
-          if (x.id !== id) return x;
-          const next = { ...x, status: "cancelled" as const };
-          syncLedger(next);
-          return next;
-        }),
-      );
+      if (USE_BACKEND) {
+        const idNum = toNumId(id);
+        if (idNum == null) return;
+        const patch: Partial<PurchaseDTO> = { id: idNum, status: "CANCELLED" };
+        const saved = await apiFetch<PurchaseDTO>(`/api/purchases/${idNum}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/merge-patch+json" },
+          body: JSON.stringify(patch),
+        });
+        setPurchases((prev) =>
+          prev.map((x) => (x.id === id ? { ...x, status: fromBackendPurchaseStatus(saved.status) } : x)),
+        );
+      } else {
+        setPurchases((prev) =>
+          prev.map((x) => {
+            if (x.id !== id) return x;
+            const next = { ...x, status: "cancelled" as const };
+            syncLedger(next);
+            return next;
+          }),
+        );
+      }
       if (before) {
         logAudit({
           module: "purchase",
@@ -210,9 +455,13 @@ export function usePurchases(businessId?: string | null) {
     [syncLedger],
   );
 
-  const scoped = purchases.filter(
-    (x) => !x.deleted && (!businessId || x.businessId === businessId),
+  const scoped = useMemo(
+    () =>
+      purchases.filter(
+        (x) => !x.deleted && (!businessId || x.businessId === businessId),
+      ),
+    [purchases, businessId],
   );
 
-  return { purchases: scoped, allPurchases: purchases, hydrated, upsert, remove, cancel };
+  return { purchases: scoped, allPurchases: purchases, hydrated, upsert, remove, cancel, ensureLines, refresh };
 }

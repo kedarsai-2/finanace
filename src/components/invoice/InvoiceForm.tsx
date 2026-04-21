@@ -86,7 +86,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { businesses, activeId } = useBusinesses();
   const { parties } = useParties(activeId);
   const { items } = useItems(activeId);
-  const { allInvoices, upsert, hydrated } = useInvoices();
+  const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -115,6 +115,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   useEffect(() => {
     if (!hydrated) return;
     if (existing) {
+      if (existing.lines.length === 0) {
+        void ensureLines(existing.id).catch(() => {});
+      }
       setPartyId(existing.partyId);
       setNumber(existing.number);
       setDate(new Date(existing.date));
@@ -127,7 +130,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     } else if (activeId) {
       setNumber(nextInvoiceNumber(allInvoices, activeId));
     }
-  }, [existing, hydrated, activeId, allInvoices]);
+  }, [existing, hydrated, activeId, allInvoices, ensureLines]);
 
   const party = parties.find((p) => p.id === partyId);
   const businessState = activeBusiness?.state;
@@ -227,7 +230,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     };
   };
 
-  const handleSave = (status: Invoice["status"]) => {
+  const handleSave = async (status: Invoice["status"]) => {
     if (locked) {
       toast.error(lockedReason);
       return;
@@ -240,7 +243,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     setSubmitting(true);
     try {
       const inv = buildInvoice(status);
-      upsert(inv);
+      await upsert(inv);
       toast.success(
         status === "final"
           ? `Invoice ${inv.number} finalised`

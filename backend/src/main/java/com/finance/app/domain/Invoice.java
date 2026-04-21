@@ -138,6 +138,21 @@ public class Invoice implements Serializable {
     @Column(name = "finalized_at")
     private Instant finalizedAt;
 
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = Instant.now();
+        if (updatedAt == null) updatedAt = createdAt;
+        if (deleted == null) deleted = false;
+        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = Instant.now();
+        if (deleted == null) deleted = false;
+        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
+    }
+
     @Column(name = "deleted")
     private Boolean deleted;
 

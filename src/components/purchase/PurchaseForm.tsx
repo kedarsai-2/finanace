@@ -91,7 +91,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { businesses, activeId } = useBusinesses();
   const { parties } = useParties(activeId);
   const { items } = useItems(activeId);
-  const { allPurchases, upsert, hydrated } = usePurchases();
+  const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   // Suppliers are parties typed 'supplier' OR 'both'.
@@ -126,6 +126,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   useEffect(() => {
     if (!hydrated) return;
     if (existing) {
+      if (existing.lines.length === 0) {
+        void ensureLines(existing.id).catch(() => {});
+      }
       setPartyId(existing.partyId);
       setNumber(existing.number);
       setDate(new Date(existing.date));
@@ -138,7 +141,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
     }
-  }, [existing, hydrated, activeId, allPurchases]);
+  }, [existing, hydrated, activeId, allPurchases, ensureLines]);
 
   const party = parties.find((p) => p.id === partyId);
   const businessState = activeBusiness?.state;
@@ -236,7 +239,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     };
   };
 
-  const handleSave = (status: Purchase["status"]) => {
+  const handleSave = async (status: Purchase["status"]) => {
     if (locked) {
       toast.error(lockedReason);
       return;
@@ -249,7 +252,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     setSubmitting(true);
     try {
       const p = buildPurchase(status);
-      upsert(p);
+      await upsert(p);
       toast.success(
         status === "final"
           ? `Purchase ${p.number} finalised`

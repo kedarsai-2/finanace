@@ -90,6 +90,16 @@ public class PurchaseLineService {
         return purchaseLineRepository.findAll().stream().map(purchaseLineMapper::toDto).collect(Collectors.toCollection(LinkedList::new));
     }
 
+    @Transactional(readOnly = true)
+    public List<PurchaseLineDTO> findAllByPurchaseId(Long purchaseId) {
+        LOG.debug("Request to get all PurchaseLines for purchase {}", purchaseId);
+        return purchaseLineRepository
+            .findAllByPurchaseIdWithToOneRelationships(purchaseId)
+            .stream()
+            .map(purchaseLineMapper::toDto)
+            .collect(Collectors.toCollection(LinkedList::new));
+    }
+
     /**
      * Get all the purchaseLines with eager load of many-to-many relationships.
      *

@@ -1,5 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
@@ -28,12 +33,12 @@ const FILTERS = ["all", "product", "service"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const searchSchema = z.object({
-  q: fallback(z.string(), "").default(""),
-  type: fallback(z.enum(FILTERS), "all").default("all"),
+  q: z.string().catch(""),
+  type: z.enum(FILTERS).catch("all"),
 });
 
 export const Route = createFileRoute("/items")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Items — Products & Services" },
@@ -44,7 +49,7 @@ export const Route = createFileRoute("/items")({
       },
     ],
   }),
-  component: ItemsPage,
+  component: ItemsRouteLayout,
 });
 
 const TYPE_LABEL: Record<ItemType, string> = {
@@ -56,6 +61,12 @@ const TYPE_BADGE: Record<ItemType, string> = {
   product: "bg-primary/10 text-primary",
   service: "bg-accent text-accent-foreground",
 };
+
+function ItemsRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/items") return <Outlet />;
+  return <ItemsPage />;
+}
 
 function ItemsPage() {
   const navigate = useNavigate({ from: "/items" });

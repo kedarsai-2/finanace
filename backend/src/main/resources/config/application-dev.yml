@@ -31,13 +31,15 @@ spring:
     serialization:
       indent-output: true
   datasource:
-    type: postgresql
     url: jdbc:postgresql://localhost:5432/finance_app
     username: postgres
     password: 1234
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: false
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically
-    contexts: dev, faker
+    contexts: dev
   mail:
     host: localhost
     port: 25
@@ -50,6 +52,13 @@ server:
   port: 8080
   # make sure requests the proxy uri instead of the server one
   forward-headers-strategy: native
+
+springdoc:
+  swagger-ui:
+    # Avoid relying on /v3/api-docs/swagger-config (can be mapped as a group path in some setups)
+    url: /v3/api-docs?group=default
+  # Keep Swagger focused on business APIs during dev (actuator endpoints remain available under /management/**)
+  show-actuator: false
 
 # ===================================================================
 # JHipster specific properties
@@ -65,7 +74,7 @@ jhipster:
   # CORS is only enabled by default with the "dev" profile
   cors:
     # Allow Ionic for JHipster by default (* no longer allowed in Spring Boot 2.4+)
-    allowed-origins: 'http://localhost:8100,https://localhost:8100'
+    allowed-origins: 'http://localhost:5173,http://localhost:8100,https://localhost:8100'
     # Enable CORS when running in GitHub Codespaces
     allowed-origin-patterns: 'https://*.githubpreview.dev'
     allowed-methods: '*'

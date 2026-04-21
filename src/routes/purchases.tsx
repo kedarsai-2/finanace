@@ -1,5 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -44,16 +49,16 @@ const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: fallback(z.string(), "").default(""),
-  status: fallback(z.enum(STATUS_FILTERS), "all").default("all"),
-  from: fallback(z.string(), "").default(""),
-  to: fallback(z.string(), "").default(""),
+  q: z.string().catch(""),
+  status: z.enum(STATUS_FILTERS).catch("all"),
+  from: z.string().catch(""),
+  to: z.string().catch(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Purchases — Bills & Payables" },
@@ -63,7 +68,7 @@ export const Route = createFileRoute("/purchases")({
       },
     ],
   }),
-  component: PurchasesPage,
+  component: PurchasesRouteLayout,
 });
 
 const STATUS_LABEL: Record<PurchaseStatus, string> = {
@@ -77,6 +82,12 @@ const STATUS_BADGE: Record<PurchaseStatus, string> = {
   final: "bg-primary/10 text-primary",
   cancelled: "bg-destructive/10 text-destructive",
 };
+
+function PurchasesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/purchases") return <Outlet />;
+  return <PurchasesPage />;
+}
 
 function PurchasesPage() {
   const navigate = useNavigate({ from: "/purchases" });

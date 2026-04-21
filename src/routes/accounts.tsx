@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
   Plus,
@@ -50,8 +50,14 @@ export const Route = createFileRoute("/accounts")({
       },
     ],
   }),
-  component: AccountsPage,
+  component: AccountsRouteLayout,
 });
+
+function AccountsRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/accounts") return <Outlet />;
+  return <AccountsPage />;
+}
 
 const TYPE_ICON: Record<AccountType, typeof Wallet> = {
   cash: Banknote,

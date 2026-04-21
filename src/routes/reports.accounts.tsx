@@ -42,6 +42,7 @@ function AccountReport() {
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
   const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { payments } = usePayments(activeId);
   const { transfers } = useTransfers(activeId);
   const { expenses } = useExpenses(activeId);
@@ -50,10 +51,10 @@ function AccountReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const selected = accounts.find((a) => a.id === accountId) ?? accounts[0];
+  const selected = safeAccounts.find((a) => a.id === accountId) ?? safeAccounts[0];
   const accountsById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts],
+    () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
+    [safeAccounts],
   );
 
   const rows = useMemo(() => {
@@ -109,7 +110,7 @@ function AccountReport() {
             <Select value={selected?.id ?? ""} onValueChange={setAccountId}>
               <SelectTrigger><SelectValue placeholder="Pick account" /></SelectTrigger>
               <SelectContent>
-                {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                {safeAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

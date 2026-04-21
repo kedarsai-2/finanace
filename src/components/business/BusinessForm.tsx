@@ -29,6 +29,9 @@ import {
 } from "@/types/business";
 import { businessFormSchema, type BusinessFormValues } from "@/lib/businessSchema";
 import { cn } from "@/lib/utils";
+import { USE_BACKEND } from "@/lib/flags";
+import { getJwt } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
 
 type Mode = "new" | "edit";
 
@@ -88,32 +91,78 @@ export function BusinessForm({ mode, businessId }: Props) {
 
   const onSubmit = (setActive: boolean) =>
     handleSubmit(
-      (values) => {
+      async (values) => {
         setSubmitting(setActive ? "save-active" : "save");
         try {
+          const token = getJwt();
+          if (USE_BACKEND && !token) {
+            toast.error("Please login to continue");
+            navigate({ to: "/login" });
+            return;
+          }
           const billing = values.billingAddress ?? {};
-          const business: Business = {
-            id: existing?.id ?? `b_${Date.now()}`,
-            name: values.name,
-            ownerName: values.ownerName,
-            mobile: values.mobile,
-            email: values.email,
-            logoUrl: values.logoUrl,
-            gstNumber: values.gstNumber,
-            panNumber: values.panNumber,
-            billingAddress: billing,
-            shippingSameAsBilling: values.shippingSameAsBilling,
-            shippingAddress: values.shippingSameAsBilling
-              ? billing
-              : (values.shippingAddress ?? {}),
-            city: billing.city ?? existing?.city ?? "—",
-            state: billing.state ?? existing?.state ?? "—",
-            currency: values.currency,
-            fyStartMonth: values.fyStartMonth,
-            hasData: existing?.hasData,
-          };
-          upsert(business);
-          if (setActive) setActiveId(business.id);
+
+          if (USE_BACKEND) {
+            const dto: Record<string, unknown> = {
+              id: existing?.id ? parseInt(existing.id, 10) : undefined,
+              name: values.name,
+              ownerName: values.ownerName || null,
+              mobile: values.mobile,
+              email: values.email || null,
+              logoUrl: values.logoUrl || null,
+              gstNumber: values.gstNumber || null,
+              panNumber: values.panNumber || null,
+              city: billing.city ?? existing?.city ?? "",
+              state: billing.state ?? existing?.state ?? "",
+              billingLine1: billing.line1 ?? null,
+              billingLine2: (billing as { line2?: string }).line2 ?? null,
+              billingCity: billing.city ?? null,
+              billingState: billing.state ?? null,
+              billingPincode: billing.pincode ?? null,
+              shippingSameAsBilling: values.shippingSameAsBilling,
+              shippingLine1: values.shippingSameAsBilling ? (billing.line1 ?? null) : (values.shippingAddress?.line1 ?? null),
+              shippingLine2: values.shippingSameAsBilling ? ((billing as { line2?: string }).line2 ?? null) : ((values.shippingAddress as { line2?: string } | undefined)?.line2 ?? null),
+              shippingCity: values.shippingSameAsBilling ? (billing.city ?? null) : (values.shippingAddress?.city ?? null),
+              shippingState: values.shippingSameAsBilling ? (billing.state ?? null) : (values.shippingAddress?.state ?? null),
+              shippingPincode: values.shippingSameAsBilling ? (billing.pincode ?? null) : (values.shippingAddress?.pincode ?? null),
+              currency: values.currency || null,
+              fyStartMonth: values.fyStartMonth ?? null,
+              hasData: existing?.hasData ?? null,
+            };
+            if (!dto.city || !dto.state) {
+              toast.error("Billing city and state are required");
+              return;
+            }
+            if (!existing) delete dto.id;
+
+            const saved = await apiFetch<any>(
+              existing ? `/api/businesses/${existing.id}` : "/api/businesses",
+              { method: existing ? "PUT" : "POST", body: JSON.stringify(dto) },
+            );
+            const savedId = String(saved.id);
+            if (setActive) setActiveId(savedId);
+          } else {
+            const business: Business = {
+              id: existing?.id ?? `b_${Date.now()}`,
+              name: values.name,
+              ownerName: values.ownerName,
+              mobile: values.mobile,
+              email: values.email,
+              logoUrl: values.logoUrl,
+              gstNumber: values.gstNumber,
+              panNumber: values.panNumber,
+              billingAddress: billing,
+              shippingSameAsBilling: values.shippingSameAsBilling,
+              shippingAddress: values.shippingSameAsBilling ? billing : (values.shippingAddress ?? {}),
+              city: billing.city ?? existing?.city ?? "—",
+              state: billing.state ?? existing?.state ?? "—",
+              currency: values.currency,
+              fyStartMonth: values.fyStartMonth,
+              hasData: existing?.hasData,
+            };
+            upsert(business);
+            if (setActive) setActiveId(business.id);
+          }
           toast.success("Business saved successfully");
           navigate({ to: "/" });
         } catch {

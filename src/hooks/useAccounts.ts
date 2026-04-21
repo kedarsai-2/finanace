@@ -1,10 +1,63 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Account } from "@/types/account";
 import { DEFAULT_ACCOUNT_SEEDS } from "@/types/account";
 import { logAudit, snapshot } from "@/lib/audit";
+import { USE_BACKEND } from "@/lib/flags";
+import { apiFetch } from "@/lib/api";
+import { getJwt } from "@/lib/auth";
+import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.accounts";
 const SEEDED_KEY = "bm.accountsSeeded";
+
+type AccountDTO = {
+  id?: number;
+  name: string;
+  type: "CASH" | "BANK" | "UPI";
+  openingBalance: number;
+  accountNumber?: string | null;
+  ifsc?: string | null;
+  upiId?: string | null;
+  notes?: string | null;
+  deleted?: boolean | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  business?: { id: number; name?: string | null } | null;
+};
+
+function dtoToAccount(dto: AccountDTO): Account {
+  const type = dto.type === "CASH" ? "cash" : dto.type === "BANK" ? "bank" : "upi";
+  const bizId = dto.business?.id;
+  return {
+    id: toStrId(dto.id),
+    businessId: bizId != null ? String(bizId) : "",
+    name: dto.name,
+    type,
+    openingBalance: Number(dto.openingBalance ?? 0),
+    accountNumber: dto.accountNumber ?? undefined,
+    ifsc: dto.ifsc ?? undefined,
+    upiId: dto.upiId ?? undefined,
+    notes: dto.notes ?? undefined,
+    deleted: dto.deleted ?? undefined,
+    createdAt: dto.createdAt ?? new Date().toISOString(),
+  };
+}
+
+function accountToDto(a: Account): AccountDTO {
+  const type = a.type === "cash" ? "CASH" : a.type === "bank" ? "BANK" : "UPI";
+  return {
+    id: toNumId(a.id) ?? undefined,
+    name: a.name,
+    type,
+    openingBalance: a.openingBalance ?? 0,
+    accountNumber: a.accountNumber ?? null,
+    ifsc: a.ifsc ?? null,
+    upiId: a.upiId ?? null,
+    notes: a.notes ?? null,
+    deleted: a.deleted ?? false,
+    business: businessRefFromId(a.businessId),
+  };
+}
 
 function read(): Account[] {
   if (typeof window === "undefined") return [];
@@ -14,6 +67,19 @@ function read(): Account[] {
   } catch {
     return [];
   }
+}
+
+function normalizeLocalIds(existing: Account[]): { accounts: Account[]; changed: boolean } {
+  let changed = false;
+  const accounts = existing.map((a) => {
+    if (a && a.id) return a;
+    changed = true;
+    return {
+      ...a,
+      id: `acc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    } as Account;
+  });
+  return { accounts, changed };
 }
 
 /**
@@ -56,6 +122,11 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      setHydrated(true);
+      return;
+    }
     const initial = read();
     const ids = allBusinessIds.length
       ? allBusinessIds
@@ -63,9 +134,10 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
         ? [businessId]
         : [];
     const migrated = migrateDefaults(initial, ids);
-    setAccounts(migrated);
-    if (migrated.length !== initial.length) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    const normalized = normalizeLocalIds(migrated);
+    setAccounts(normalized.accounts);
+    if (migrated.length !== initial.length || normalized.changed) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.accounts));
     }
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,8 +145,37 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
 
   useEffect(() => {
     if (!hydrated) return;
+    const token = getJwt();
+    if (USE_BACKEND && token) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
   }, [accounts, hydrated]);
+
+  useEffect(() => {
+    const token = getJwt();
+    if (!USE_BACKEND || !token) return;
+    const biz = businessId ? parseInt(businessId, 10) : NaN;
+    if (!businessId || isNaN(biz)) {
+      setAccounts([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await apiFetch<AccountDTO[]>(
+          `/api/accounts?businessId.equals=${biz}&size=200&sort=id,desc`,
+        );
+        if (cancelled) return;
+        setAccounts(list.map(dtoToAccount).filter((a) => !!a.id));
+      } catch {
+        if (cancelled) return;
+        setAccounts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
+
 
   const accountsRef = useRef<Account[]>(accounts);
   useEffect(() => {
@@ -82,25 +183,67 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   }, [accounts]);
 
   const upsert = useCallback((a: Account) => {
-    const before = accountsRef.current.find((x) => x.id === a.id);
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      return (async () => {
+        const isUpdate = /^\d+$/.test(a.id);
+        const dto = accountToDto(a);
+        if (!isUpdate) delete dto.id;
+        const saved = await apiFetch<AccountDTO>(
+          isUpdate ? `/api/accounts/${a.id}` : "/api/accounts",
+          { method: isUpdate ? "PUT" : "POST", body: JSON.stringify(dto) },
+        );
+        const mapped = dtoToAccount(saved);
+        if (!mapped.id) {
+          throw new Error("Account save failed: missing id");
+        }
+        setAccounts((prev) => {
+          const exists = prev.some((x) => x.id === mapped.id);
+          return exists ? prev.map((x) => (x.id === mapped.id ? mapped : x)) : [mapped, ...prev];
+        });
+        return mapped;
+      })();
+    }
+    const local: Account = {
+      ...a,
+      id:
+        a.id ||
+        `acc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    };
+    const before = accountsRef.current.find((x) => x.id === local.id);
     setAccounts((prev) => {
-      const exists = prev.some((x) => x.id === a.id);
-      return exists ? prev.map((x) => (x.id === a.id ? a : x)) : [...prev, a];
+      const exists = prev.some((x) => x.id === local.id);
+      return exists
+        ? prev.map((x) => (x.id === local.id ? local : x))
+        : [...prev, local];
     });
     logAudit({
       module: "account",
       action: before ? "edit" : "create",
-      recordId: a.id,
-      reference: a.name,
-      refLink: `/accounts/${a.id}`,
-      businessId: a.businessId,
+      recordId: local.id,
+      reference: local.name,
+      refLink: `/accounts/${local.id}`,
+      businessId: local.businessId,
       before: before ? snapshot(before) : null,
-      after: snapshot(a),
+      after: snapshot(local),
     });
+    return Promise.resolve(local);
   }, []);
 
   const remove = useCallback((id: string) => {
     const before = accountsRef.current.find((x) => x.id === id);
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      (async () => {
+        try {
+          await apiFetch<void>(`/api/accounts/${id}`, { method: "DELETE" });
+          setAccounts((prev) => prev.filter((x) => x.id !== id));
+        } catch {
+          // ignore
+        }
+      })();
+      return;
+    }
     setAccounts((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
     if (before) {
       logAudit({
@@ -114,8 +257,12 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     }
   }, []);
 
-  const scoped = accounts.filter(
-    (a) => !a.deleted && (!businessId || a.businessId === businessId),
+  const scoped = useMemo(
+    () =>
+      accounts.filter(
+        (a) => !a.deleted && (!businessId || a.businessId === businessId),
+      ),
+    [accounts, businessId],
   );
 
   return { accounts: scoped, allAccounts: accounts, hydrated, upsert, remove };

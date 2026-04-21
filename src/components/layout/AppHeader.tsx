@@ -1,11 +1,13 @@
-import { Link } from "@tanstack/react-router";
-import { LayoutGrid, Menu } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { LayoutGrid, LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { USE_BACKEND } from "@/lib/flags";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { to: "/", label: "Dashboard" },
@@ -23,6 +25,8 @@ const navLinks = [
 
 export function AppHeader() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthed, logout } = useAuth();
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
@@ -65,6 +69,19 @@ export function AppHeader() {
         <div className="ml-auto flex items-center gap-2">
           <NotificationBell />
           <BusinessSwitcher />
+          {USE_BACKEND && isAuthed ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Logout"
+              onClick={() => {
+                logout();
+                navigate({ to: "/login" });
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
     </header>

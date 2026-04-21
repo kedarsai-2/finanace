@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { readAuditLogs } from "@/lib/audit";
 import type { AuditEntry } from "@/types/audit";
 
@@ -20,12 +20,19 @@ export function useAuditLogs(businessId?: string | null) {
     };
   }, []);
 
-  const scoped = businessId
-    ? logs.filter((l) => !l.businessId || l.businessId === businessId)
-    : logs;
+  const scoped = useMemo(
+    () =>
+      businessId
+        ? logs.filter((l) => !l.businessId || l.businessId === businessId)
+        : logs,
+    [logs, businessId],
+  );
 
   // Newest first.
-  const sorted = [...scoped].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const sorted = useMemo(
+    () => [...scoped].sort((a, b) => b.timestamp.localeCompare(a.timestamp)),
+    [scoped],
+  );
 
   return { logs: sorted, allLogs: logs, hydrated };
 }

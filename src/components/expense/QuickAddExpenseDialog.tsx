@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,6 +48,7 @@ export function QuickAddExpenseDialog({
 }: QuickAddExpenseDialogProps) {
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
@@ -58,8 +59,8 @@ export function QuickAddExpenseDialog({
 
   const [amount, setAmount] = useState<number>(0);
   const [accountId, setAccountId] = useState<string>(
-    (lastAccount && accounts.find((a) => a.id === lastAccount)?.id) ||
-      accounts[0]?.id ||
+    (lastAccount && safeAccounts.find((a) => a.id === lastAccount)?.id) ||
+      safeAccounts[0]?.id ||
       "",
   );
   const [category, setCategory] = useState<string>(
@@ -67,15 +68,15 @@ export function QuickAddExpenseDialog({
   );
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!activeId) return toast.error("Select a business first");
     if (!accountId) return toast.error("Account required");
     if (!(amount > 0)) return toast.error("Amount must be > 0");
     setSubmitting(true);
     try {
-      const acc = accounts.find((a) => a.id === accountId);
+      const acc = safeAccounts.find((a) => a.id === accountId);
       const exp: Expense = {
-        id: `exp_${Date.now().toString(36)}`,
+        id: "",
         businessId: activeId,
         accountId,
         date: new Date().toISOString(),
@@ -84,7 +85,7 @@ export function QuickAddExpenseDialog({
         mode: acc ? modeFromAccountType(acc.type) : "cash",
         createdAt: new Date().toISOString(),
       };
-      add(exp);
+      await add(exp);
       if (typeof window !== "undefined") {
         localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
       }
@@ -141,7 +142,7 @@ export function QuickAddExpenseDialog({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((a) => (
+                {safeAccounts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                   </SelectItem>

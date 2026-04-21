@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -57,12 +57,19 @@ const LIST_SEARCH = {
 function PurchaseDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { businesses } = useBusinesses();
-  const { allPurchases, cancel, remove } = usePurchases();
+  const { businesses, activeId } = useBusinesses();
+  const { allPurchases, cancel, remove, ensureLines } = usePurchases(activeId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
+
+  useEffect(() => {
+    if (!purchase) return;
+    if (purchase.lines.length === 0) {
+      void ensureLines(purchase.id).catch(() => {});
+    }
+  }, [purchase, ensureLines]);
 
   if (!purchase) {
     return (

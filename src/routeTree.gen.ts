@@ -13,6 +13,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PurchasesRouteImport } from './routes/purchases'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as PartiesRouteImport } from './routes/parties'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ItemsRouteImport } from './routes/items'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as ExpensesRouteImport } from './routes/expenses'
@@ -71,6 +72,11 @@ const PaymentsRoute = PaymentsRouteImport.update({
 const PartiesRoute = PartiesRouteImport.update({
   id: '/parties',
   path: '/parties',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsRoute = ItemsRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
+  '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
@@ -322,6 +329,7 @@ export interface FileRoutesByTo {
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
+  '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
+  '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
@@ -415,6 +424,7 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/invoices'
     | '/items'
+    | '/login'
     | '/parties'
     | '/payments'
     | '/purchases'
@@ -460,6 +470,7 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/invoices'
     | '/items'
+    | '/login'
     | '/parties'
     | '/payments'
     | '/purchases'
@@ -505,6 +516,7 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/invoices'
     | '/items'
+    | '/login'
     | '/parties'
     | '/payments'
     | '/purchases'
@@ -551,6 +563,7 @@ export interface RootRouteChildren {
   ExpensesRoute: typeof ExpensesRouteWithChildren
   InvoicesRoute: typeof InvoicesRouteWithChildren
   ItemsRoute: typeof ItemsRouteWithChildren
+  LoginRoute: typeof LoginRoute
   PartiesRoute: typeof PartiesRouteWithChildren
   PaymentsRoute: typeof PaymentsRouteWithChildren
   PurchasesRoute: typeof PurchasesRouteWithChildren
@@ -587,6 +600,13 @@ declare module '@tanstack/react-router' {
       path: '/parties'
       fullPath: '/parties'
       preLoaderRoute: typeof PartiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/items': {
@@ -1019,6 +1039,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExpensesRoute: ExpensesRouteWithChildren,
   InvoicesRoute: InvoicesRouteWithChildren,
   ItemsRoute: ItemsRouteWithChildren,
+  LoginRoute: LoginRoute,
   PartiesRoute: PartiesRouteWithChildren,
   PaymentsRoute: PaymentsRouteWithChildren,
   PurchasesRoute: PurchasesRouteWithChildren,

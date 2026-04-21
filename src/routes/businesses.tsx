@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,16 @@ export const Route = createFileRoute("/businesses")({
       },
     ],
   }),
-  component: BusinessesPage,
+  component: BusinessesRouteLayout,
 });
 
 const hasUnsavedWork = () => false;
+
+function BusinessesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/businesses") return <Outlet />;
+  return <BusinessesPage />;
+}
 
 function BusinessesPage() {
   const navigate = useNavigate();

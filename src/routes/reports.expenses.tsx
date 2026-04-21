@@ -31,10 +31,11 @@ function ExpenseReport() {
   const { expenses } = useExpenses(activeId);
   const { categories } = useExpenseCategories(activeId);
   const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
+  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
 
   const accountsById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a.name])),
-    [accounts],
+    () => Object.fromEntries(safeAccounts.map((a) => [a.id, a.name])),
+    [safeAccounts],
   );
 
   const [from, setFrom] = useState("");
@@ -95,7 +96,7 @@ function ExpenseReport() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All accounts</SelectItem>
-                {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                {safeAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

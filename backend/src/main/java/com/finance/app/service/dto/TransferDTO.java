@@ -24,7 +24,6 @@ public class TransferDTO implements Serializable {
     @Size(max = 2000)
     private String notes;
 
-    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;

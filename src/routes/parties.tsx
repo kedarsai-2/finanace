@@ -1,5 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import {
@@ -35,12 +40,12 @@ const FILTERS = ["all", "customer", "supplier", "both"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const searchSchema = z.object({
-  q: fallback(z.string(), "").default(""),
-  type: fallback(z.enum(FILTERS), "all").default("all"),
+  q: z.string().catch(""),
+  type: z.enum(FILTERS).catch("all"),
 });
 
 export const Route = createFileRoute("/parties")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Parties — Customers & Suppliers" },
@@ -51,7 +56,7 @@ export const Route = createFileRoute("/parties")({
       },
     ],
   }),
-  component: PartiesPage,
+  component: PartiesRouteLayout,
 });
 
 const TYPE_LABEL: Record<PartyType, string> = {
@@ -65,6 +70,12 @@ const TYPE_BADGE: Record<PartyType, string> = {
   supplier: "bg-warning/15 text-warning-foreground/80",
   both: "bg-accent text-accent-foreground",
 };
+
+function PartiesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/parties") return <Outlet />;
+  return <PartiesPage />;
+}
 
 function PartiesPage() {
   const navigate = useNavigate({ from: "/parties" });
@@ -126,7 +137,7 @@ function PartiesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/parties/new">
+              <Link to="/parties/new" search={{ q: "", type: "all" }}>
                 <Plus className="h-4 w-4" />
                 Add Party
               </Link>
@@ -281,6 +292,7 @@ function PartiesTable({
               <Link
                 to="/parties/$id"
                 params={{ id: p.id }}
+                search={{ q: "", type: "all" }}
                 className="flex min-w-0 items-center gap-3 text-left"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-sm font-semibold text-primary-foreground">
@@ -350,7 +362,7 @@ function PartiesTable({
                   className="h-8 w-8"
                   aria-label={`Edit ${p.name}`}
                 >
-                  <Link to="/parties/$id/edit" params={{ id: p.id }}>
+                  <Link to="/parties/$id/edit" params={{ id: p.id }} search={{ q: "", type: "all" }}>
                     <Pencil className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -387,7 +399,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Add your first customer or supplier to start tracking balances."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/parties/new">
+        <Link to="/parties/new" search={{ q: "", type: "all" }}>
           <Plus className="h-4 w-4" />
           Add Party
         </Link>

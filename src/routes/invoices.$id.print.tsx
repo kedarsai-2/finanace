@@ -21,12 +21,19 @@ export const Route = createFileRoute("/invoices/$id/print")({
 
 function InvoicePrintPage() {
   const { id } = Route.useParams();
-  const { businesses } = useBusinesses();
-  const { allInvoices, hydrated } = useInvoices();
+  const { businesses, activeId } = useBusinesses();
+  const { allInvoices, hydrated, ensureLines } = useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
+
+  useEffect(() => {
+    if (!invoice) return;
+    if (invoice.lines.length === 0) {
+      void ensureLines(invoice.id).catch(() => {});
+    }
+  }, [invoice, ensureLines]);
 
   // Auto-trigger the browser's print dialog when arriving with ?auto=1
   useEffect(() => {

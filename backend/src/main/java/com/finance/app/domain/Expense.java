@@ -78,6 +78,23 @@ public class Expense implements Serializable {
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
+    @PrePersist
+    public void prePersist() {
+        Instant now = Instant.now();
+        if (this.createdAt == null) {
+            this.createdAt = now;
+        }
+        this.updatedAt = now;
+        if (this.deleted == null) {
+            this.deleted = false;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return this.id;
     }

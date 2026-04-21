@@ -51,7 +51,7 @@ export function AccountForm({ account, mode }: Props) {
     return Object.keys(next).length === 0;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     if (!activeId) {
@@ -61,7 +61,7 @@ export function AccountForm({ account, mode }: Props) {
     setSubmitting(true);
     try {
       const payload: Account = {
-        id: account?.id ?? `acc_${Date.now()}`,
+        id: account?.id ?? "",
         businessId: account?.businessId ?? activeId,
         name: name.trim(),
         type,
@@ -72,7 +72,7 @@ export function AccountForm({ account, mode }: Props) {
         notes: notes.trim() || undefined,
         createdAt: account?.createdAt ?? new Date().toISOString(),
       };
-      upsert(payload);
+      await upsert(payload);
       toast.success(mode === "create" ? "Account added" : "Account updated");
       navigate({ to: "/accounts" });
     } finally {

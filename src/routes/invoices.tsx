@@ -1,5 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -52,17 +57,17 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: fallback(z.string(), "").default(""),
-  status: fallback(z.enum(STATUS_FILTERS), "all").default("all"),
-  payment: fallback(z.enum(PAY_FILTERS), "all").default("all"),
-  from: fallback(z.string(), "").default(""),
-  to: fallback(z.string(), "").default(""),
+  q: z.string().catch(""),
+  status: z.enum(STATUS_FILTERS).catch("all"),
+  payment: z.enum(PAY_FILTERS).catch("all"),
+  from: z.string().catch(""),
+  to: z.string().catch(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/invoices")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Invoices — Sales & Receivables" },
@@ -72,7 +77,7 @@ export const Route = createFileRoute("/invoices")({
       },
     ],
   }),
-  component: InvoicesPage,
+  component: InvoicesRouteLayout,
 });
 
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
@@ -92,6 +97,12 @@ const PAY_BADGE: Record<PaymentStatus, string> = {
   partial: "bg-warning/15 text-warning-foreground/80",
   unpaid: "bg-muted text-muted-foreground",
 };
+
+function InvoicesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/invoices") return <Outlet />;
+  return <InvoicesPage />;
+}
 
 function InvoicesPage() {
   const navigate = useNavigate({ from: "/invoices" });

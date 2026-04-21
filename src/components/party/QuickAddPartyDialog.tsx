@@ -91,6 +91,7 @@ export function QuickAddPartyDialog({
   };
 
   const handleSave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     if (!activeId) {
       toast.error("Select an active business first");
       return;
@@ -100,20 +101,27 @@ export function QuickAddPartyDialog({
     if (Object.keys(next).length > 0) return;
 
     setSubmitting(true);
-    const party: Party = {
-      id: `p_${Date.now().toString(36)}`,
-      businessId: activeId,
-      name: form.name.trim(),
-      type: form.type,
-      mobile: form.mobile.trim(),
-      gstNumber: form.gstNumber.trim().toUpperCase() || undefined,
-      balance: 0,
-    };
-    upsert(party);
-    toast.success(`${party.name} added`);
-    setSubmitting(false);
-    onCreated?.(party);
-    handleOpenChange(false);
+    (async () => {
+      try {
+        const party: Party = {
+          id: "",
+          businessId: activeId,
+          name: form.name.trim(),
+          type: form.type,
+          mobile: form.mobile.trim(),
+          gstNumber: form.gstNumber.trim().toUpperCase() || undefined,
+          balance: 0,
+        };
+        const saved = await upsert(party);
+        toast.success(`${saved.name} added`);
+        onCreated?.(saved);
+        handleOpenChange(false);
+      } catch {
+        toast.error("Could not save party");
+      } finally {
+        setSubmitting(false);
+      }
+    })();
   };
 
   return (

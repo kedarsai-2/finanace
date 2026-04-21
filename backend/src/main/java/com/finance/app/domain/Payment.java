@@ -59,6 +59,17 @@ public class Payment implements Serializable {
     @Column(name = "notes", length = 2000)
     private String notes;
 
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = Instant.now();
+        if (updatedAt == null) updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = Instant.now();
+    }
+
     @NotNull
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

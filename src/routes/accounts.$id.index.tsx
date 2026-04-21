@@ -11,7 +11,6 @@ import {
   Smartphone,
   Banknote,
 } from "lucide-react";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -45,13 +44,13 @@ const KIND_FILTERS = ["all", "payment", "transfer", "expense"] as const;
 type KindFilter = (typeof KIND_FILTERS)[number];
 
 const searchSchema = z.object({
-  from: fallback(z.string(), "").default(""),
-  to: fallback(z.string(), "").default(""),
-  kind: fallback(z.enum(KIND_FILTERS), "all").default("all"),
+  from: z.string().catch(""),
+  to: z.string().catch(""),
+  kind: z.enum(KIND_FILTERS).catch("all"),
 });
 
 export const Route = createFileRoute("/accounts/$id/")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({ meta: [{ title: "Account details — QOBOX" }] }),
   component: AccountDetailsPage,
   notFoundComponent: () => (
