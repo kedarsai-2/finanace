@@ -189,5 +189,19 @@ export function useBusinesses() {
     [activeId, businesses],
   );
 
-  return { businesses, activeId, setActiveId, upsert, remove, hydrated };
+  // When the user picks "All Companies", expose a null scope so
+  // downstream hooks (invoices, purchases, parties, …) skip the per-business filter.
+  const isAll = activeId === "__all__";
+  const scopedBusinessId = isAll ? null : activeId;
+
+  return {
+    businesses,
+    activeId,
+    scopedBusinessId,
+    isAll,
+    setActiveId,
+    upsert,
+    remove,
+    hydrated,
+  };
 }
