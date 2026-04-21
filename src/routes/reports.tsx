@@ -5,7 +5,6 @@ import {
   Receipt,
   Users,
   Wallet,
-  FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
