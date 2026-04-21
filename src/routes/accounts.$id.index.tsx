@@ -1,4 +1,9 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useRouter,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -44,13 +49,15 @@ const KIND_FILTERS = ["all", "payment", "transfer", "expense"] as const;
 type KindFilter = (typeof KIND_FILTERS)[number];
 
 const searchSchema = z.object({
-  from: z.string().catch(""),
-  to: z.string().catch(""),
-  kind: z.enum(KIND_FILTERS).catch("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
+  kind: z.enum(KIND_FILTERS).catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/accounts/$id/")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({ meta: [{ title: "Account details — QOBOX" }] }),
   component: AccountDetailsPage,
   notFoundComponent: () => (

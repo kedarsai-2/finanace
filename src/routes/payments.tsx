@@ -1,4 +1,10 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
@@ -26,14 +32,16 @@ const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
 
 const searchSchema = z.object({
-  dir: z.enum(DIRS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
-  account: z.string().catch(""),
+  dir: z.enum(DIRS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
+  account: z.string().catch("").default(""),
 });
 
 export const Route = createFileRoute("/payments")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Payments — Receive & Pay" },

@@ -4,6 +4,7 @@ import {
   Link,
   useNavigate,
   useRouterState,
+  type SearchSchemaInput,
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
@@ -49,16 +50,18 @@ const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  status: z.enum(STATUS_FILTERS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
+  q: z.string().catch("").default(""),
+  status: z.enum(STATUS_FILTERS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<SearchValues> & SearchSchemaInput,
+  ): SearchValues => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Purchases — Bills & Payables" },
