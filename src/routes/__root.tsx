@@ -134,6 +134,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthed } = useAuth();
+  const snapshot = useDashboardSnapshot();
 
   const isAuthScreen = pathname === "/login";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
@@ -155,8 +156,6 @@ function RootComponent() {
       </div>
     );
   }
-
-  const snapshot = useDashboardSnapshot();
 
   return (
     <div className="flex min-h-screen w-full">
