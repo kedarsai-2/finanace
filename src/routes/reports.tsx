@@ -5,7 +5,6 @@ import {
   Receipt,
   Users,
   Wallet,
-  FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,13 +59,6 @@ const REPORTS = [
     desc: "Account-wise debit / credit / balance",
     icon: Wallet,
     tone: "primary",
-  },
-  {
-    to: "/reports/gst",
-    label: "GST Report",
-    desc: "Output and input GST summary",
-    icon: FileBarChart,
-    tone: "success",
   },
 ] as const;
 

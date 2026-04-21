@@ -92,8 +92,8 @@ function PurchasesRouteLayout() {
 function PurchasesPage() {
   const navigate = useNavigate({ from: "/purchases" });
   const { q, status, from, to } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { purchases, hydrated, remove, cancel } = usePurchases(activeId);
+  const { activeId, scopedBusinessId, businesses } = useBusinesses();
+  const { purchases, hydrated, remove, cancel } = usePurchases(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);
@@ -178,7 +178,7 @@ function PurchasesPage() {
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total purchases" value={String(totals.count)} />
             <SummaryCard
-              label="Total billed"
+              label="Total Purchase"
               value={formatCurrency(totals.total, currency)}
             />
           </div>
