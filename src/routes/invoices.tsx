@@ -194,7 +194,7 @@ function InvoicesPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SummaryCard label="Total billed" value={formatCurrency(totals.total, currency)} />
+            <SummaryCard label="Total Sale" value={formatCurrency(totals.total, currency)} />
             <SummaryCard label="Total received" value={formatCurrency(totals.paid, currency)} tone="success" />
             <SummaryCard
               label="Outstanding"

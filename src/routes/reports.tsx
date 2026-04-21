@@ -61,13 +61,6 @@ const REPORTS = [
     icon: Wallet,
     tone: "primary",
   },
-  {
-    to: "/reports/gst",
-    label: "GST Report",
-    desc: "Output and input GST summary",
-    icon: FileBarChart,
-    tone: "success",
-  },
 ] as const;
 
 const TONE: Record<string, string> = {
