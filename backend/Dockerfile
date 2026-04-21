@@ -13,11 +13,11 @@ WORKDIR /workspace
 
 # Cache deps first
 COPY pom.xml ./
-RUN mvn -q -DskipTests dependency:go-offline
+RUN mvn -B -DskipTests dependency:go-offline
 
 # Build
 COPY src ./src
-RUN mvn -q -DskipTests -Pprod package
+RUN mvn -B -e -DskipTests -Pprod package
 
 
 FROM eclipse-temurin:21-jre-noble AS runtime
