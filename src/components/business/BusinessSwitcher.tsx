@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Check, ChevronsUpDown, Plus, Building2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Building2, Search, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export function BusinessSwitcher() {
     () => businesses.find((b) => b.id === activeId),
     [businesses, activeId],
   );
+  const isAll = activeId === "__all__";
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,6 +77,14 @@ export function BusinessSwitcher() {
     router.invalidate();
   };
 
+  const handlePickAll = () => {
+    setOpen(false);
+    if (isAll) return;
+    setActiveId("__all__");
+    toast.success("Showing all companies");
+    router.invalidate();
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -87,13 +96,23 @@ export function BusinessSwitcher() {
           className="h-12 w-full justify-between gap-3 px-3 sm:w-[280px]"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <Avatar business={active} />
+            {isAll ? (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground">
+                <Layers className="h-4 w-4" />
+              </div>
+            ) : (
+              <Avatar business={active} />
+            )}
             <div className="min-w-0 text-left">
               <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Active business
               </p>
               <p className="truncate text-sm font-semibold leading-tight">
-                {hydrated ? active?.name ?? "Select a business" : "Loading…"}
+                {hydrated
+                  ? isAll
+                    ? "All Companies"
+                    : active?.name ?? "Select a business"
+                  : "Loading…"}
               </p>
             </div>
           </div>
@@ -119,6 +138,25 @@ export function BusinessSwitcher() {
         </div>
 
         <div className="max-h-72 overflow-y-auto p-1">
+          <button
+            type="button"
+            onClick={handlePickAll}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors",
+              "hover:bg-accent",
+              isAll && "bg-primary/5",
+            )}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground">
+              <Layers className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium leading-tight">All Companies</p>
+              <p className="truncate text-xs text-muted-foreground">Combined view across all businesses</p>
+            </div>
+            {isAll && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          </button>
+          <div className="my-1 h-px bg-border" />
           {filtered.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
               No businesses match "{query}"
