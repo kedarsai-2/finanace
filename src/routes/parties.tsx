@@ -40,8 +40,8 @@ const FILTERS = ["all", "customer", "supplier", "both"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  type: z.enum(FILTERS).catch("all"),
+  q: z.string().catch("").default(""),
+  type: z.enum(FILTERS).catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/parties")({

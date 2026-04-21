@@ -44,9 +44,9 @@ const KIND_FILTERS = ["all", "payment", "transfer", "expense"] as const;
 type KindFilter = (typeof KIND_FILTERS)[number];
 
 const searchSchema = z.object({
-  from: z.string().catch(""),
-  to: z.string().catch(""),
-  kind: z.enum(KIND_FILTERS).catch("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
+  kind: z.enum(KIND_FILTERS).catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/accounts/$id/")({

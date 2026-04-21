@@ -57,11 +57,11 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  status: z.enum(STATUS_FILTERS).catch("all"),
-  payment: z.enum(PAY_FILTERS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
+  q: z.string().catch("").default(""),
+  status: z.enum(STATUS_FILTERS).catch("all").default("all"),
+  payment: z.enum(PAY_FILTERS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;

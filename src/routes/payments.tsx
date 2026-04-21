@@ -26,10 +26,10 @@ const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
 
 const searchSchema = z.object({
-  dir: z.enum(DIRS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
-  account: z.string().catch(""),
+  dir: z.enum(DIRS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
+  account: z.string().catch("").default(""),
 });
 
 export const Route = createFileRoute("/payments")({
