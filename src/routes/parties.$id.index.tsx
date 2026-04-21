@@ -24,6 +24,9 @@ import { usePurchases } from "@/hooks/usePurchases";
 import { PartyLedger } from "@/components/party/PartyLedger";
 import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
 import type { PartyType } from "@/types/party";
+import type { Invoice } from "@/types/invoice";
+import type { Purchase } from "@/types/purchase";
+import type { Payment } from "@/types/payment";
 
 export const Route = createFileRoute("/parties/$id/")({
   head: () => ({
@@ -269,6 +272,130 @@ function SummaryCard({
           {hint}
         </p>
       )}
+    </div>
+  );
+}
+
+type TimelineRow = {
+  id: string;
+  date: string;
+  kind: "Invoice" | "Credit Note" | "Purchase" | "Purch. Return" | "Payment";
+  ref: string;
+  link: string;
+  amount: number;
+  tone: "primary" | "destructive" | "success" | "warning";
+};
+
+function PartyTimeline({
+  partyId,
+  invoices,
+  purchases,
+  payments,
+  currency,
+}: {
+  partyId: string;
+  invoices: Invoice[];
+  purchases: Purchase[];
+  payments: Payment[];
+  currency: string;
+}) {
+  const rows: TimelineRow[] = [];
+  for (const inv of invoices) {
+    if (inv.deleted || inv.partyId !== partyId) continue;
+    const isCN = inv.kind === "credit-note";
+    rows.push({
+      id: inv.id,
+      date: inv.date,
+      kind: isCN ? "Credit Note" : "Invoice",
+      ref: inv.number,
+      link: isCN ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
+      amount: isCN ? -inv.total : inv.total,
+      tone: isCN ? "destructive" : "primary",
+    });
+  }
+  for (const p of purchases) {
+    if (p.deleted || p.partyId !== partyId) continue;
+    const isRet = p.kind === "return";
+    rows.push({
+      id: p.id,
+      date: p.date,
+      kind: isRet ? "Purch. Return" : "Purchase",
+      ref: p.number,
+      link: isRet ? `/purchase-returns/${p.id}` : `/purchases/${p.id}`,
+      amount: isRet ? p.total : -p.total,
+      tone: isRet ? "success" : "warning",
+    });
+  }
+  for (const pay of payments) {
+    if (pay.partyId !== partyId) continue;
+    rows.push({
+      id: pay.id,
+      date: pay.date,
+      kind: "Payment",
+      ref: pay.reference || "—",
+      link: `/payments`,
+      amount: pay.direction === "in" ? -pay.amount : pay.amount,
+      tone: "success",
+    });
+  }
+  rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center text-sm text-muted-foreground">
+        No transactions yet for this party.
+      </div>
+    );
+  }
+
+  const toneClass = (t: TimelineRow["tone"]) =>
+    t === "primary"
+      ? "bg-primary/10 text-primary"
+      : t === "destructive"
+        ? "bg-destructive/10 text-destructive"
+        : t === "success"
+          ? "bg-success/15 text-success"
+          : "bg-warning/15 text-warning-foreground/80";
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <li
+            key={`${r.kind}-${r.id}`}
+            className="grid grid-cols-[110px_120px_1fr_140px] items-center gap-3 px-5 py-3 text-sm"
+          >
+            <span className="text-muted-foreground">
+              {format(new Date(r.date), "dd MMM yyyy")}
+            </span>
+            <span>
+              <span
+                className={cn(
+                  "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  toneClass(r.tone),
+                )}
+              >
+                {r.kind}
+              </span>
+            </span>
+            <a
+              href={r.link}
+              className="font-mono text-xs text-primary hover:underline"
+            >
+              {r.ref}
+            </a>
+            <span
+              className={cn(
+                "text-right font-mono font-semibold tabular-nums",
+                r.amount > 0 ? "text-success" : "text-destructive",
+              )}
+            >
+              {r.amount >= 0 ? "+ " : "− "}
+              {formatCurrency(r.amount, currency)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
