@@ -88,3 +88,12 @@ export function invoicePrintUrl(invoiceId: string): string {
   if (typeof window === "undefined") return `/invoices/${invoiceId}/print`;
   return `${window.location.origin}/invoices/${invoiceId}/print`;
 }
+
+/** Open mailto: with the invoice link prefilled. */
+export function shareInvoiceByEmail(args: ShareInvoiceArgs & { email?: string }) {
+  const subject = `Invoice ${args.invoiceNumber}`;
+  const body = buildShareMessage(args);
+  const to = args.email ?? "";
+  const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = url;
+}
