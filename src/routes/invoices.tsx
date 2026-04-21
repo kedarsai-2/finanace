@@ -67,7 +67,7 @@ const searchSchema = z.object({
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/invoices")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search: Partial<SearchValues>): SearchValues => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Invoices — Sales & Receivables" },
