@@ -352,11 +352,11 @@ function InvoiceDetailsPage() {
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-6 py-2 text-left">Item</th>
+                    <th className="px-3 py-2 text-left">Unit</th>
                     <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Rate</th>
+                    <th className="px-3 py-2 text-right">Unit Price</th>
                     <th className="px-3 py-2 text-right">Disc.</th>
-                    <th className="px-3 py-2 text-right">Tax %</th>
-                    <th className="px-6 py-2 text-right">Amount</th>
+                    <th className="px-6 py-2 text-right">Total Price</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -366,11 +366,9 @@ function InvoiceDetailsPage() {
                       <tr key={line.id}>
                         <td className="px-6 py-3">
                           <p className="font-medium">{line.name}</p>
-                          {line.unit && (
-                            <p className="text-xs text-muted-foreground">
-                              {line.unit}
-                            </p>
-                          )}
+                        </td>
+                        <td className="px-3 py-3 text-left text-muted-foreground">
+                          {line.unit || "—"}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums">
                           {line.qty}
@@ -384,9 +382,6 @@ function InvoiceDetailsPage() {
                               ? `${line.discountValue}%`
                               : formatCurrency(line.discountValue, currency)
                             : "—"}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {line.taxPercent}%
                         </td>
                         <td className="px-6 py-3 text-right font-semibold tabular-nums">
                           {formatCurrency(m.total, currency)}
