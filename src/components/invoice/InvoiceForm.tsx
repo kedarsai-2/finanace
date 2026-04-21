@@ -468,12 +468,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-left">Unit</th>
-                  <th className="px-3 py-2 text-right">Rate</th>
+                  <th className="px-3 py-2 text-right">Qty</th>
+                  <th className="px-3 py-2 text-right">Unit Price</th>
                   <th className="px-3 py-2 text-left" colSpan={2}>Discount</th>
-                  <th className="px-3 py-2 text-right">Tax %</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2 text-right">Total Price</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -489,6 +488,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           onSelect={(item) => applyItemToLine(line.id, item)}
                           onChangeName={(v) => updateLine(line.id, { name: v, itemId: undefined })}
                           onQuickAdd={() => setQuickItemForRow(line.id)}
+                          locked={!!line.itemId}
+                        />
+                      </td>
+                      <td className="w-20 px-2 py-2">
+                        <Input
+                          value={line.unit}
+                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
+                          className="h-9"
                         />
                       </td>
                       <td className="w-20 px-2 py-2">
@@ -499,13 +506,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           value={line.qty}
                           onChange={(e) => updateLine(line.id, { qty: Number(e.target.value) })}
                           className="h-9 text-right tabular-nums"
-                        />
-                      </td>
-                      <td className="w-20 px-2 py-2">
-                        <Input
-                          value={line.unit}
-                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
-                          className="h-9"
                         />
                       </td>
                       <td className="w-28 px-2 py-2">
@@ -545,23 +545,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           }
                           className="h-9 text-right tabular-nums"
                         />
-                      </td>
-                      <td className="w-20 px-2 py-2">
-                        <Select
-                          value={String(line.taxPercent)}
-                          onValueChange={(v) => updateLine(line.id, { taxPercent: Number(v) })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[0, 5, 12, 18, 28].map((r) => (
-                              <SelectItem key={r} value={String(r)}>
-                                {r}%
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </td>
                       <td className="w-32 px-3 py-2 text-right font-semibold tabular-nums">
                         {formatCurrency(m.total, currency)}
@@ -765,12 +748,14 @@ function ItemPicker({
   onSelect,
   onChangeName,
   onQuickAdd,
+  locked,
 }: {
   value: string;
   items: Item[];
   onSelect: (item: Item) => void;
   onChangeName: (v: string) => void;
   onQuickAdd: () => void;
+  locked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const active = items.filter((i) => i.active);
@@ -782,9 +767,10 @@ function ItemPicker({
             <Input
               value={value}
               onChange={(e) => onChangeName(e.target.value)}
-              onFocus={() => setOpen(true)}
+              onFocus={() => !locked && setOpen(true)}
+              readOnly={locked}
               placeholder="Search or type item…"
-              className="h-9"
+              className={cn("h-9", locked && "bg-muted/50 cursor-not-allowed")}
             />
           </div>
         </PopoverTrigger>
