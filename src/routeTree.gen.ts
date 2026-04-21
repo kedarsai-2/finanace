@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PurchasesRouteImport } from './routes/purchases'
+import { Route as PurchaseReturnsRouteImport } from './routes/purchase-returns'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ItemsRouteImport } from './routes/items'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as CreditNotesRouteImport } from './routes/credit-notes'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AccountsRouteImport } from './routes/accounts'
@@ -64,6 +66,11 @@ const PurchasesRoute = PurchasesRouteImport.update({
   path: '/purchases',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PurchaseReturnsRoute = PurchaseReturnsRouteImport.update({
+  id: '/purchase-returns',
+  path: '/purchase-returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaymentsRoute = PaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -92,6 +99,11 @@ const InvoicesRoute = InvoicesRouteImport.update({
 const ExpensesRoute = ExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreditNotesRoute = CreditNotesRouteImport.update({
+  id: '/credit-notes',
+  path: '/credit-notes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessesRoute = BusinessesRouteImport.update({
@@ -280,12 +292,14 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
+  '/credit-notes': typeof CreditNotesRoute
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
+  '/purchase-returns': typeof PurchaseReturnsRoute
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
@@ -326,12 +340,14 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
+  '/credit-notes': typeof CreditNotesRoute
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
+  '/purchase-returns': typeof PurchaseReturnsRoute
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
@@ -373,12 +389,14 @@ export interface FileRoutesById {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
+  '/credit-notes': typeof CreditNotesRoute
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
   '/parties': typeof PartiesRouteWithChildren
   '/payments': typeof PaymentsRouteWithChildren
+  '/purchase-returns': typeof PurchaseReturnsRoute
   '/purchases': typeof PurchasesRouteWithChildren
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
@@ -421,12 +439,14 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/audit'
     | '/businesses'
+    | '/credit-notes'
     | '/expenses'
     | '/invoices'
     | '/items'
     | '/login'
     | '/parties'
     | '/payments'
+    | '/purchase-returns'
     | '/purchases'
     | '/reports'
     | '/accounts/new'
@@ -467,12 +487,14 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/audit'
     | '/businesses'
+    | '/credit-notes'
     | '/expenses'
     | '/invoices'
     | '/items'
     | '/login'
     | '/parties'
     | '/payments'
+    | '/purchase-returns'
     | '/purchases'
     | '/reports'
     | '/accounts/new'
@@ -513,12 +535,14 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/audit'
     | '/businesses'
+    | '/credit-notes'
     | '/expenses'
     | '/invoices'
     | '/items'
     | '/login'
     | '/parties'
     | '/payments'
+    | '/purchase-returns'
     | '/purchases'
     | '/reports'
     | '/accounts/new'
@@ -560,12 +584,14 @@ export interface RootRouteChildren {
   AccountsRoute: typeof AccountsRouteWithChildren
   AuditRoute: typeof AuditRoute
   BusinessesRoute: typeof BusinessesRouteWithChildren
+  CreditNotesRoute: typeof CreditNotesRoute
   ExpensesRoute: typeof ExpensesRouteWithChildren
   InvoicesRoute: typeof InvoicesRouteWithChildren
   ItemsRoute: typeof ItemsRouteWithChildren
   LoginRoute: typeof LoginRoute
   PartiesRoute: typeof PartiesRouteWithChildren
   PaymentsRoute: typeof PaymentsRouteWithChildren
+  PurchaseReturnsRoute: typeof PurchaseReturnsRoute
   PurchasesRoute: typeof PurchasesRouteWithChildren
   ReportsRoute: typeof ReportsRouteWithChildren
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
@@ -586,6 +612,13 @@ declare module '@tanstack/react-router' {
       path: '/purchases'
       fullPath: '/purchases'
       preLoaderRoute: typeof PurchasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchase-returns': {
+      id: '/purchase-returns'
+      path: '/purchase-returns'
+      fullPath: '/purchase-returns'
+      preLoaderRoute: typeof PurchaseReturnsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -628,6 +661,13 @@ declare module '@tanstack/react-router' {
       path: '/expenses'
       fullPath: '/expenses'
       preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credit-notes': {
+      id: '/credit-notes'
+      path: '/credit-notes'
+      fullPath: '/credit-notes'
+      preLoaderRoute: typeof CreditNotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/businesses': {
@@ -1036,12 +1076,14 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsRoute: AccountsRouteWithChildren,
   AuditRoute: AuditRoute,
   BusinessesRoute: BusinessesRouteWithChildren,
+  CreditNotesRoute: CreditNotesRoute,
   ExpensesRoute: ExpensesRouteWithChildren,
   InvoicesRoute: InvoicesRouteWithChildren,
   ItemsRoute: ItemsRouteWithChildren,
   LoginRoute: LoginRoute,
   PartiesRoute: PartiesRouteWithChildren,
   PaymentsRoute: PaymentsRouteWithChildren,
+  PurchaseReturnsRoute: PurchaseReturnsRoute,
   PurchasesRoute: PurchasesRouteWithChildren,
   ReportsRoute: ReportsRouteWithChildren,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
