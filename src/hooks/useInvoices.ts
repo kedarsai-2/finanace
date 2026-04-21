@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Invoice, InvoiceLine } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
+import { useParties } from "@/hooks/useParties";
+import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.invoices";
+
+/** Stable ledger row id for a credit-note's mirror entry. */
+export function creditNoteLedgerEntryId(invoiceId: string) {
+  return `le_cn_${invoiceId}`;
+}
 
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendInvoiceStatus = "DRAFT" | "FINAL" | "CANCELLED";
@@ -274,6 +281,35 @@ function read(): Invoice[] {
 export function useInvoices(businessId?: string | null) {
   const [invoices, setInvoices] = useState<Invoice[]>(seed);
   const [hydrated, setHydrated] = useState(false);
+  const { upsertLedgerEntry, removeLedgerEntry } = useParties();
+
+  /**
+   * Mirror credit-notes into the party ledger as receivable reductions.
+   * Standard invoices remain ledger-agnostic (tracked via payments).
+   */
+  const syncLedger = useCallback(
+    (inv: Invoice) => {
+      if (USE_BACKEND) return;
+      if (inv.kind !== "credit-note") return;
+      const id = creditNoteLedgerEntryId(inv.id);
+      if (inv.status === "final" && !inv.deleted) {
+        const entry: LedgerEntry = {
+          id,
+          partyId: inv.partyId,
+          date: inv.finalizedAt ?? inv.date,
+          note: `Credit Note ${inv.number}`,
+          amount: -Math.abs(inv.total),
+          type: "credit-note",
+          refNo: inv.number,
+          refLink: `/credit-notes/${inv.id}`,
+        };
+        upsertLedgerEntry(entry);
+      } else {
+        removeLedgerEntry(id);
+      }
+    },
+    [upsertLedgerEntry, removeLedgerEntry],
+  );
 
   useEffect(() => {
     if (!USE_BACKEND) {
