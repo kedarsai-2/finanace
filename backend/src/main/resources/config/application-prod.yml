@@ -37,6 +37,12 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
+      connection-timeout: 30000
+      validation-timeout: 5000
+      max-lifetime: 1800000
+      keepalive-time: 300000
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 0
       data-source-properties:
         sslmode: require
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
