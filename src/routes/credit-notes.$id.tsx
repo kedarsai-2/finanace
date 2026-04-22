@@ -124,7 +124,7 @@ function CreditNoteDetailPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/invoices/$id/edit" params={{ id: cn.id }} search={{} as never}>
+                <Link to="/invoices/$id/edit" params={{ id: cn.id }}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -156,7 +156,6 @@ function CreditNoteDetailPage() {
                   <Link
                     to="/invoices/$id"
                     params={{ id: source.id }}
-                    search={{} as never}
                     className="font-mono font-semibold text-primary hover:underline"
                   >
                     {source.number}

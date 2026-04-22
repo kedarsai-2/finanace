@@ -47,19 +47,6 @@ export function shareInvoiceOnWhatsApp(args: ShareInvoiceArgs) {
   }
 }
 
-/** Open the user's email client with a prepared subject + body. */
-export function shareInvoiceByEmail(args: ShareInvoiceArgs & { email?: string }) {
-  const subject = `Invoice ${args.invoiceNumber}`;
-  const body = buildShareMessage(args);
-  const to = args.email ? args.email.trim() : "";
-  const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  const win = window.open(href, "_blank");
-  if (!win) {
-    // Popup blocked; fall back to copying the message.
-    void copyShareText(args);
-  }
-}
-
 /** Copy the full prepared message (incl. PDF link) to the clipboard. */
 export async function copyShareText(args: ShareInvoiceArgs): Promise<boolean> {
   const text = buildShareMessage(args);
@@ -98,4 +85,13 @@ export async function copyShareText(args: ShareInvoiceArgs): Promise<boolean> {
 export function invoicePrintUrl(invoiceId: string): string {
   if (typeof window === "undefined") return `/invoices/${invoiceId}/print`;
   return `${window.location.origin}/invoices/${invoiceId}/print`;
+}
+
+/** Open mailto: with the invoice link prefilled. */
+export function shareInvoiceByEmail(args: ShareInvoiceArgs & { email?: string }) {
+  const subject = `Invoice ${args.invoiceNumber}`;
+  const body = buildShareMessage(args);
+  const to = args.email ?? "";
+  const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = url;
 }

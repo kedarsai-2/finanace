@@ -1,6 +1,14 @@
 export type InvoiceStatus = "draft" | "final" | "cancelled";
 export type PaymentStatus = "unpaid" | "partial" | "paid";
 export type DiscountKind = "percent" | "amount";
+
+/**
+ * Discriminator for sale-side documents.
+ *  - "invoice"    : standard sales invoice (default).
+ *  - "credit-note": sales return / credit note. Stored with positive amounts;
+ *                   the ledger mirror is written as a negative (receivable
+ *                   reduction) automatically.
+ */
 export type InvoiceKind = "invoice" | "credit-note";
 
 export interface InvoiceLine {
@@ -18,9 +26,6 @@ export interface InvoiceLine {
 export interface Invoice {
   id: string;
   businessId: string;
-  kind?: InvoiceKind;
-  /** For credit-notes: the source invoice id (string in frontend). */
-  sourceInvoiceId?: string;
   number: string; // e.g. INV-0001
   date: string; // ISO
   dueDate?: string; // ISO
@@ -50,6 +55,10 @@ export interface Invoice {
   terms?: string;
   /** Set when status moves to 'final' for the 24h edit window. */
   finalizedAt?: string;
+  /** Document kind. Defaults to "invoice". Credit notes are listed separately. */
+  kind?: InvoiceKind;
+  /** When kind = "credit-note", the source invoice id (for traceability). */
+  sourceInvoiceId?: string;
 }
 
 export function paymentStatusOf(
@@ -71,10 +80,6 @@ export function lineMath(line: InvoiceLine) {
   const taxable = Math.max(0, gross - discount);
   const tax = (taxable * (line.taxPercent || 0)) / 100;
   return { gross, discount, taxable, tax, total: taxable + tax };
-}
-
-export function invoiceLedgerEntryId(invoiceId: string) {
-  return `le_inv_${invoiceId}`;
 }
 
 export interface InvoiceTotals {

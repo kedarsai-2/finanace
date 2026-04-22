@@ -91,6 +91,7 @@ export function QuickAddPartyDialog({
   };
 
   const handleSave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     if (!activeId) {
       toast.error("Select an active business first");
       return;

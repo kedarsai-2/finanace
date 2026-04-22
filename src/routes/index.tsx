@@ -57,9 +57,7 @@ const RANGE_LABEL: Record<Range, string> = {
 };
 
 function DashboardPage() {
-  const { businesses, activeId, hydrated } = useBusinesses();
-  const isAll = activeId === "__all__";
-  const scopedBusinessId = isAll ? undefined : activeId;
+  const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
@@ -218,19 +216,19 @@ function DashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/invoices/new" search={{} as never}>
+            <Link to="/invoices/new">
               <Plus className="h-4 w-4" />
               Invoice
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/payments/new" search={{} as never}>
+            <Link to="/payments/new">
               <Plus className="h-4 w-4" />
               Payment
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/expenses/new" search={{} as never}>
+            <Link to="/expenses/new">
               <Plus className="h-4 w-4" />
               Expense
             </Link>
@@ -243,15 +241,15 @@ function DashboardPage() {
           <p className="font-medium text-foreground">Your dashboard is empty.</p>
           <p className="mt-1">
             Start by creating an{" "}
-            <Link to="/invoices/new" search={{} as never} className="text-primary hover:underline">
+            <Link to="/invoices/new" className="text-primary hover:underline">
               invoice
             </Link>
             , recording a{" "}
-            <Link to="/payments/new" search={{} as never} className="text-primary hover:underline">
+            <Link to="/payments/new" className="text-primary hover:underline">
               payment
             </Link>
             , or logging an{" "}
-            <Link to="/expenses/new" search={{} as never} className="text-primary hover:underline">
+            <Link to="/expenses/new" className="text-primary hover:underline">
               expense
             </Link>
             .

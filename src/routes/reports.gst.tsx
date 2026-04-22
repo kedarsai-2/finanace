@@ -25,40 +25,31 @@ function GstReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
-  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
+  const inRange = (d: string) => {
+    if (from && new Date(d) < new Date(from)) return false;
+    if (to && new Date(d) > new Date(`${to}T23:59:59`)) return false;
+    return true;
+  };
 
   const output = useMemo(() => {
-    const f = invoices.filter((i) => {
-      if (i.status !== "final") return false;
-      const d = new Date(i.date).getTime();
-      if (fromTs !== undefined && d < fromTs) return false;
-      if (toTs !== undefined && d > toTs) return false;
-      return true;
-    });
+    const f = invoices.filter((i) => i.status === "final" && inRange(i.date));
     return {
       taxable: f.reduce((s, i) => s + i.taxableValue, 0),
       cgst: f.reduce((s, i) => s + i.cgst, 0),
       sgst: f.reduce((s, i) => s + i.sgst, 0),
       igst: f.reduce((s, i) => s + i.igst, 0),
     };
-  }, [invoices, fromTs, toTs]);
+  }, [invoices, from, to]);
 
   const input = useMemo(() => {
-    const f = purchases.filter((p) => {
-      if (p.status !== "final") return false;
-      const d = new Date(p.date).getTime();
-      if (fromTs !== undefined && d < fromTs) return false;
-      if (toTs !== undefined && d > toTs) return false;
-      return true;
-    });
+    const f = purchases.filter((p) => p.status === "final" && inRange(p.date));
     return {
       taxable: f.reduce((s, p) => s + p.taxableValue, 0),
       cgst: f.reduce((s, p) => s + p.cgst, 0),
       sgst: f.reduce((s, p) => s + p.sgst, 0),
       igst: f.reduce((s, p) => s + p.igst, 0),
     };
-  }, [purchases, fromTs, toTs]);
+  }, [purchases, from, to]);
 
   const net = {
     cgst: output.cgst - input.cgst,

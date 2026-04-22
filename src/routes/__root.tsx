@@ -16,8 +16,46 @@ import { AIAskDrawer } from "@/components/ai/AIAskDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useDashboardSnapshot } from "@/hooks/useDashboardSnapshot";
 import appCss from "../styles.css?url";
+import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { getJwt } from "@/lib/auth";
+
+function ClickProbe() {
+  const [last, setLast] = useState<{ t: number; tag: string; prevented: boolean } | null>(null);
+  const router = useRouter();
+  const pathname =
+    // TanStack Router v1 exposes location via state; fall back to window.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((router as any).state?.location?.pathname as string | undefined) ??
+    (typeof window !== "undefined" ? window.location.pathname : "");
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      setLast({
+        t: Date.now(),
+        tag: el?.tagName?.toLowerCase() ?? "unknown",
+        prevented: e.defaultPrevented,
+      });
+    };
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, []);
+
+  if (!import.meta.env.DEV) return null;
+  return (
+    <div className="fixed bottom-2 left-2 z-9999 rounded-md border bg-background/90 px-2 py-1 text-xs text-foreground shadow">
+      <div className="font-mono">
+        click-probe:{" "}
+        {last ? `${new Date(last.t).toLocaleTimeString()} <${last.tag}>` : "no clicks yet"}
+      </div>
+      <div className="font-mono text-muted-foreground">path: {pathname || "(unknown)"}</div>
+      {last?.prevented ? (
+        <div className="font-mono text-destructive">defaultPrevented=true</div>
+      ) : null}
+    </div>
+  );
+}
 
 function NotFoundComponent() {
   return (
@@ -43,8 +81,7 @@ function NotFoundComponent() {
 
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
-    // Avoid auth redirects in non-browser renders; enforce on the client.
-    if (typeof window === "undefined") return;
+    if (!USE_BACKEND) return;
     const token = getJwt();
     if (!token && location.pathname !== "/login") {
       throw redirect({ to: "/login" });
@@ -106,21 +143,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthed } = useAuth();
-  const router = useRouter();
   const snapshot = useDashboardSnapshot();
-  const [hydrated, setHydrated] = useState(false);
 
   const isAuthScreen = pathname === "/login";
-  const shouldGate = hydrated && !isAuthed && !isAuthScreen;
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!shouldGate) return;
-    router.navigate({ to: "/login", replace: true });
-  }, [router, shouldGate]);
+  const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
 
   if (shouldGate) {
     return (
@@ -142,6 +168,7 @@ function RootComponent() {
 
   return (
     <div className="flex min-h-screen w-full">
+      <ClickProbe />
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />

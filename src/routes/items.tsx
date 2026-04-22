@@ -1,4 +1,11 @@
-import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
@@ -27,12 +34,14 @@ const FILTERS = ["all", "product", "service"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  type: z.enum(FILTERS).catch("all"),
+  q: z.string().catch("").default(""),
+  type: z.enum(FILTERS).catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/items")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Items — Products & Services" },
@@ -112,7 +121,7 @@ function ItemsPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/items/new" search={{} as never}>
+              <Link to="/items/new">
                 <Plus className="h-4 w-4" />
                 Add Item
               </Link>
@@ -192,13 +201,13 @@ function ItemsTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[2fr_110px_140px_90px_90px_110px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[minmax(0,2.4fr)_100px_140px_140px_160px_110px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Item name</span>
         <span>Type</span>
-        <span className="text-right">Selling price</span>
-        <span className="text-right">Tax</span>
-        <span>Unit</span>
-        <span>Status</span>
+        <span className="text-right">Unit (Qty)</span>
+        <span className="text-right">Unit price</span>
+        <span className="text-right">Total price</span>
+        <span className="text-center">Status</span>
         <span className="text-right">Actions</span>
       </div>
 
@@ -206,12 +215,11 @@ function ItemsTable({
         {items.map((it) => (
           <li
             key={it.id}
-            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_110px_140px_90px_90px_110px_120px]"
+            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(0,2.4fr)_100px_140px_140px_160px_110px_100px]"
           >
             <Link
               to="/items/$id"
               params={{ id: it.id }}
-              search={{} as never}
               className="flex min-w-0 items-center gap-3 text-left"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
@@ -236,32 +244,37 @@ function ItemsTable({
               {TYPE_LABEL[it.type]}
             </span>
 
+            <span className="text-right font-mono text-sm text-muted-foreground">
+              <span className="tabular-nums">{it.openingStock ?? 0}</span>{" "}
+              <span className="text-xs uppercase">{it.unit}</span>
+            </span>
+
             <span className="text-right font-semibold tabular-nums">
               {formatCurrency(it.sellingPrice, currency)}
             </span>
 
-            <span className="text-right font-mono text-sm text-muted-foreground">
-              {it.taxPercent}%
+            <span className="text-right font-semibold tabular-nums">
+              {formatCurrency((it.openingStock ?? 0) * it.sellingPrice, currency)}
             </span>
 
-            <span className="font-mono text-xs uppercase text-muted-foreground">{it.unit}</span>
-
-            <span
-              className={cn(
-                "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                it.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
-              )}
-            >
+            <div className="flex sm:justify-center">
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  it.active ? "bg-success" : "bg-muted-foreground/60",
+                  "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                  it.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
                 )}
-              />
-              {it.active ? "Active" : "Inactive"}
-            </span>
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    it.active ? "bg-success" : "bg-muted-foreground/60",
+                  )}
+                />
+                {it.active ? "Active" : "Inactive"}
+              </span>
+            </div>
 
-            <div className="flex justify-start gap-1 sm:justify-end sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <div className="flex justify-start gap-1 sm:justify-end sm:opacity-100 sm:transition-opacity">
               <Button
                 asChild
                 size="icon"
@@ -269,7 +282,7 @@ function ItemsTable({
                 className="h-8 w-8"
                 aria-label={`Edit ${it.name}`}
               >
-                <Link to="/items/$id/edit" params={{ id: it.id }} search={{} as never}>
+                <Link to="/items/$id/edit" params={{ id: it.id }}>
                   <Pencil className="h-4 w-4" />
                 </Link>
               </Button>
@@ -305,7 +318,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Add your first product or service to start invoicing."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/items/new" search={{} as never}>
+        <Link to="/items/new">
           <Plus className="h-4 w-4" />
           Add Item
         </Link>

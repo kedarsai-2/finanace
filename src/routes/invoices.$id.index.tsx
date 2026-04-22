@@ -46,6 +46,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { FileMinus } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
@@ -54,8 +55,8 @@ import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
 import {
   copyShareText,
   invoicePrintUrl,
-  shareInvoiceByEmail,
   shareInvoiceOnWhatsApp,
+  shareInvoiceByEmail,
 } from "@/lib/share";
 
 export const Route = createFileRoute("/invoices/$id/")({
@@ -83,7 +84,7 @@ function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allInvoices, cancel, remove, ensureLines } = useInvoices(activeId);
+  const { allInvoices, cancel, remove, ensureLines, convertToCreditNote } = useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
@@ -207,7 +208,7 @@ function InvoiceDetailsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button asChild variant="outline" className="gap-2">
-              <Link to="/invoices/$id/print" params={{ id: invoice.id }} search={{} as never}>
+              <Link to="/invoices/$id/print" params={{ id: invoice.id }}>
                 <Printer className="h-4 w-4" />
                 <span className="hidden sm:inline">Print / PDF</span>
               </Link>
@@ -252,7 +253,7 @@ function InvoiceDetailsPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/invoices/$id/edit" params={{ id: invoice.id }} search={{} as never}>
+                <Link to="/invoices/$id/edit" params={{ id: invoice.id }}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -261,6 +262,22 @@ function InvoiceDetailsPage() {
               <Button disabled className="gap-2">
                 <Lock className="h-4 w-4" />
                 Locked
+              </Button>
+            )}
+            {invoice.status === "final" && invoice.kind !== "credit-note" && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={async () => {
+                  const cn = await convertToCreditNote(invoice.id);
+                  if (cn) {
+                    toast.success(`Credit note ${cn.number} created`);
+                    navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
+                  }
+                }}
+              >
+                <FileMinus className="h-4 w-4" />
+                <span className="hidden sm:inline">Credit Note</span>
               </Button>
             )}
           </div>
@@ -342,11 +359,11 @@ function InvoiceDetailsPage() {
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-6 py-2 text-left">Item</th>
+                    <th className="px-3 py-2 text-left">Unit</th>
                     <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Rate</th>
+                    <th className="px-3 py-2 text-right">Unit Price</th>
                     <th className="px-3 py-2 text-right">Disc.</th>
-                    <th className="px-3 py-2 text-right">Tax %</th>
-                    <th className="px-6 py-2 text-right">Amount</th>
+                    <th className="px-6 py-2 text-right">Total Price</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -356,9 +373,9 @@ function InvoiceDetailsPage() {
                       <tr key={line.id}>
                         <td className="px-6 py-3">
                           <p className="font-medium">{line.name}</p>
-                          {line.unit && (
-                            <p className="text-xs text-muted-foreground">{line.unit}</p>
-                          )}
+                        </td>
+                        <td className="px-3 py-3 text-left text-muted-foreground">
+                          {line.unit || "—"}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums">{line.qty}</td>
                         <td className="px-3 py-3 text-right tabular-nums">
@@ -371,7 +388,6 @@ function InvoiceDetailsPage() {
                               : formatCurrency(line.discountValue, currency)
                             : "—"}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">{line.taxPercent}%</td>
                         <td className="px-6 py-3 text-right font-semibold tabular-nums">
                           {formatCurrency(m.total, currency)}
                         </td>

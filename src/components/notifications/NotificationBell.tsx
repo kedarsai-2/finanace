@@ -109,7 +109,6 @@ export function NotificationBell() {
                         <Link
                           to="/invoices/$id"
                           params={{ id: n.invoiceId }}
-                          search={{} as never}
                           className="text-xs font-medium text-primary hover:underline"
                           onClick={() => markRead(n.id)}
                         >

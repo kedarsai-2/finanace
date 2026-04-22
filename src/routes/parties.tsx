@@ -1,6 +1,14 @@
-import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { Plus, Search, Pencil, Trash2, Users, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,18 +28,23 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
+import { useInvoices } from "@/hooks/useInvoices";
+import { usePurchases } from "@/hooks/usePurchases";
+import { usePayments } from "@/hooks/usePayments";
 import type { Party, PartyType } from "@/types/party";
 
 const FILTERS = ["all", "customer", "supplier", "both"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  type: z.enum(FILTERS).catch("all"),
+  q: z.string().catch("").default(""),
+  type: z.enum(FILTERS).catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/parties")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Parties — Customers & Suppliers" },
@@ -69,6 +82,23 @@ function PartiesPage() {
   const { activeId, businesses } = useBusinesses();
   const { parties, hydrated, remove } = useParties(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
+  const { allInvoices } = useInvoices(activeId);
+  const { allPurchases } = usePurchases(activeId);
+  const { payments } = usePayments(activeId);
+
+  // Compute "last activity" per party (latest date across invoices, purchases, payments).
+  const lastActivityByParty = useMemo(() => {
+    const map = new Map<string, string>();
+    const stamp = (pid: string, d?: string) => {
+      if (!pid || !d) return;
+      const cur = map.get(pid);
+      if (!cur || cur < d) map.set(pid, d);
+    };
+    for (const i of allInvoices) if (!i.deleted) stamp(i.partyId, i.date);
+    for (const p of allPurchases) if (!p.deleted) stamp(p.partyId, p.date);
+    for (const pay of payments) stamp(pay.partyId, pay.date);
+    return map;
+  }, [allInvoices, allPurchases, payments]);
 
   const [deleting, setDeleting] = useState<Party | null>(null);
 
@@ -186,6 +216,7 @@ function PartiesPage() {
             parties={visible}
             currency={activeBusiness?.currency ?? "INR"}
             onDelete={setDeleting}
+            lastActivity={lastActivityByParty}
           />
         )}
       </main>
@@ -244,17 +275,20 @@ function PartiesTable({
   parties,
   currency,
   onDelete,
+  lastActivity,
 }: {
   parties: Party[];
   currency: string;
   onDelete: (p: Party) => void;
+  lastActivity: Map<string, string>;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[2fr_120px_140px_160px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:grid">
         <span>Party name</span>
         <span>Type</span>
         <span>Mobile</span>
+        <span>Dates</span>
         <span className="text-right">Balance</span>
         <span className="text-right">Actions</span>
       </div>
@@ -263,10 +297,11 @@ function PartiesTable({
         {parties.map((p) => {
           const receivable = p.balance > 0;
           const payable = p.balance < 0;
+          const last = lastActivity.get(p.id);
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_120px_140px_160px_120px]"
+              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] md:items-center"
             >
               <Link
                 to="/parties/$id"
@@ -306,6 +341,17 @@ function PartiesTable({
 
               <span className="font-mono text-sm text-muted-foreground">{p.mobile || "—"}</span>
 
+              <div className="text-xs text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground/80">Added:</span>{" "}
+                  {p.createdAt ? format(new Date(p.createdAt), "dd MMM yyyy") : "—"}
+                </p>
+                <p className="mt-0.5">
+                  <span className="font-medium text-foreground/80">Last:</span>{" "}
+                  {last ? format(new Date(last), "dd MMM yyyy") : "No activity"}
+                </p>
+              </div>
+
               <div className="flex flex-col items-start sm:items-end">
                 <span
                   className={cn(
@@ -331,7 +377,7 @@ function PartiesTable({
                 )}
               </div>
 
-              <div className="flex justify-start gap-1 sm:justify-end sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+              <div className="flex justify-start gap-1 md:justify-end md:opacity-100 md:transition-opacity">
                 <Button
                   asChild
                   size="icon"

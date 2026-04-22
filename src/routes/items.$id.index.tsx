@@ -120,9 +120,7 @@ function ItemDetailsPage() {
                 )}
               </Button>
               <Button
-                onClick={() =>
-                  navigate({ to: "/items/$id/edit", params: { id: item.id }, search: {} as never })
-                }
+                onClick={() => navigate({ to: "/items/$id/edit", params: { id: item.id } })}
                 className="gap-2"
               >
                 <Pencil className="h-4 w-4" />
@@ -154,8 +152,10 @@ function ItemDetailsPage() {
                 </span>
               }
             />
-            <Field label="Tax rate" value={<span className="font-mono">{item.taxPercent}%</span>} />
-            <Field label="Unit" value={<span className="font-mono uppercase">{item.unit}</span>} />
+            <Field
+              label="Quantity unit"
+              value={<span className="font-mono uppercase">{item.unit}</span>}
+            />
             {item.purchasePrice !== undefined && (
               <Field
                 label="Purchase price"

@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, ShoppingCart, Receipt, Users, Wallet, FileBarChart } from "lucide-react";
+import { TrendingUp, ShoppingCart, Receipt, Users, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports")({
@@ -53,13 +53,6 @@ const REPORTS = [
     desc: "Account-wise debit / credit / balance",
     icon: Wallet,
     tone: "primary",
-  },
-  {
-    to: "/reports/gst",
-    label: "GST Report",
-    desc: "Output and input GST summary",
-    icon: FileBarChart,
-    tone: "success",
   },
 ] as const;
 

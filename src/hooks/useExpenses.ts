@@ -170,27 +170,24 @@ export function useExpenses(businessId?: string | null) {
     return Promise.resolve(e);
   }, []);
 
-  const add = useCallback(
-    (e: Expense) => {
-      const token = getJwt();
-      if (USE_BACKEND && token) {
-        // In backend mode, treat add() as create.
-        void upsert(e);
-        return;
-      }
-      setExpenses((prev) => [...prev, e]);
-      logAudit({
-        module: "expense",
-        action: "create",
-        recordId: e.id,
-        reference: `${e.category} · ₹${e.amount}`,
-        refLink: `/expenses/${e.id}`,
-        businessId: e.businessId,
-        after: snapshot(e),
-      });
-    },
-    [upsert],
-  );
+  const add = useCallback((e: Expense) => {
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      // In backend mode, treat add() as create.
+      void upsert(e);
+      return;
+    }
+    setExpenses((prev) => [...prev, e]);
+    logAudit({
+      module: "expense",
+      action: "create",
+      recordId: e.id,
+      reference: `${e.category} · ₹${e.amount}`,
+      refLink: `/expenses/${e.id}`,
+      businessId: e.businessId,
+      after: snapshot(e),
+    });
+  }, []);
 
   const remove = useCallback((id: string) => {
     const before = expensesRef.current.find((x) => x.id === id);

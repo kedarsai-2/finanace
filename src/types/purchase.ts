@@ -2,6 +2,13 @@ import type { DiscountKind, InvoiceLine } from "@/types/invoice";
 export type { DiscountKind } from "@/types/invoice";
 
 export type PurchaseStatus = "draft" | "final" | "cancelled";
+
+/**
+ * Discriminator for purchase-side documents.
+ *  - "purchase": standard purchase / supplier bill (default).
+ *  - "return"  : purchase return / debit note. Stored with positive amounts;
+ *                the ledger mirror reduces the supplier payable automatically.
+ */
 export type PurchaseKind = "purchase" | "return";
 
 /** Same shape as InvoiceLine — purchases reuse the line/tax math helpers. */
@@ -10,9 +17,6 @@ export type PurchaseLine = InvoiceLine;
 export interface Purchase {
   id: string;
   businessId: string;
-  kind?: PurchaseKind;
-  /** For returns: the source purchase id (string in frontend). */
-  sourcePurchaseId?: string;
   /** Purchase / bill number. */
   number: string;
   date: string; // ISO
@@ -42,6 +46,10 @@ export interface Purchase {
   terms?: string;
   /** Set when status moves to 'final' for the 24h edit window. */
   finalizedAt?: string;
+  /** Document kind. Defaults to "purchase". Returns are listed separately. */
+  kind?: PurchaseKind;
+  /** When kind = "return", the source purchase id (for traceability). */
+  sourcePurchaseId?: string;
 }
 
 const NUMBER_REGEX = /^([A-Z]+-?)(\d+)$/i;

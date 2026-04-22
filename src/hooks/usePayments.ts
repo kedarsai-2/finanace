@@ -36,6 +36,7 @@ type PaymentAllocationDTO = {
 function toBackendMode(m: Payment["mode"]): BackendPaymentMode {
   if (m === "bank") return "BANK";
   if (m === "upi") return "UPI";
+  if (m === "cheque") return "BANK";
   return "CASH";
 }
 function fromBackendMode(m: BackendPaymentMode | null | undefined): Payment["mode"] {

@@ -127,7 +127,7 @@ function PurchaseReturnDetailPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/purchases/$id/edit" params={{ id: ret.id }} search={{} as never}>
+                <Link to="/purchases/$id/edit" params={{ id: ret.id }}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -159,7 +159,6 @@ function PurchaseReturnDetailPage() {
                   <Link
                     to="/purchases/$id"
                     params={{ id: source.id }}
-                    search={{} as never}
                     className="font-mono font-semibold text-primary hover:underline"
                   >
                     {source.number}

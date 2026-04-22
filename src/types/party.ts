@@ -11,11 +11,11 @@ export interface Address {
 export type LedgerTxnType =
   | "opening"
   | "invoice"
-  | "credit-note"
   | "payment"
   | "purchase"
-  | "purchase-return"
-  | "expense";
+  | "expense"
+  | "credit-note"
+  | "purchase-return";
 
 export interface LedgerEntry {
   id: string;
@@ -43,6 +43,8 @@ export interface Party {
   openingBalance?: number; // positive = receivable, negative = payable
   /** Positive = receivable (they owe you). Negative = payable (you owe them). */
   balance: number;
+  /** ISO timestamp when the party was first added. Optional for legacy records. */
+  createdAt?: string;
   // Convenience for table display:
   city?: string;
   state?: string;

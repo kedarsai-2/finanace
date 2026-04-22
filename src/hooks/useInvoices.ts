@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Invoice, InvoiceLine } from "@/types/invoice";
-import { invoiceLedgerEntryId } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
+import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
-import { useParties } from "@/hooks/useParties";
 
 const STORAGE_KEY = "bm.invoices";
 
+/** Stable ledger row id for a credit-note's mirror entry. */
+export function creditNoteLedgerEntryId(invoiceId: string) {
+  return `le_cn_${invoiceId}`;
+}
+
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendInvoiceStatus = "DRAFT" | "FINAL" | "CANCELLED";
-type BackendInvoiceKind = "INVOICE" | "CREDIT_NOTE";
 
 type InvoiceDTO = {
   id?: number;
@@ -37,8 +40,6 @@ type InvoiceDTO = {
   total: number;
   paidAmount: number;
   status: BackendInvoiceStatus;
-  kind?: BackendInvoiceKind | null;
-  sourceInvoiceId?: number | null;
   notes?: string | null;
   terms?: string | null;
   finalizedAt?: string | null;
@@ -83,13 +84,6 @@ function fromBackendInvoiceStatus(s: BackendInvoiceStatus | null | undefined): I
   return "draft";
 }
 
-function toBackendInvoiceKind(k: Invoice["kind"] | null | undefined): BackendInvoiceKind {
-  return k === "credit-note" ? "CREDIT_NOTE" : "INVOICE";
-}
-function fromBackendInvoiceKind(k: BackendInvoiceKind | null | undefined): Invoice["kind"] {
-  return k === "CREDIT_NOTE" ? "credit-note" : "invoice";
-}
-
 function dtoToInvoice(dto: InvoiceDTO): Invoice {
   const businessId = toStrId(dto.business?.id);
   const partyId = toStrId(dto.party?.id);
@@ -118,8 +112,6 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     total: Number(dto.total ?? 0),
     paidAmount: Number(dto.paidAmount ?? 0),
     status: fromBackendInvoiceStatus(dto.status),
-    kind: fromBackendInvoiceKind(dto.kind),
-    sourceInvoiceId: dto.sourceInvoiceId != null ? toStrId(dto.sourceInvoiceId) : undefined,
     deleted: dto.deleted ?? undefined,
     notes: dto.notes ?? undefined,
     terms: dto.terms ?? undefined,
@@ -164,8 +156,6 @@ function invoiceToDto(inv: Invoice): InvoiceDTO {
     total: inv.total,
     paidAmount: inv.paidAmount,
     status: toBackendInvoiceStatus(inv.status),
-    kind: toBackendInvoiceKind(inv.kind),
-    sourceInvoiceId: inv.sourceInvoiceId ? (toNumId(inv.sourceInvoiceId) ?? null) : null,
     notes: inv.notes ?? null,
     terms: inv.terms ?? null,
     finalizedAt: inv.finalizedAt ?? null,
@@ -339,6 +329,34 @@ export function useInvoices(businessId?: string | null) {
   const [hydrated, setHydrated] = useState(false);
   const { upsertLedgerEntry, removeLedgerEntry } = useParties();
 
+  /**
+   * Mirror credit-notes into the party ledger as receivable reductions.
+   * Standard invoices remain ledger-agnostic (tracked via payments).
+   */
+  const syncLedger = useCallback(
+    (inv: Invoice) => {
+      if (USE_BACKEND) return;
+      if (inv.kind !== "credit-note") return;
+      const id = creditNoteLedgerEntryId(inv.id);
+      if (inv.status === "final" && !inv.deleted) {
+        const entry: LedgerEntry = {
+          id,
+          partyId: inv.partyId,
+          date: inv.finalizedAt ?? inv.date,
+          note: `Credit Note ${inv.number}`,
+          amount: -Math.abs(inv.total),
+          type: "credit-note",
+          refNo: inv.number,
+          refLink: `/credit-notes/${inv.id}`,
+        };
+        upsertLedgerEntry(entry);
+      } else {
+        removeLedgerEntry(id);
+      }
+    },
+    [upsertLedgerEntry, removeLedgerEntry],
+  );
+
   useEffect(() => {
     if (!USE_BACKEND) {
       setInvoices(read());
@@ -354,37 +372,6 @@ export function useInvoices(businessId?: string | null) {
     if (!hydrated) return;
     if (!USE_BACKEND) localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
   }, [invoices, hydrated]);
-
-  /**
-   * Mirror the invoice into the customer's party ledger.
-   * Final + non-cancelled => write a receivable (positive) entry.
-   * Credit-note is written as a negative entry (reduces receivable).
-   * Anything else (draft / cancelled / deleted) => remove any existing entry.
-   */
-  const syncLedger = useCallback(
-    (inv: Invoice) => {
-      if (USE_BACKEND) return;
-      const id = invoiceLedgerEntryId(inv.id);
-      const kind = inv.kind ?? "invoice";
-      const isCreditNote = kind === "credit-note";
-      if (inv.status === "final" && !inv.deleted) {
-        const entry: LedgerEntry = {
-          id,
-          partyId: inv.partyId,
-          date: inv.finalizedAt ?? inv.date,
-          note: isCreditNote ? `Credit Note ${inv.number}` : `Invoice ${inv.number}`,
-          amount: isCreditNote ? -Math.abs(inv.total) : Math.abs(inv.total),
-          type: isCreditNote ? "credit-note" : "invoice",
-          refNo: inv.number,
-          refLink: isCreditNote ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
-        };
-        upsertLedgerEntry(entry);
-      } else {
-        removeLedgerEntry(id);
-      }
-    },
-    [upsertLedgerEntry, removeLedgerEntry],
-  );
 
   const refresh = useCallback(async () => {
     if (!USE_BACKEND) return;
@@ -565,7 +552,13 @@ export function useInvoices(businessId?: string | null) {
   );
 
   const scoped = useMemo(
-    () => invoices.filter((x) => !x.deleted && (!businessId || x.businessId === businessId)),
+    () =>
+      invoices.filter(
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "invoice") === "invoice" &&
+          (!businessId || x.businessId === businessId),
+      ),
     [invoices, businessId],
   );
 

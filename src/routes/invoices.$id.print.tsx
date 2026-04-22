@@ -69,7 +69,7 @@ function InvoicePrintPage() {
       {/* Top bar — hidden on print */}
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] items-center justify-between px-2">
         <Button asChild variant="ghost" className="gap-2">
-          <Link to="/invoices/$id" params={{ id: invoice.id }} search={{} as never}>
+          <Link to="/invoices/$id" params={{ id: invoice.id }}>
             <ArrowLeft className="h-4 w-4" />
             Back to invoice
           </Link>

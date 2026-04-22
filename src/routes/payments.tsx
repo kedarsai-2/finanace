@@ -1,4 +1,10 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
@@ -26,14 +32,16 @@ const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
 
 const searchSchema = z.object({
-  dir: z.enum(DIRS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
-  account: z.string().catch(""),
+  dir: z.enum(DIRS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
+  account: z.string().catch("").default(""),
 });
 
 export const Route = createFileRoute("/payments")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Payments — Receive & Pay" },
@@ -93,7 +101,7 @@ function PaymentsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
         </div>
         <Button asChild className="gap-2">
-          <Link to="/payments/new" search={{} as never}>
+          <Link to="/payments/new">
             <Plus className="h-4 w-4" /> Record payment
           </Link>
         </Button>
@@ -178,7 +186,7 @@ function PaymentsPage() {
             <Wallet className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm font-medium">No payments yet</p>
             <Button asChild size="sm" className="mt-3 gap-2">
-              <Link to="/payments/new" search={{} as never}>
+              <Link to="/payments/new">
                 <Plus className="h-4 w-4" /> Record payment
               </Link>
             </Button>

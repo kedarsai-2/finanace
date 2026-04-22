@@ -21,31 +21,62 @@ import type { LedgerEntry, LedgerTxnType, Party } from "@/types/party";
 const TYPE_FILTERS: { value: "all" | LedgerTxnType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "invoice", label: "Invoice" },
-  { value: "credit-note", label: "Credit Note" },
   { value: "payment", label: "Payment" },
   { value: "purchase", label: "Purchase" },
-  { value: "purchase-return", label: "Purchase Return" },
   { value: "expense", label: "Expense" },
+  { value: "credit-note", label: "Credit Note" },
+  { value: "purchase-return", label: "Purch. Return" },
 ];
+
+type Preset = "today" | "7d" | "30d" | "month" | "ytd" | "all" | "custom";
+const PRESETS: { value: Preset; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "month", label: "This month" },
+  { value: "ytd", label: "This year" },
+  { value: "all", label: "All time" },
+  { value: "custom", label: "Custom" },
+];
+
+function rangeForPreset(p: Preset): { from?: Date; to?: Date } {
+  const today = new Date();
+  switch (p) {
+    case "today":
+      return { from: today, to: today };
+    case "7d":
+      return { from: subDays(today, 6), to: today };
+    case "30d":
+      return { from: subDays(today, 29), to: today };
+    case "month":
+      return { from: startOfMonth(today), to: today };
+    case "ytd":
+      return { from: startOfYear(today), to: today };
+    case "all":
+    case "custom":
+    default:
+      return { from: undefined, to: undefined };
+  }
+}
 
 const TYPE_BADGE: Record<LedgerTxnType, string> = {
   opening: "bg-muted text-muted-foreground",
   invoice: "bg-primary/10 text-primary",
-  "credit-note": "bg-primary/10 text-primary",
   payment: "bg-success/15 text-success",
   purchase: "bg-warning/15 text-warning-foreground/80",
-  "purchase-return": "bg-warning/15 text-warning-foreground/80",
   expense: "bg-destructive/10 text-destructive",
+  "credit-note": "bg-destructive/10 text-destructive",
+  "purchase-return": "bg-success/15 text-success",
 };
 
 const TYPE_LABEL: Record<LedgerTxnType, string> = {
   opening: "Opening",
   invoice: "Invoice",
-  "credit-note": "Credit Note",
   payment: "Payment",
   purchase: "Purchase",
-  "purchase-return": "Purchase Return",
   expense: "Expense",
+  "credit-note": "Credit Note",
+  "purchase-return": "Purch. Return",
 };
 
 interface Row extends LedgerEntry {
@@ -64,6 +95,16 @@ export function PartyLedger({
   const [from, setFrom] = useState<Date | undefined>();
   const [to, setTo] = useState<Date | undefined>();
   const [type, setType] = useState<"all" | LedgerTxnType>("all");
+  const [preset, setPreset] = useState<Preset>("all");
+
+  const applyPreset = (p: Preset) => {
+    setPreset(p);
+    if (p !== "custom") {
+      const r = rangeForPreset(p);
+      setFrom(r.from);
+      setTo(r.to);
+    }
+  };
 
   // Compute running balance chronologically over ALL entries (not filtered)
   // so the running figure stays meaningful when filters are applied.
@@ -100,6 +141,7 @@ export function PartyLedger({
     setFrom(undefined);
     setTo(undefined);
     setType("all");
+    setPreset("all");
   };
 
   const hasFilters = from || to || type !== "all";
@@ -153,57 +195,94 @@ export function PartyLedger({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
-        <DateButton label="From" date={from} onChange={setFrom} />
-        <DateButton label="To" date={to} onChange={setTo} />
-        <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
-          {TYPE_FILTERS.map((f) => (
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Date range
+          </span>
+          {PRESETS.map((p) => (
             <button
-              key={f.value}
-              onClick={() => setType(f.value)}
+              key={p.value}
+              onClick={() => applyPreset(p.value)}
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                type === f.value
+                preset === p.value
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  : "border border-border bg-background text-muted-foreground hover:text-foreground",
               )}
             >
-              {f.label}
+              {p.label}
             </button>
           ))}
         </div>
 
-        {hasFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 text-muted-foreground"
-            onClick={clearFilters}
-          >
-            <X className="h-3.5 w-3.5" />
-            Clear
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <DateButton
+            label="From"
+            date={from}
+            onChange={(d) => {
+              setFrom(d);
+              setPreset("custom");
+            }}
+          />
+          <DateButton
+            label="To"
+            date={to}
+            onChange={(d) => {
+              setTo(d);
+              setPreset("custom");
+            }}
+          />
 
-        <div className="ml-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportPDF} disabled={display.length === 0}>
-                <FileText className="mr-2 h-4 w-4" />
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportExcel} disabled={display.length === 0}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Export as Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setType(f.value)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  type === f.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-muted-foreground"
+              onClick={clearFilters}
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          )}
+
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportPDF} disabled={display.length === 0}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel} disabled={display.length === 0}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 

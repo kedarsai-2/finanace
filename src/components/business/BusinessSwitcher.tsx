@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Check, ChevronsUpDown, Plus, Building2, Layers, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Building2, Search, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -72,9 +72,9 @@ export function BusinessSwitcher() {
 
   const handlePickAll = () => {
     setOpen(false);
-    if (activeId === "__all__") return;
+    if (isAll) return;
     setActiveId("__all__");
-    toast.success("Switched to All Companies");
+    toast.success("Showing all companies");
     router.invalidate();
   };
 
@@ -89,7 +89,13 @@ export function BusinessSwitcher() {
           className="h-12 w-full justify-between gap-3 px-3 sm:w-[280px]"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <Avatar business={active} />
+            {isAll ? (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground">
+                <Layers className="h-4 w-4" />
+              </div>
+            ) : (
+              <Avatar business={active} />
+            )}
             <div className="min-w-0 text-left">
               <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Active business

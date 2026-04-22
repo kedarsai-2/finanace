@@ -1,4 +1,11 @@
-import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -30,16 +37,17 @@ const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  status: z.enum(STATUS_FILTERS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
+  q: z.string().catch("").default(""),
+  status: z.enum(STATUS_FILTERS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search: Partial<SearchValues> & SearchSchemaInput): SearchValues =>
+    searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Purchases — Bills & Payables" },
@@ -73,17 +81,15 @@ function PurchasesRouteLayout() {
 function PurchasesPage() {
   const navigate = useNavigate({ from: "/purchases" });
   const { q, status, from, to } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { purchases, hydrated, remove, cancel } = usePurchases(activeId);
+  const { activeId, scopedBusinessId, businesses } = useBusinesses();
+  const { purchases, hydrated, remove, cancel } = usePurchases(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);
   const [cancelling, setCancelling] = useState<Purchase | null>(null);
 
-  const fromDate = useMemo(() => (from ? new Date(from) : undefined), [from]);
-  const toDate = useMemo(() => (to ? new Date(to) : undefined), [to]);
-  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
-  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
+  const fromDate = from ? new Date(from) : undefined;
+  const toDate = to ? new Date(to) : undefined;
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -91,13 +97,13 @@ function PurchasesPage() {
       .filter((p) => {
         if (status !== "all" && p.status !== status) return false;
         const d = new Date(p.date).getTime();
-        if (fromTs !== undefined && d < fromTs) return false;
-        if (toTs !== undefined && d > toTs) return false;
+        if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
+        if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
         if (!term) return true;
         return p.number.toLowerCase().includes(term) || p.partyName.toLowerCase().includes(term);
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [purchases, q, status, fromTs, toTs]);
+  }, [purchases, q, status, fromDate, toDate]);
 
   const totals = useMemo(() => {
     let total = 0;
@@ -148,7 +154,7 @@ function PurchasesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/purchases/new" search={{} as never}>
+              <Link to="/purchases/new">
                 <Plus className="h-4 w-4" />
                 Add Purchase
               </Link>
@@ -157,7 +163,7 @@ function PurchasesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total purchases" value={String(totals.count)} />
-            <SummaryCard label="Total billed" value={formatCurrency(totals.total, currency)} />
+            <SummaryCard label="Total Purchase" value={formatCurrency(totals.total, currency)} />
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
@@ -395,7 +401,6 @@ function PurchasesTable({
               <Link
                 to="/purchases/$id"
                 params={{ id: p.id }}
-                search={{} as never}
                 className="font-mono text-sm font-semibold text-foreground hover:text-primary"
               >
                 {p.number}
@@ -406,7 +411,6 @@ function PurchasesTable({
               <Link
                 to="/parties/$id"
                 params={{ id: p.partyId }}
-                search={{} as never}
                 className="truncate text-sm font-medium text-foreground hover:text-primary"
               >
                 {p.partyName}
@@ -439,7 +443,7 @@ function PurchasesTable({
                       className="h-8 w-8"
                       aria-label={`Edit ${p.number}`}
                     >
-                      <Link to="/purchases/$id/edit" params={{ id: p.id }} search={{} as never}>
+                      <Link to="/purchases/$id/edit" params={{ id: p.id }}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -489,7 +493,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Record your first purchase to track supplier bills and payables."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/purchases/new" search={{} as never}>
+        <Link to="/purchases/new">
           <Plus className="h-4 w-4" />
           Add Purchase
         </Link>

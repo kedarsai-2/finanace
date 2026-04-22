@@ -123,7 +123,6 @@ function ExpenseDetailPage() {
               <Link
                 to="/accounts/$id"
                 params={{ id: account.id }}
-                search={{} as never}
                 className="text-primary hover:underline"
               >
                 {account.name} • {ACCOUNT_TYPE_LABEL[account.type]}
@@ -137,7 +136,6 @@ function ExpenseDetailPage() {
               <Link
                 to="/parties/$id"
                 params={{ id: party.id }}
-                search={{} as never}
                 className="text-primary hover:underline"
               >
                 {party.name}

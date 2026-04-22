@@ -22,13 +22,12 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
 import { usePurchases } from "@/hooks/usePurchases";
-import { usePartyLedger } from "@/hooks/usePartyLedger";
 import { PartyLedger } from "@/components/party/PartyLedger";
 import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
-import type { Invoice } from "@/types/invoice";
-import type { Payment } from "@/types/payment";
-import type { Purchase } from "@/types/purchase";
 import type { PartyType } from "@/types/party";
+import type { Invoice } from "@/types/invoice";
+import type { Purchase } from "@/types/purchase";
+import type { Payment } from "@/types/payment";
 
 export const Route = createFileRoute("/parties/$id/")({
   head: () => ({
@@ -48,9 +47,7 @@ export const Route = createFileRoute("/parties/$id/")({
         This party may have been deleted or doesn't belong to the active business.
       </p>
       <Button asChild className="mt-6">
-        <Link to="/parties" search={{} as never}>
-          Back to Parties
-        </Link>
+        <Link to="/parties">Back to Parties</Link>
       </Button>
     </div>
   ),
@@ -80,16 +77,19 @@ function initials(name: string) {
 function PartyDetailsPage() {
   const { id } = Route.useParams();
   const { activeId, businesses } = useBusinesses();
-  const { allParties, hydrated: partiesHydrated } = useParties(activeId);
+  const { allParties, ledger, hydrated } = useParties(activeId);
   const party = allParties.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === party?.businessId);
   const currency = business?.currency ?? "INR";
-  const { invoices, allInvoices } = useInvoices(activeId);
+  const { invoices } = useInvoices(activeId);
   const { payments } = usePayments(activeId);
   const { allPurchases } = usePurchases(activeId);
-  const { ledger, hydrated: ledgerHydrated } = usePartyLedger(activeId, id);
+  const { allInvoices } = useInvoices(activeId);
 
-  const entries = useMemo(() => [...ledger].sort((a, b) => (a.date < b.date ? 1 : -1)), [ledger]);
+  const entries = useMemo(
+    () => ledger.filter((e) => e.partyId === id).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [ledger, id],
+  );
 
   const totals = useMemo(() => {
     let receivable = 0;
@@ -101,7 +101,7 @@ function PartyDetailsPage() {
     return { receivable, payable, net: receivable - payable };
   }, [entries]);
 
-  if (!partiesHydrated || !ledgerHydrated) {
+  if (!hydrated) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
@@ -118,7 +118,7 @@ function PartyDetailsPage() {
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="mx-auto max-w-5xl px-6 py-6">
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-4 gap-1.5">
-            <Link to="/parties" search={{} as never}>
+            <Link to="/parties">
               <ArrowLeft className="h-4 w-4" />
               Back to Parties
             </Link>
@@ -126,7 +126,7 @@ function PartyDetailsPage() {
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-base font-semibold text-primary-foreground shadow">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-base font-semibold text-primary-foreground shadow">
                 {initials(party.name)}
               </div>
               <div className="min-w-0">
@@ -171,7 +171,7 @@ function PartyDetailsPage() {
             </div>
 
             <Button asChild variant="outline" className="gap-2">
-              <Link to="/parties/$id/edit" params={{ id: party.id }} search={{} as never}>
+              <Link to="/parties/$id/edit" params={{ id: party.id }}>
                 <Pencil className="h-4 w-4" />
                 Edit
               </Link>
@@ -208,9 +208,8 @@ function PartyDetailsPage() {
               <Receipt className="h-3.5 w-3.5" />
               Ledger
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              History
+            <TabsTrigger value="transactions" className="gap-1.5">
+              Transactions
             </TabsTrigger>
           </TabsList>
 
@@ -221,7 +220,7 @@ function PartyDetailsPage() {
             <PartyLedger party={party} entries={entries} currency={currency} />
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4">
+          <TabsContent value="transactions" className="mt-4">
             <PartyTimeline
               partyId={party.id}
               invoices={allInvoices}

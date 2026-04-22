@@ -18,26 +18,24 @@ export const Route = createFileRoute("/accounts/$id/edit")({
       </Button>
     </div>
   ),
-  errorComponent: AccountEditErrorComponent,
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <p className="text-sm text-destructive">{error.message}</p>
+        <Button
+          className="mt-4"
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  },
 });
-
-function AccountEditErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
-  return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <p className="text-sm text-destructive">{error.message}</p>
-      <Button
-        className="mt-4"
-        onClick={() => {
-          router.invalidate();
-          reset();
-        }}
-      >
-        Retry
-      </Button>
-    </div>
-  );
-}
 
 function EditAccountPage() {
   const { id } = Route.useParams();

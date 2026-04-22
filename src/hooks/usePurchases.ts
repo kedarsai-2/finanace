@@ -11,9 +11,13 @@ import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
 const STORAGE_KEY = "bm.purchases";
 
+/** Stable ledger row id for a purchase-return's mirror entry. */
+export function purchaseReturnLedgerEntryId(purchaseId: string) {
+  return `le_pret_${purchaseId}`;
+}
+
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendPurchaseStatus = "DRAFT" | "FINAL" | "CANCELLED";
-type BackendPurchaseKind = "PURCHASE" | "RETURN";
 
 type PurchaseDTO = {
   id?: number;
@@ -36,8 +40,6 @@ type PurchaseDTO = {
   total: number;
   paidAmount: number;
   status: BackendPurchaseStatus;
-  kind?: BackendPurchaseKind | null;
-  sourcePurchaseId?: number | null;
   notes?: string | null;
   terms?: string | null;
   finalizedAt?: string | null;
@@ -84,13 +86,6 @@ function fromBackendPurchaseStatus(
   return "draft";
 }
 
-function toBackendPurchaseKind(k: Purchase["kind"] | null | undefined): BackendPurchaseKind {
-  return k === "return" ? "RETURN" : "PURCHASE";
-}
-function fromBackendPurchaseKind(k: BackendPurchaseKind | null | undefined): Purchase["kind"] {
-  return k === "RETURN" ? "return" : "purchase";
-}
-
 function dtoToPurchase(dto: PurchaseDTO): Purchase {
   return {
     id: toStrId(dto.id),
@@ -116,8 +111,6 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     total: Number(dto.total ?? 0),
     paidAmount: Number(dto.paidAmount ?? 0),
     status: fromBackendPurchaseStatus(dto.status),
-    kind: fromBackendPurchaseKind(dto.kind),
-    sourcePurchaseId: dto.sourcePurchaseId != null ? toStrId(dto.sourcePurchaseId) : undefined,
     deleted: dto.deleted ?? undefined,
     notes: dto.notes ?? undefined,
     terms: dto.terms ?? undefined,
@@ -161,8 +154,6 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     total: p.total,
     paidAmount: p.paidAmount,
     status: toBackendPurchaseStatus(p.status),
-    kind: toBackendPurchaseKind(p.kind),
-    sourcePurchaseId: p.sourcePurchaseId ? (toNumId(p.sourcePurchaseId) ?? null) : null,
     notes: p.notes ?? null,
     terms: p.terms ?? null,
     finalizedAt: p.finalizedAt ?? null,
@@ -322,17 +313,19 @@ export function usePurchases(businessId?: string | null) {
   const syncLedger = useCallback(
     (p: Purchase) => {
       if (USE_BACKEND) return;
-      const id = purchaseLedgerEntryId(p.id);
+      const isReturn = p.kind === "return";
+      const id = isReturn ? purchaseReturnLedgerEntryId(p.id) : purchaseLedgerEntryId(p.id);
       if (p.status === "final" && !p.deleted) {
         const entry: LedgerEntry = {
           id,
           partyId: p.partyId,
           date: p.finalizedAt ?? p.date,
-          note: `Purchase ${p.number}`,
-          amount: -Math.abs(p.total), // payable
-          type: "purchase",
+          note: isReturn ? `Purchase Return ${p.number}` : `Purchase ${p.number}`,
+          // Returns reduce payable → positive (debit); standard purchase → negative.
+          amount: isReturn ? Math.abs(p.total) : -Math.abs(p.total),
+          type: isReturn ? "purchase-return" : "purchase",
           refNo: p.number,
-          refLink: `/purchases/${p.id}`,
+          refLink: isReturn ? `/purchase-returns/${p.id}` : `/purchases/${p.id}`,
         };
         upsertLedgerEntry(entry);
       } else {
@@ -512,9 +505,16 @@ export function usePurchases(businessId?: string | null) {
   );
 
   const scoped = useMemo(
-    () => purchases.filter((x) => !x.deleted && (!businessId || x.businessId === businessId)),
+    () =>
+      purchases.filter(
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "purchase") === "purchase" &&
+          (!businessId || x.businessId === businessId),
+      ),
     [purchases, businessId],
   );
+
   const returns = useMemo(
     () =>
       purchases.filter(

@@ -190,8 +190,17 @@ export function ItemForm({ mode, itemId }: Props) {
                 placeholder='e.g. Steel Bracket 4"'
                 aria-invalid={!!errors.name}
                 {...register("name")}
-                className={cn(errors.name && "border-destructive")}
+                readOnly={mode === "edit"}
+                className={cn(
+                  errors.name && "border-destructive",
+                  mode === "edit" && "cursor-not-allowed bg-muted/50 text-muted-foreground",
+                )}
               />
+              {mode === "edit" && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Item name cannot be changed after creation.
+                </p>
+              )}
               {errMsg(errors.name?.message)}
             </div>
             <div>
@@ -262,37 +271,9 @@ export function ItemForm({ mode, itemId }: Props) {
           </div>
         </FormSection>
 
-        <FormSection step={3} title="Tax">
+        <FormSection step={3} title="Quantity" description="Stocking unit used for this item.">
           <div>
-            <Label htmlFor="taxPercent">Tax rate</Label>
-            <Controller
-              control={control}
-              name="taxPercent"
-              render={({ field }) => (
-                <Select
-                  value={String(field.value)}
-                  onValueChange={(v) => field.onChange(Number(v))}
-                >
-                  <SelectTrigger id="taxPercent" className="sm:max-w-xs">
-                    <SelectValue placeholder="Select tax rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TAX_RATES.map((r) => (
-                      <SelectItem key={r} value={String(r)}>
-                        {r}%
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errMsg(errors.taxPercent?.message)}
-          </div>
-        </FormSection>
-
-        <FormSection step={4} title="Unit">
-          <div>
-            <Label htmlFor="unit">Unit of measure</Label>
+            <Label htmlFor="unit">Quantity unit</Label>
             <Controller
               control={control}
               name="unit"
@@ -315,7 +296,7 @@ export function ItemForm({ mode, itemId }: Props) {
         </FormSection>
 
         <FormSection
-          step={5}
+          step={4}
           title="Inventory"
           description="Future ready — fields are visible but optional."
         >
@@ -359,7 +340,7 @@ export function ItemForm({ mode, itemId }: Props) {
           </div>
         </FormSection>
 
-        <FormSection step={6} title="Additional Info">
+        <FormSection step={5} title="Additional Info">
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea

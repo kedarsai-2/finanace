@@ -134,7 +134,6 @@ function PurchaseReport() {
                     <Link
                       to="/purchases/$id"
                       params={{ id: r.id }}
-                      search={{} as never}
                       className="text-primary hover:underline"
                     >
                       {r.number}

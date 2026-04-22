@@ -1,4 +1,11 @@
-import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -38,17 +45,18 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
 
 const searchSchema = z.object({
-  q: z.string().catch(""),
-  status: z.enum(STATUS_FILTERS).catch("all"),
-  payment: z.enum(PAY_FILTERS).catch("all"),
-  from: z.string().catch(""),
-  to: z.string().catch(""),
+  q: z.string().catch("").default(""),
+  status: z.enum(STATUS_FILTERS).catch("all").default("all"),
+  payment: z.enum(PAY_FILTERS).catch("all").default("all"),
+  from: z.string().catch("").default(""),
+  to: z.string().catch("").default(""),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/invoices")({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search: Partial<SearchValues> & SearchSchemaInput): SearchValues =>
+    searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Invoices — Sales & Receivables" },
@@ -88,17 +96,15 @@ function InvoicesRouteLayout() {
 function InvoicesPage() {
   const navigate = useNavigate({ from: "/invoices" });
   const { q, status, payment, from, to } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { invoices, hydrated, remove, cancel } = useInvoices(activeId);
+  const { activeId, scopedBusinessId, isAll, businesses } = useBusinesses();
+  const { invoices, hydrated, remove, cancel } = useInvoices(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
 
-  const fromDate = useMemo(() => (from ? new Date(from) : undefined), [from]);
-  const toDate = useMemo(() => (to ? new Date(to) : undefined), [to]);
-  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
-  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
+  const fromDate = from ? new Date(from) : undefined;
+  const toDate = to ? new Date(to) : undefined;
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -107,15 +113,15 @@ function InvoicesPage() {
         if (status !== "all" && inv.status !== status) return false;
         if (payment !== "all" && paymentStatusOf(inv) !== payment) return false;
         const d = new Date(inv.date).getTime();
-        if (fromTs !== undefined && d < fromTs) return false;
-        if (toTs !== undefined && d > toTs) return false;
+        if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
+        if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
         if (!term) return true;
         return (
           inv.number.toLowerCase().includes(term) || inv.partyName.toLowerCase().includes(term)
         );
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [invoices, q, status, payment, fromTs, toTs]);
+  }, [invoices, q, status, payment, fromDate, toDate]);
 
   const totals = useMemo(() => {
     let total = 0;
@@ -168,7 +174,7 @@ function InvoicesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/invoices/new" search={{} as never}>
+              <Link to="/invoices/new">
                 <Plus className="h-4 w-4" />
                 Create Invoice
               </Link>
@@ -176,7 +182,7 @@ function InvoicesPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SummaryCard label="Total billed" value={formatCurrency(totals.total, currency)} />
+            <SummaryCard label="Total Sale" value={formatCurrency(totals.total, currency)} />
             <SummaryCard
               label="Total received"
               value={formatCurrency(totals.paid, currency)}
@@ -458,7 +464,6 @@ function InvoicesTable({
               <Link
                 to="/invoices/$id"
                 params={{ id: inv.id }}
-                search={{} as never}
                 className="font-mono text-sm font-semibold text-foreground hover:text-primary"
               >
                 {inv.number}
@@ -469,7 +474,6 @@ function InvoicesTable({
               <Link
                 to="/parties/$id"
                 params={{ id: inv.partyId }}
-                search={{} as never}
                 className="truncate text-sm font-medium text-foreground hover:text-primary"
               >
                 {inv.partyName}
@@ -520,7 +524,7 @@ function InvoicesTable({
                       className="h-8 w-8"
                       aria-label={`Edit ${inv.number}`}
                     >
-                      <Link to="/invoices/$id/edit" params={{ id: inv.id }} search={{} as never}>
+                      <Link to="/invoices/$id/edit" params={{ id: inv.id }}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -570,7 +574,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Create your first invoice to start tracking sales and receivables."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/invoices/new" search={{} as never}>
+        <Link to="/invoices/new">
           <Plus className="h-4 w-4" />
           Create Invoice
         </Link>

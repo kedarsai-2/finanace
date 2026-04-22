@@ -33,6 +33,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { usePurchases } from "@/hooks/usePurchases";
+import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase, type Purchase } from "@/types/purchase";
@@ -61,7 +62,7 @@ function PurchaseDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allPurchases, cancel, remove, ensureLines } = usePurchases(activeId);
+  const { allPurchases, cancel, remove, ensureLines, convertToReturn } = usePurchases(activeId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
@@ -131,7 +132,7 @@ function PurchaseDetailsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" className="gap-2">
-              <Link to="/purchases/$id/print" params={{ id: purchase.id }} search={{} as never}>
+              <Link to="/purchases/$id/print" params={{ id: purchase.id }}>
                 <Printer className="h-4 w-4" />
                 <span className="hidden sm:inline">Print / PDF</span>
               </Link>
@@ -166,7 +167,7 @@ function PurchaseDetailsPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/purchases/$id/edit" params={{ id: purchase.id }} search={{} as never}>
+                <Link to="/purchases/$id/edit" params={{ id: purchase.id }}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -175,6 +176,22 @@ function PurchaseDetailsPage() {
               <Button disabled className="gap-2">
                 <Lock className="h-4 w-4" />
                 Locked
+              </Button>
+            )}
+            {purchase.status === "final" && purchase.kind !== "return" && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={async () => {
+                  const ret = await convertToReturn(purchase.id);
+                  if (ret) {
+                    toast.success(`Return ${ret.number} created`);
+                    navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
+                  }
+                }}
+              >
+                <Undo2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Return</span>
               </Button>
             )}
           </div>
@@ -255,11 +272,11 @@ function PurchaseDetailsPage() {
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-6 py-2 text-left">Item</th>
+                    <th className="px-3 py-2 text-left">Unit</th>
                     <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Price</th>
+                    <th className="px-3 py-2 text-right">Unit Price</th>
                     <th className="px-3 py-2 text-right">Disc.</th>
-                    <th className="px-3 py-2 text-right">Tax %</th>
-                    <th className="px-6 py-2 text-right">Amount</th>
+                    <th className="px-6 py-2 text-right">Total Price</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -269,9 +286,9 @@ function PurchaseDetailsPage() {
                       <tr key={line.id}>
                         <td className="px-6 py-3">
                           <p className="font-medium">{line.name}</p>
-                          {line.unit && (
-                            <p className="text-xs text-muted-foreground">{line.unit}</p>
-                          )}
+                        </td>
+                        <td className="px-3 py-3 text-left text-muted-foreground">
+                          {line.unit || "—"}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums">{line.qty}</td>
                         <td className="px-3 py-3 text-right tabular-nums">
@@ -284,7 +301,6 @@ function PurchaseDetailsPage() {
                               : formatCurrency(line.discountValue, currency)
                             : "—"}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">{line.taxPercent}%</td>
                         <td className="px-6 py-3 text-right font-semibold tabular-nums">
                           {formatCurrency(m.total, currency)}
                         </td>

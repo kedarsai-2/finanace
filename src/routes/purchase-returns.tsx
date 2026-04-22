@@ -106,7 +106,6 @@ function PurchaseReturnsPage() {
                   <Link
                     to="/parties/$id"
                     params={{ id: r.partyId }}
-                    search={{} as never}
                     className="truncate text-sm font-medium text-foreground hover:text-primary"
                   >
                     {r.partyName}
@@ -162,7 +161,6 @@ function EmptyState() {
       </p>
       <Link
         to="/purchases"
-        search={{} as never}
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:opacity-90"
       >
         <Search className="h-4 w-4" />

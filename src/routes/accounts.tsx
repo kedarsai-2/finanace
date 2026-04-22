@@ -181,12 +181,7 @@ function AccountCard({
   const Icon = TYPE_ICON[account.type];
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
-      <Link
-        to="/accounts/$id"
-        params={{ id: account.id }}
-        search={{} as never}
-        className="block p-5"
-      >
+      <Link to="/accounts/$id" params={{ id: account.id }} className="block p-5">
         <div className="mb-3 flex items-center gap-3">
           <div
             className={cn(
