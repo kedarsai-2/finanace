@@ -192,12 +192,7 @@ function AuditPage() {
           </div>
           <div>
             <Label className="text-xs">To</Label>
-            <Input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="h-9"
-            />
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
           </div>
         </div>
       </section>
@@ -236,7 +231,8 @@ function AuditPage() {
             ) : (
               filtered.map((entry) => {
                 const changeCount =
-                  entry.changes?.length ?? (entry.snapshot ? Object.keys(entry.snapshot).length : 0);
+                  entry.changes?.length ??
+                  (entry.snapshot ? Object.keys(entry.snapshot).length : 0);
                 return (
                   <TableRow
                     key={entry.id}
@@ -247,9 +243,7 @@ function AuditPage() {
                       {format(new Date(entry.timestamp), "dd MMM yyyy, HH:mm:ss")}
                     </TableCell>
                     <TableCell className="text-sm">{entry.user}</TableCell>
-                    <TableCell className="text-sm">
-                      {AUDIT_MODULE_LABEL[entry.module]}
-                    </TableCell>
+                    <TableCell className="text-sm">{AUDIT_MODULE_LABEL[entry.module]}</TableCell>
                     <TableCell>
                       <Badge variant={actionBadgeVariant(entry.action)} className="text-[10px]">
                         {AUDIT_ACTION_LABEL[entry.action]}
@@ -300,7 +294,8 @@ function DiffDialog({ entry, onClose }: { entry: AuditEntry | null; onClose: () 
                 <span className="font-normal text-muted-foreground">· {entry.reference}</span>
               </DialogTitle>
               <DialogDescription>
-                {format(new Date(entry.timestamp), "EEE, dd MMM yyyy 'at' HH:mm:ss")} · by {entry.user}
+                {format(new Date(entry.timestamp), "EEE, dd MMM yyyy 'at' HH:mm:ss")} · by{" "}
+                {entry.user}
               </DialogDescription>
             </DialogHeader>
 
@@ -320,15 +315,16 @@ function DiffDialog({ entry, onClose }: { entry: AuditEntry | null; onClose: () 
                         <TableRow key={c.field}>
                           <TableCell className="align-top font-mono text-xs">{c.field}</TableCell>
                           <TableCell
-                            className={cn(
-                              "align-top font-mono text-xs",
-                              "text-destructive",
-                            )}
+                            className={cn("align-top font-mono text-xs", "text-destructive")}
                           >
-                            <pre className="whitespace-pre-wrap break-all">{formatValue(c.before)}</pre>
+                            <pre className="whitespace-pre-wrap break-all">
+                              {formatValue(c.before)}
+                            </pre>
                           </TableCell>
                           <TableCell className="align-top font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                            <pre className="whitespace-pre-wrap break-all">{formatValue(c.after)}</pre>
+                            <pre className="whitespace-pre-wrap break-all">
+                              {formatValue(c.after)}
+                            </pre>
                           </TableCell>
                         </TableRow>
                       ))}

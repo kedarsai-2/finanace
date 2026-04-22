@@ -71,6 +71,12 @@
             <column name="status" type="varchar(255)">
                 <constraints nullable="false" />
             </column>
+            <column name="kind" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="source_purchase_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
             <column name="notes" type="varchar(4000)">
                 <constraints nullable="true" />
             </column>
@@ -140,6 +146,8 @@
             <column name="total" type="numeric"/>
             <column name="paid_amount" type="numeric"/>
             <column name="status" type="string"/>
+            <column name="kind" type="string"/>
+            <column name="source_purchase_id" type="numeric"/>
             <column name="notes" type="string"/>
             <column name="terms" type="string"/>
             <column name="finalized_at" type="date"/>

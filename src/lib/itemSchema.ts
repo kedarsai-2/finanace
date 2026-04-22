@@ -10,10 +10,9 @@ export const itemFormSchema = z.object({
   sku: z.string().trim().max(60).optional().or(z.literal("")),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
   purchasePrice: z.number().min(0, "Purchase price cannot be negative").optional(),
-  taxPercent: z.number().refine(
-    (v) => (TAX_RATES as readonly number[]).includes(v),
-    "Select a valid tax rate",
-  ),
+  taxPercent: z
+    .number()
+    .refine((v) => (TAX_RATES as readonly number[]).includes(v), "Select a valid tax rate"),
   unit: z.enum(ITEM_UNITS),
   openingStock: z.number().min(0).optional(),
   reorderLevel: z.number().min(0).optional(),

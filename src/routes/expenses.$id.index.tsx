@@ -56,9 +56,7 @@ function ExpenseDetailPage() {
   }
 
   const account = accounts.find((a) => a.id === expense.accountId);
-  const party = expense.partyId
-    ? parties.find((p) => p.id === expense.partyId)
-    : null;
+  const party = expense.partyId ? parties.find((p) => p.id === expense.partyId) : null;
 
   const handleDelete = () => {
     remove(expense.id);
@@ -96,9 +94,7 @@ function ExpenseDetailPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
-                  Delete
-                </AlertDialogAction>
+                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -118,9 +114,7 @@ function ExpenseDetailPage() {
               {format(new Date(expense.date), "EEEE, dd MMM yyyy")}
             </p>
           </div>
-          {expense.mode && (
-            <Badge variant="secondary">{PAYMENT_MODE_LABEL[expense.mode]}</Badge>
-          )}
+          {expense.mode && <Badge variant="secondary">{PAYMENT_MODE_LABEL[expense.mode]}</Badge>}
         </div>
 
         <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -129,6 +123,7 @@ function ExpenseDetailPage() {
               <Link
                 to="/accounts/$id"
                 params={{ id: account.id }}
+                search={{} as never}
                 className="text-primary hover:underline"
               >
                 {account.name} • {ACCOUNT_TYPE_LABEL[account.type]}
@@ -142,6 +137,7 @@ function ExpenseDetailPage() {
               <Link
                 to="/parties/$id"
                 params={{ id: party.id }}
+                search={{} as never}
                 className="text-primary hover:underline"
               >
                 {party.name}
@@ -184,13 +180,7 @@ function ExpenseDetailPage() {
   );
 }
 
-function Detail({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

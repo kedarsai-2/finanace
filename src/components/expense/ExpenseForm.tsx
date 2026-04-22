@@ -9,11 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -47,12 +43,7 @@ interface ExpenseFormProps {
   compact?: boolean;
 }
 
-export function ExpenseForm({
-  initial,
-  onSaved,
-  onCancel,
-  compact = false,
-}: ExpenseFormProps) {
+export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: ExpenseFormProps) {
   const navigate = useNavigate();
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
@@ -66,9 +57,7 @@ export function ExpenseForm({
     [parties],
   );
 
-  const [date, setDate] = useState<Date>(
-    initial ? new Date(initial.date) : new Date(),
-  );
+  const [date, setDate] = useState<Date>(initial ? new Date(initial.date) : new Date());
   const [accountId, setAccountId] = useState<string>(initial?.accountId ?? "");
   const [category, setCategory] = useState<string>(
     initial?.category ?? categories[0]?.name ?? "Other",
@@ -84,12 +73,8 @@ export function ExpenseForm({
   // Autofill last-used account on create
   useEffect(() => {
     if (initial || accountId) return;
-    const last =
-      typeof window !== "undefined"
-        ? localStorage.getItem(LAST_ACCOUNT_KEY)
-        : null;
-    const candidate =
-      (last && safeAccounts.find((a) => a.id === last)?.id) || safeAccounts[0]?.id;
+    const last = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
+    const candidate = (last && safeAccounts.find((a) => a.id === last)?.id) || safeAccounts[0]?.id;
     if (candidate) setAccountId(candidate);
   }, [safeAccounts, accountId, initial]);
 
@@ -221,10 +206,7 @@ export function ExpenseForm({
           </div>
           <div className="sm:col-span-3">
             <Label htmlFor="exp-mode">Payment mode</Label>
-            <Select
-              value={mode}
-              onValueChange={(v) => setMode(v as PaymentMode)}
-            >
+            <Select value={mode} onValueChange={(v) => setMode(v as PaymentMode)}>
               <SelectTrigger id="exp-mode">
                 <SelectValue />
               </SelectTrigger>
@@ -310,11 +292,7 @@ export function ExpenseForm({
           </Button>
         )}
         <Button type="submit" disabled={submitting} className="gap-2">
-          {submitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {initial ? "Save changes" : "Save expense"}
         </Button>
       </div>
@@ -342,9 +320,7 @@ function Section({
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <header className="mb-3">
         <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
       </header>
       {children}
     </section>

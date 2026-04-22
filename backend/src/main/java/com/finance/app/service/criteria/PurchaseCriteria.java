@@ -1,6 +1,7 @@
 package com.finance.app.service.criteria;
 
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import java.io.Serial;
 import java.io.Serializable;
@@ -57,6 +58,23 @@ public class PurchaseCriteria implements Serializable, Criteria {
         }
     }
 
+    /**
+     * Class for filtering PurchaseKind
+     */
+    public static class PurchaseKindFilter extends Filter<PurchaseKind> {
+
+        public PurchaseKindFilter() {}
+
+        public PurchaseKindFilter(PurchaseKindFilter filter) {
+            super(filter);
+        }
+
+        @Override
+        public PurchaseKindFilter copy() {
+            return new PurchaseKindFilter(this);
+        }
+    }
+
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -99,6 +117,10 @@ public class PurchaseCriteria implements Serializable, Criteria {
     private BigDecimalFilter paidAmount;
 
     private PurchaseStatusFilter status;
+
+    private PurchaseKindFilter kind;
+
+    private LongFilter sourcePurchaseId;
 
     private StringFilter notes;
 
@@ -143,6 +165,8 @@ public class PurchaseCriteria implements Serializable, Criteria {
         this.total = other.optionalTotal().map(BigDecimalFilter::copy).orElse(null);
         this.paidAmount = other.optionalPaidAmount().map(BigDecimalFilter::copy).orElse(null);
         this.status = other.optionalStatus().map(PurchaseStatusFilter::copy).orElse(null);
+        this.kind = other.optionalKind().map(PurchaseKindFilter::copy).orElse(null);
+        this.sourcePurchaseId = other.optionalSourcePurchaseId().map(LongFilter::copy).orElse(null);
         this.notes = other.optionalNotes().map(StringFilter::copy).orElse(null);
         this.terms = other.optionalTerms().map(StringFilter::copy).orElse(null);
         this.finalizedAt = other.optionalFinalizedAt().map(InstantFilter::copy).orElse(null);
@@ -540,6 +564,44 @@ public class PurchaseCriteria implements Serializable, Criteria {
         this.status = status;
     }
 
+    public PurchaseKindFilter getKind() {
+        return kind;
+    }
+
+    public Optional<PurchaseKindFilter> optionalKind() {
+        return Optional.ofNullable(kind);
+    }
+
+    public PurchaseKindFilter kind() {
+        if (kind == null) {
+            setKind(new PurchaseKindFilter());
+        }
+        return kind;
+    }
+
+    public void setKind(PurchaseKindFilter kind) {
+        this.kind = kind;
+    }
+
+    public LongFilter getSourcePurchaseId() {
+        return sourcePurchaseId;
+    }
+
+    public Optional<LongFilter> optionalSourcePurchaseId() {
+        return Optional.ofNullable(sourcePurchaseId);
+    }
+
+    public LongFilter sourcePurchaseId() {
+        if (sourcePurchaseId == null) {
+            setSourcePurchaseId(new LongFilter());
+        }
+        return sourcePurchaseId;
+    }
+
+    public void setSourcePurchaseId(LongFilter sourcePurchaseId) {
+        this.sourcePurchaseId = sourcePurchaseId;
+    }
+
     public StringFilter getNotes() {
         return notes;
     }
@@ -760,6 +822,8 @@ public class PurchaseCriteria implements Serializable, Criteria {
             Objects.equals(total, that.total) &&
             Objects.equals(paidAmount, that.paidAmount) &&
             Objects.equals(status, that.status) &&
+            Objects.equals(kind, that.kind) &&
+            Objects.equals(sourcePurchaseId, that.sourcePurchaseId) &&
             Objects.equals(notes, that.notes) &&
             Objects.equals(terms, that.terms) &&
             Objects.equals(finalizedAt, that.finalizedAt) &&
@@ -796,6 +860,8 @@ public class PurchaseCriteria implements Serializable, Criteria {
             total,
             paidAmount,
             status,
+            kind,
+            sourcePurchaseId,
             notes,
             terms,
             finalizedAt,
@@ -833,6 +899,8 @@ public class PurchaseCriteria implements Serializable, Criteria {
             optionalTotal().map(f -> "total=" + f + ", ").orElse("") +
             optionalPaidAmount().map(f -> "paidAmount=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
+            optionalKind().map(f -> "kind=" + f + ", ").orElse("") +
+            optionalSourcePurchaseId().map(f -> "sourcePurchaseId=" + f + ", ").orElse("") +
             optionalNotes().map(f -> "notes=" + f + ", ").orElse("") +
             optionalTerms().map(f -> "terms=" + f + ", ").orElse("") +
             optionalFinalizedAt().map(f -> "finalizedAt=" + f + ", ").orElse("") +

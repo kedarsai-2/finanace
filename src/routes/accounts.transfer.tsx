@@ -68,7 +68,7 @@ function TransferPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fromBalance = fromId ? balances[fromId] ?? 0 : 0;
+  const fromBalance = fromId ? (balances[fromId] ?? 0) : 0;
 
   const validate = (): string | null => {
     if (!fromId) return "Choose a source account";

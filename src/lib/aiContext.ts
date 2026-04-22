@@ -138,7 +138,13 @@ export function buildDashboardSnapshot(args: {
 export interface PartyHistorySnapshot {
   partyName: string;
   type: string;
-  invoices: Array<{ number: string; date: string; total: number; paidAmount: number; daysToPay: number | null }>;
+  invoices: Array<{
+    number: string;
+    date: string;
+    total: number;
+    paidAmount: number;
+    daysToPay: number | null;
+  }>;
   averageDaysToPay: number | null;
   totalBilled: number;
   totalReceived: number;
@@ -169,9 +175,7 @@ export function buildPartyHistorySnapshot(args: {
         break;
       }
     }
-    const daysToPay = lastPayDate
-      ? differenceInDays(lastPayDate, new Date(inv.date))
-      : null;
+    const daysToPay = lastPayDate ? differenceInDays(lastPayDate, new Date(inv.date)) : null;
     return {
       number: inv.number,
       date: inv.date,
@@ -181,7 +185,9 @@ export function buildPartyHistorySnapshot(args: {
     };
   });
 
-  const paidWithDays = invoiceData.filter((d) => d.daysToPay !== null) as Array<typeof invoiceData[number] & { daysToPay: number }>;
+  const paidWithDays = invoiceData.filter((d) => d.daysToPay !== null) as Array<
+    (typeof invoiceData)[number] & { daysToPay: number }
+  >;
   const averageDaysToPay = paidWithDays.length
     ? Math.round(paidWithDays.reduce((s, d) => s + d.daysToPay, 0) / paidWithDays.length)
     : null;

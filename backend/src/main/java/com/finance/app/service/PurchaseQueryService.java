@@ -93,6 +93,8 @@ public class PurchaseQueryService extends QueryService<Purchase> {
                 buildRangeSpecification(criteria.getTotal(), Purchase_.total),
                 buildRangeSpecification(criteria.getPaidAmount(), Purchase_.paidAmount),
                 buildSpecification(criteria.getStatus(), Purchase_.status),
+                buildSpecification(criteria.getKind(), Purchase_.kind),
+                buildRangeSpecification(criteria.getSourcePurchaseId(), Purchase_.sourcePurchaseId),
                 buildStringSpecification(criteria.getNotes(), Purchase_.notes),
                 buildStringSpecification(criteria.getTerms(), Purchase_.terms),
                 buildRangeSpecification(criteria.getFinalizedAt(), Purchase_.finalizedAt),

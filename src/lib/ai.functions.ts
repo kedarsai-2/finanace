@@ -48,7 +48,8 @@ async function callGatewayStructured<T>(args: GatewayCallArgs): Promise<T> {
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     if (res.status === 429) throw new Error("AI rate limit reached, please try again in a minute.");
-    if (res.status === 402) throw new Error("AI credits exhausted — top up at Settings → Workspace → Usage.");
+    if (res.status === 402)
+      throw new Error("AI credits exhausted — top up at Settings → Workspace → Usage.");
     throw new Error(`AI gateway error ${res.status}: ${txt.slice(0, 200)}`);
   }
 
@@ -124,7 +125,12 @@ export const aiCashflow = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const result = await callGatewayStructured<{
-        projection: Array<{ week: string; expected_inflow: number; expected_outflow: number; net: number }>;
+        projection: Array<{
+          week: string;
+          expected_inflow: number;
+          expected_outflow: number;
+          net: number;
+        }>;
         confidence: "low" | "medium" | "high";
         assumptions: string[];
       }>({
@@ -229,7 +235,8 @@ export const aiAsk = createServerFn({ method: "POST" })
         }),
       });
       if (!res.ok) {
-        if (res.status === 429) return { ok: false as const, error: "Rate limit reached. Try again shortly." };
+        if (res.status === 429)
+          return { ok: false as const, error: "Rate limit reached. Try again shortly." };
         if (res.status === 402) return { ok: false as const, error: "AI credits exhausted." };
         return { ok: false as const, error: `AI gateway error ${res.status}` };
       }

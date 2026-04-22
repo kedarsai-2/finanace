@@ -29,8 +29,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
         minHeight: "297mm",
         padding: "16mm",
         boxSizing: "border-box",
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
       {/* ---------- Letterhead ---------- */}
@@ -51,9 +50,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
             <h1 className="text-2xl font-bold leading-tight">
               {business?.name ?? "Your Business"}
             </h1>
-            {business?.ownerName && (
-              <p className="text-sm text-slate-600">{business.ownerName}</p>
-            )}
+            {business?.ownerName && <p className="text-sm text-slate-600">{business.ownerName}</p>}
             <div className="mt-1 text-xs leading-relaxed text-slate-600">
               {[business?.billingAddress?.line1, business?.billingAddress?.line2]
                 .filter(Boolean)
@@ -79,9 +76,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Purchase Bill
           </p>
-          <p className="mt-1 font-mono text-2xl font-bold tracking-tight">
-            {purchase.number}
-          </p>
+          <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{purchase.number}</p>
           <dl className="mt-3 space-y-1 text-xs text-slate-600">
             <div className="flex justify-end gap-4">
               <dt>Date</dt>
@@ -99,9 +94,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
             )}
             <div className="flex justify-end gap-4">
               <dt>Status</dt>
-              <dd className="font-medium uppercase text-slate-900">
-                {purchase.status}
-              </dd>
+              <dd className="font-medium uppercase text-slate-900">{purchase.status}</dd>
             </div>
           </dl>
         </div>
@@ -123,9 +116,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
                   .join(", ")}
               </div>
               {party.mobile && <div className="mt-1">📞 {party.mobile}</div>}
-              {party.gstNumber && (
-                <div className="mt-1 font-mono">GSTIN: {party.gstNumber}</div>
-              )}
+              {party.gstNumber && <div className="mt-1 font-mono">GSTIN: {party.gstNumber}</div>}
             </div>
           )}
         </div>
@@ -133,9 +124,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Place of supply
           </p>
-          <p className="mt-1 text-sm font-medium">
-            {purchase.partyState ?? "—"}
-          </p>
+          <p className="mt-1 text-sm font-medium">{purchase.partyState ?? "—"}</p>
           <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             GST type
           </p>
@@ -179,9 +168,7 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
                         : formatCurrency(line.discountValue, currency)
                       : "—"}
                   </td>
-                  <td className="px-2 py-2 text-right tabular-nums">
-                    {line.taxPercent}%
-                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums">{line.taxPercent}%</td>
                   <td className="px-2 py-2 text-right font-semibold tabular-nums">
                     {formatCurrency(m.total, currency)}
                   </td>
@@ -217,11 +204,23 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
           />
           {intraState ? (
             <>
-              <SummaryRow label="CGST (Input)" value={formatCurrency(purchase.cgst, currency)} muted />
-              <SummaryRow label="SGST (Input)" value={formatCurrency(purchase.sgst, currency)} muted />
+              <SummaryRow
+                label="CGST (Input)"
+                value={formatCurrency(purchase.cgst, currency)}
+                muted
+              />
+              <SummaryRow
+                label="SGST (Input)"
+                value={formatCurrency(purchase.sgst, currency)}
+                muted
+              />
             </>
           ) : (
-            <SummaryRow label="IGST (Input)" value={formatCurrency(purchase.igst, currency)} muted />
+            <SummaryRow
+              label="IGST (Input)"
+              value={formatCurrency(purchase.igst, currency)}
+              muted
+            />
           )}
           <div className="my-1 border-t border-slate-300" />
           <div className="flex items-baseline justify-between gap-6 bg-slate-900 px-3 py-2 text-white">
@@ -272,23 +271,11 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  muted,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-}) {
+function SummaryRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-6">
       <dt className={muted ? "text-slate-500" : "text-slate-700"}>{label}</dt>
-      <dd
-        className={
-          "tabular-nums " + (muted ? "text-slate-500" : "font-medium text-slate-900")
-        }
-      >
+      <dd className={"tabular-nums " + (muted ? "text-slate-500" : "font-medium text-slate-900")}>
         {value}
       </dd>
     </div>

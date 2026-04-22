@@ -107,9 +107,7 @@ function NewPaymentPage() {
       return invoices
         .filter(
           (i): i is Invoice =>
-            i.partyId === partyId &&
-            i.status !== "cancelled" &&
-            i.total - i.paidAmount > 0.01,
+            i.partyId === partyId && i.status !== "cancelled" && i.total - i.paidAmount > 0.01,
         )
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((i) => ({
@@ -122,9 +120,7 @@ function NewPaymentPage() {
     return purchases
       .filter(
         (p): p is Purchase =>
-          p.partyId === partyId &&
-          p.status !== "cancelled" &&
-          p.total - p.paidAmount > 0.01,
+          p.partyId === partyId && p.status !== "cancelled" && p.total - p.paidAmount > 0.01,
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((p) => ({
@@ -175,9 +171,7 @@ function NewPaymentPage() {
     });
   }, [amount, autoAllocate]);
 
-  const allocatedTotal = rows
-    .filter((r) => r.selected)
-    .reduce((s, r) => s + r.amount, 0);
+  const allocatedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
   const unallocated = Math.max(0, amount - allocatedTotal);
   const overAllocated = allocatedTotal - amount > 0.01;
 
@@ -357,11 +351,13 @@ function NewPaymentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">No party (general / advance)</SelectItem>
-                  {filteredParties.filter((p) => !!p.id).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {filteredParties
+                    .filter((p) => !!p.id)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -428,10 +424,7 @@ function NewPaymentPage() {
                   first.
                 </p>
               ) : (
-                <Select
-                  value={accountId || undefined}
-                  onValueChange={(v) => setAccountId(v)}
-                >
+                <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v)}>
                   <SelectTrigger id="account">
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
@@ -490,9 +483,7 @@ function NewPaymentPage() {
                 size="sm"
                 onClick={() => {
                   setAutoAllocate(true);
-                  setRows((prev) =>
-                    prev.map((r) => ({ ...r, manuallyEdited: false })),
-                  );
+                  setRows((prev) => prev.map((r) => ({ ...r, manuallyEdited: false })));
                 }}
               >
                 Reset
@@ -579,12 +570,18 @@ function NewPaymentPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } })}
+            onClick={() =>
+              navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } })
+            }
           >
             Cancel
           </Button>
           <Button type="submit" disabled={submitting} className="gap-2">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
             Save payment
           </Button>
         </div>

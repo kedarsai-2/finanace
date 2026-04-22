@@ -20,11 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -100,8 +96,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [date, setDate] = useState<Date>(new Date());
   const [terms, setTerms] = useState<number>(30);
   const [lines, setLines] = useState<InvoiceLine[]>([emptyLine()]);
-  const [overallDiscountKind, setOverallDiscountKind] =
-    useState<DiscountKind>("percent");
+  const [overallDiscountKind, setOverallDiscountKind] = useState<DiscountKind>("percent");
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
@@ -134,8 +129,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const party = parties.find((p) => p.id === partyId);
   const businessState = activeBusiness?.state;
-  const intraState =
-    !!businessState && !!party?.state && businessState === party.state;
+  const intraState = !!businessState && !!party?.state && businessState === party.state;
 
   const dueDate = useMemo(() => addDays(date, terms || 0), [date, terms]);
 
@@ -151,8 +145,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   );
 
   // -------- Edit-lock -----------------------------------------------------
-  const locked =
-    mode === "edit" && existing ? !canEditInvoice(existing) : false;
+  const locked = mode === "edit" && existing ? !canEditInvoice(existing) : false;
   const lockedReason =
     existing?.status === "cancelled"
       ? "Cancelled invoices cannot be edited."
@@ -164,9 +157,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const addLine = () => setLines((prev) => [...prev, emptyLine()]);
   const removeLine = (id: string) =>
-    setLines((prev) =>
-      prev.length === 1 ? prev : prev.filter((l) => l.id !== id),
-    );
+    setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.id !== id)));
 
   const applyItemToLine = (lineId: string, item: Item) =>
     updateLine(lineId, {
@@ -198,6 +189,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
+      if (l.discountValue < 0) return `Discount cannot be negative for ${l.name}`;
+      if (l.discountKind === "percent" && l.discountValue > 100)
+        return `Discount % cannot exceed 100 for ${l.name}`;
     }
     return null;
   };
@@ -225,7 +219,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       notes: notes.trim() || undefined,
       terms: termsText.trim() || undefined,
       finalizedAt: isFinal
-        ? existing?.finalizedAt ?? new Date().toISOString()
+        ? (existing?.finalizedAt ?? new Date().toISOString())
         : existing?.finalizedAt,
     };
   };
@@ -245,9 +239,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       const inv = buildInvoice(status);
       await upsert(inv);
       toast.success(
-        status === "final"
-          ? `Invoice ${inv.number} finalised`
-          : `Draft ${inv.number} saved`,
+        status === "final" ? `Invoice ${inv.number} finalised` : `Draft ${inv.number} saved`,
       );
       navigate({
         to: "/invoices",
@@ -322,8 +314,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {locked && (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground/80">
-            <strong className="font-semibold">This invoice is locked.</strong>{" "}
-            {lockedReason}
+            <strong className="font-semibold">This invoice is locked.</strong> {lockedReason}
           </div>
         )}
 
@@ -346,10 +337,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                     <SearchIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-[--radix-popover-trigger-width] p-0"
-                  align="start"
-                >
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search parties…" />
                     <CommandList>
@@ -416,10 +404,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <Label>Invoice date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-10 w-full justify-between font-normal"
-                  >
+                  <Button variant="outline" className="h-10 w-full justify-between font-normal">
                     {format(date, "dd MMM yyyy")}
                     <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
@@ -452,11 +437,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             </div>
             <div>
               <Label>Due date</Label>
-              <Input
-                value={format(dueDate, "dd MMM yyyy")}
-                disabled
-                className="bg-muted/40"
-              />
+              <Input value={format(dueDate, "dd MMM yyyy")} disabled className="bg-muted/40" />
             </div>
           </div>
         </FormSection>
@@ -471,7 +452,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-left">Unit</th>
                   <th className="px-3 py-2 text-right">Rate</th>
-                  <th className="px-3 py-2 text-left" colSpan={2}>Discount</th>
+                  <th className="px-3 py-2 text-left" colSpan={2}>
+                    Discount
+                  </th>
                   <th className="px-3 py-2 text-right">Tax %</th>
                   <th className="px-3 py-2 text-right">Amount</th>
                   <th className="px-3 py-2"></th>
@@ -591,13 +574,17 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         </FormSection>
 
         {/* 4 + 5. GST + Summary ------------------------------------------------ */}
-        <FormSection step={4} title="Summary" description={
-          intraState
-            ? "Same-state invoice — CGST + SGST applied."
-            : party
-            ? "Inter-state invoice — IGST applied."
-            : "GST split is computed once a party is selected."
-        }>
+        <FormSection
+          step={4}
+          title="Summary"
+          description={
+            intraState
+              ? "Same-state invoice — CGST + SGST applied."
+              : party
+                ? "Inter-state invoice — IGST applied."
+                : "GST split is computed once a party is selected."
+          }
+        >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
             <div className="space-y-3">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
@@ -643,10 +630,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                   muted
                 />
               )}
-              <Row
-                label="Taxable value"
-                value={formatCurrency(totals.taxableValue, currency)}
-              />
+              <Row label="Taxable value" value={formatCurrency(totals.taxableValue, currency)} />
               {intraState ? (
                 <>
                   <Row label="CGST" value={formatCurrency(totals.cgst, currency)} muted />
@@ -656,17 +640,17 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                 <Row label="IGST" value={formatCurrency(totals.igst, currency)} muted />
               )}
               <div className="my-2 h-px bg-border" />
-              <Row
-                label="Total"
-                value={formatCurrency(totals.total, currency)}
-                emphasis
-              />
+              <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
             </dl>
           </div>
         </FormSection>
 
         {/* 7. Notes & terms -------------------------------------------------- */}
-        <FormSection step={5} title="Notes & Terms" description="Optional, shown on the printable invoice.">
+        <FormSection
+          step={5}
+          title="Notes & Terms"
+          description="Optional, shown on the printable invoice."
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="notes">Notes</Label>
@@ -825,14 +809,10 @@ function ItemPicker({
                       <div>
                         <p className="font-medium">{it.name}</p>
                         {it.sku && (
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {it.sku}
-                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">{it.sku}</p>
                         )}
                       </div>
-                      <span className="tabular-nums text-muted-foreground">
-                        {it.sellingPrice}
-                      </span>
+                      <span className="tabular-nums text-muted-foreground">{it.sellingPrice}</span>
                     </div>
                   </CommandItem>
                 ))}

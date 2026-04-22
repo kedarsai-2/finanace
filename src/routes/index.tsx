@@ -58,23 +58,25 @@ const RANGE_LABEL: Record<Range, string> = {
 
 function DashboardPage() {
   const { businesses, activeId, hydrated } = useBusinesses();
+  const isAll = activeId === "__all__";
+  const scopedBusinessId = isAll ? undefined : activeId;
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
-  const { invoices } = useInvoices(activeId);
-  const { purchases } = usePurchases(activeId);
-  const { payments } = usePayments(activeId);
-  const { expenses } = useExpenses(activeId);
-  const { accounts } = useAccounts(activeId, businesses.map((b) => b.id));
-  const { transfers } = useTransfers(activeId);
-  const { allParties } = useParties(activeId);
+  const { invoices } = useInvoices(scopedBusinessId);
+  const { purchases } = usePurchases(scopedBusinessId);
+  const { payments } = usePayments(scopedBusinessId);
+  const { expenses } = useExpenses(scopedBusinessId);
+  const { accounts } = useAccounts(
+    scopedBusinessId,
+    businesses.map((b) => b.id),
+  );
+  const { transfers } = useTransfers(scopedBusinessId);
+  const { allParties } = useParties(scopedBusinessId);
 
   const [range, setRange] = useState<Range>("6m");
 
-  const liveInvoices = useMemo(
-    () => invoices.filter((i) => i.status !== "cancelled"),
-    [invoices],
-  );
+  const liveInvoices = useMemo(() => invoices.filter((i) => i.status !== "cancelled"), [invoices]);
   const livePurchases = useMemo(
     () => purchases.filter((p) => p.status !== "cancelled"),
     [purchases],
@@ -108,7 +110,10 @@ function DashboardPage() {
     [accounts, payments, transfers, expenses, accountsById],
   );
 
-  const trendData = useMemo(() => buildTrend(range, liveInvoices, expenses), [range, liveInvoices, expenses]);
+  const trendData = useMemo(
+    () => buildTrend(range, liveInvoices, expenses),
+    [range, liveInvoices, expenses],
+  );
 
   const aiSnapshot = useMemo(
     () =>
@@ -200,27 +205,35 @@ function DashboardPage() {
     );
   }
 
-  const isEmpty =
-    liveInvoices.length === 0 && payments.length === 0 && expenses.length === 0;
+  const isEmpty = liveInvoices.length === 0 && payments.length === 0 && expenses.length === 0;
 
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            {business?.name ?? "Workspace"}
+            {isAll ? "All Companies" : (business?.name ?? "Workspace")}
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Dashboard</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/invoices/new"><Plus className="h-4 w-4" />Invoice</Link>
+            <Link to="/invoices/new" search={{} as never}>
+              <Plus className="h-4 w-4" />
+              Invoice
+            </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/payments/new"><Plus className="h-4 w-4" />Payment</Link>
+            <Link to="/payments/new" search={{} as never}>
+              <Plus className="h-4 w-4" />
+              Payment
+            </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to="/expenses/new"><Plus className="h-4 w-4" />Expense</Link>
+            <Link to="/expenses/new" search={{} as never}>
+              <Plus className="h-4 w-4" />
+              Expense
+            </Link>
           </Button>
         </div>
       </header>
@@ -229,9 +242,19 @@ function DashboardPage() {
         <div className="mb-6 rounded-xl border border-dashed border-border bg-card/40 p-5 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Your dashboard is empty.</p>
           <p className="mt-1">
-            Start by creating an <Link to="/invoices/new" className="text-primary hover:underline">invoice</Link>,
-            recording a <Link to="/payments/new" className="text-primary hover:underline">payment</Link>,
-            or logging an <Link to="/expenses/new" className="text-primary hover:underline">expense</Link>.
+            Start by creating an{" "}
+            <Link to="/invoices/new" search={{} as never} className="text-primary hover:underline">
+              invoice
+            </Link>
+            , recording a{" "}
+            <Link to="/payments/new" search={{} as never} className="text-primary hover:underline">
+              payment
+            </Link>
+            , or logging an{" "}
+            <Link to="/expenses/new" search={{} as never} className="text-primary hover:underline">
+              expense
+            </Link>
+            .
           </p>
         </div>
       )}
@@ -263,7 +286,13 @@ function DashboardPage() {
           to="/reports"
           label="Net Profit"
           value={formatCurrency(netProfit, currency)}
-          icon={netProfit >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          icon={
+            netProfit >= 0 ? (
+              <TrendingUp className="h-4 w-4" />
+            ) : (
+              <TrendingDown className="h-4 w-4" />
+            )
+          }
           tone={netProfit >= 0 ? "success" : "destructive"}
           signed={netProfit < 0 ? "-" : ""}
         />
@@ -483,9 +512,7 @@ function BalanceCard({
           {icon}
         </span>
       </div>
-      <p className="mt-3 text-3xl font-bold tabular-nums">
-        {formatCurrency(amount, currency)}
-      </p>
+      <p className="mt-3 text-3xl font-bold tabular-nums">{formatCurrency(amount, currency)}</p>
     </Link>
   );
 }

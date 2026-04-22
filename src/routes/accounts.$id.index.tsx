@@ -61,24 +61,26 @@ export const Route = createFileRoute("/accounts/$id/")({
       </Button>
     </div>
   ),
-  errorComponent: ({ error, reset }) => {
-    const router = useRouter();
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <p className="text-sm text-destructive">{error.message}</p>
-        <Button
-          className="mt-4"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-        >
-          Retry
-        </Button>
-      </div>
-    );
-  },
+  errorComponent: AccountDetailsErrorComponent,
 });
+
+function AccountDetailsErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="mx-auto max-w-md px-4 py-16 text-center">
+      <p className="text-sm text-destructive">{error.message}</p>
+      <Button
+        className="mt-4"
+        onClick={() => {
+          router.invalidate();
+          reset();
+        }}
+      >
+        Retry
+      </Button>
+    </div>
+  );
+}
 
 const TYPE_ICON: Record<AccountType, typeof Wallet> = {
   cash: Banknote,
@@ -148,8 +150,7 @@ function AccountDetailsPage() {
     return rows.filter((r) => {
       if (!kindMatches(r.kind, search.kind)) return false;
       if (search.from && new Date(r.date) < new Date(search.from)) return false;
-      if (search.to && new Date(r.date) > new Date(`${search.to}T23:59:59`))
-        return false;
+      if (search.to && new Date(r.date) > new Date(`${search.to}T23:59:59`)) return false;
       return true;
     });
   }, [allTxns, search.from, search.to, search.kind]);
@@ -182,9 +183,7 @@ function AccountDetailsPage() {
       r.amount > 0 ? r.amount.toFixed(2) : "",
       r.balance.toFixed(2),
     ]);
-    const csv = [header, ...lines]
-      .map((row) => row.map((c) => `"${c}"`).join(","))
-      .join("\n");
+    const csv = [header, ...lines].map((row) => row.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -223,9 +222,7 @@ function AccountDetailsPage() {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Current balance
-          </p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Current balance</p>
           <p
             className={cn(
               "text-3xl font-semibold tabular-nums",
@@ -267,7 +264,11 @@ function AccountDetailsPage() {
             id="from"
             type="date"
             value={search.from}
-            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }) })}
+            onChange={(e) =>
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }),
+              })
+            }
           />
         </div>
         <div>
@@ -276,7 +277,11 @@ function AccountDetailsPage() {
             id="to"
             type="date"
             value={search.to}
-            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }) })}
+            onChange={(e) =>
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }),
+              })
+            }
           />
         </div>
         <div>
@@ -284,7 +289,9 @@ function AccountDetailsPage() {
           <Select
             value={search.kind}
             onValueChange={(v) =>
-              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, kind: v as KindFilter }) })
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, kind: v as KindFilter }),
+              })
             }
           >
             <SelectTrigger>
@@ -303,7 +310,11 @@ function AccountDetailsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate({ search: (_: z.infer<typeof searchSchema>) => ({ from: "", to: "", kind: "all" }) })}
+            onClick={() =>
+              navigate({
+                search: (_: z.infer<typeof searchSchema>) => ({ from: "", to: "", kind: "all" }),
+              })
+            }
           >
             Reset
           </Button>
@@ -342,9 +353,7 @@ function AccountDetailsPage() {
                     ) : (
                       r.refNo
                     )}
-                    {r.note && (
-                      <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
-                    )}
+                    {r.note && <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
                     {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}

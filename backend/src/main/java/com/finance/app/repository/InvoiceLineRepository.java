@@ -39,9 +39,4 @@ public interface InvoiceLineRepository extends JpaRepository<InvoiceLine, Long> 
         "select invoiceLine from InvoiceLine invoiceLine left join fetch invoiceLine.item left join fetch invoiceLine.invoice where invoiceLine.id =:id"
     )
     Optional<InvoiceLine> findOneWithToOneRelationships(@Param("id") Long id);
-
-    @Query(
-        "select invoiceLine from InvoiceLine invoiceLine left join fetch invoiceLine.item left join fetch invoiceLine.invoice where invoiceLine.invoice.id = :invoiceId order by invoiceLine.lineOrder asc, invoiceLine.id asc"
-    )
-    List<InvoiceLine> findAllByInvoiceIdWithToOneRelationships(@Param("invoiceId") Long invoiceId);
 }

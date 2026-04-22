@@ -91,7 +91,6 @@ export function QuickAddPartyDialog({
   };
 
   const handleSave = () => {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     if (!activeId) {
       toast.error("Select an active business first");
       return;
@@ -134,9 +133,7 @@ export function QuickAddPartyDialog({
             </div>
             <div>
               <DialogTitle>Quick add party</DialogTitle>
-              <DialogDescription>
-                Create a new party and use it instantly.
-              </DialogDescription>
+              <DialogDescription>Create a new party and use it instantly.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -163,9 +160,7 @@ export function QuickAddPartyDialog({
                 inputMode="numeric"
                 maxLength={10}
                 value={form.mobile}
-                onChange={(e) =>
-                  setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })
-                }
+                onChange={(e) => setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })}
                 placeholder="10-digit number"
               />
             </Field>
@@ -190,9 +185,7 @@ export function QuickAddPartyDialog({
           <Field label="GST number" error={errors.gstNumber}>
             <Input
               value={form.gstNumber}
-              onChange={(e) =>
-                setForm({ ...form, gstNumber: e.target.value.toUpperCase() })
-              }
+              onChange={(e) => setForm({ ...form, gstNumber: e.target.value.toUpperCase() })}
               placeholder="Optional"
               className="font-mono uppercase"
             />

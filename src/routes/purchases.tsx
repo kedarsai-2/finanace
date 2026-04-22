@@ -1,33 +1,14 @@
-import {
-  Outlet,
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  ShoppingCart,
-  Ban,
-  CalendarIcon,
-  X,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Ban, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,8 +80,10 @@ function PurchasesPage() {
   const [deleting, setDeleting] = useState<Purchase | null>(null);
   const [cancelling, setCancelling] = useState<Purchase | null>(null);
 
-  const fromDate = from ? new Date(from) : undefined;
-  const toDate = to ? new Date(to) : undefined;
+  const fromDate = useMemo(() => (from ? new Date(from) : undefined), [from]);
+  const toDate = useMemo(() => (to ? new Date(to) : undefined), [to]);
+  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
+  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -108,16 +91,13 @@ function PurchasesPage() {
       .filter((p) => {
         if (status !== "all" && p.status !== status) return false;
         const d = new Date(p.date).getTime();
-        if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
-        if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
+        if (fromTs !== undefined && d < fromTs) return false;
+        if (toTs !== undefined && d > toTs) return false;
         if (!term) return true;
-        return (
-          p.number.toLowerCase().includes(term) ||
-          p.partyName.toLowerCase().includes(term)
-        );
+        return p.number.toLowerCase().includes(term) || p.partyName.toLowerCase().includes(term);
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [purchases, q, status, fromDate, toDate]);
+  }, [purchases, q, status, fromTs, toTs]);
 
   const totals = useMemo(() => {
     let total = 0;
@@ -168,7 +148,7 @@ function PurchasesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/purchases/new">
+              <Link to="/purchases/new" search={{} as never}>
                 <Plus className="h-4 w-4" />
                 Add Purchase
               </Link>
@@ -177,10 +157,7 @@ function PurchasesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total purchases" value={String(totals.count)} />
-            <SummaryCard
-              label="Total billed"
-              value={formatCurrency(totals.total, currency)}
-            />
+            <SummaryCard label="Total billed" value={formatCurrency(totals.total, currency)} />
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
@@ -261,9 +238,7 @@ function PurchasesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep purchase</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel}>
-              Cancel purchase
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmCancel}>Cancel purchase</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -274,9 +249,7 @@ function PurchasesPage() {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
@@ -370,9 +343,7 @@ function DatePill({
           type="button"
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
-            value
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+            value ? "text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
@@ -424,6 +395,7 @@ function PurchasesTable({
               <Link
                 to="/purchases/$id"
                 params={{ id: p.id }}
+                search={{} as never}
                 className="font-mono text-sm font-semibold text-foreground hover:text-primary"
               >
                 {p.number}
@@ -434,6 +406,7 @@ function PurchasesTable({
               <Link
                 to="/parties/$id"
                 params={{ id: p.partyId }}
+                search={{} as never}
                 className="truncate text-sm font-medium text-foreground hover:text-primary"
               >
                 {p.partyName}
@@ -466,7 +439,7 @@ function PurchasesTable({
                       className="h-8 w-8"
                       aria-label={`Edit ${p.number}`}
                     >
-                      <Link to="/purchases/$id/edit" params={{ id: p.id }}>
+                      <Link to="/purchases/$id/edit" params={{ id: p.id }} search={{} as never}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -516,7 +489,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Record your first purchase to track supplier bills and payables."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/purchases/new">
+        <Link to="/purchases/new" search={{} as never}>
           <Plus className="h-4 w-4" />
           Add Purchase
         </Link>

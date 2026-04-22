@@ -60,8 +60,10 @@ public class PartyDTO implements Serializable {
 
     private BigDecimal openingBalance;
 
+    @NotNull
     private BigDecimal balance;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;

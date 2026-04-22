@@ -5,7 +5,10 @@ export const Route = createFileRoute("/purchases/new")({
   head: () => ({
     meta: [
       { title: "New Purchase — Bills" },
-      { name: "description", content: "Record a new purchase bill from a supplier with items, tax, and totals." },
+      {
+        name: "description",
+        content: "Record a new purchase bill from a supplier with items, tax, and totals.",
+      },
     ],
   }),
   component: () => <PurchaseForm mode="new" />,

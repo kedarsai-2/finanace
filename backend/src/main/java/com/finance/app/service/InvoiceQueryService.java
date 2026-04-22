@@ -94,6 +94,8 @@ public class InvoiceQueryService extends QueryService<Invoice> {
                 buildRangeSpecification(criteria.getTotal(), Invoice_.total),
                 buildRangeSpecification(criteria.getPaidAmount(), Invoice_.paidAmount),
                 buildSpecification(criteria.getStatus(), Invoice_.status),
+                buildSpecification(criteria.getKind(), Invoice_.kind),
+                buildRangeSpecification(criteria.getSourceInvoiceId(), Invoice_.sourceInvoiceId),
                 buildStringSpecification(criteria.getNotes(), Invoice_.notes),
                 buildStringSpecification(criteria.getTerms(), Invoice_.terms),
                 buildRangeSpecification(criteria.getFinalizedAt(), Invoice_.finalizedAt),

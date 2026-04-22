@@ -15,6 +15,7 @@ import com.finance.app.domain.Business;
 import com.finance.app.domain.Invoice;
 import com.finance.app.domain.Party;
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.InvoiceKind;
 import com.finance.app.domain.enumeration.InvoiceStatus;
 import com.finance.app.repository.InvoiceRepository;
 import com.finance.app.service.InvoiceService;
@@ -123,6 +124,13 @@ class InvoiceResourceIT {
     private static final InvoiceStatus DEFAULT_STATUS = InvoiceStatus.DRAFT;
     private static final InvoiceStatus UPDATED_STATUS = InvoiceStatus.FINAL;
 
+    private static final InvoiceKind DEFAULT_KIND = InvoiceKind.INVOICE;
+    private static final InvoiceKind UPDATED_KIND = InvoiceKind.CREDIT_NOTE;
+
+    private static final Long DEFAULT_SOURCE_INVOICE_ID = 1L;
+    private static final Long UPDATED_SOURCE_INVOICE_ID = 2L;
+    private static final Long SMALLER_SOURCE_INVOICE_ID = 1L - 1L;
+
     private static final String DEFAULT_NOTES = "AAAAAAAAAA";
     private static final String UPDATED_NOTES = "BBBBBBBBBB";
 
@@ -200,6 +208,8 @@ class InvoiceResourceIT {
             .total(DEFAULT_TOTAL)
             .paidAmount(DEFAULT_PAID_AMOUNT)
             .status(DEFAULT_STATUS)
+            .kind(DEFAULT_KIND)
+            .sourceInvoiceId(DEFAULT_SOURCE_INVOICE_ID)
             .notes(DEFAULT_NOTES)
             .terms(DEFAULT_TERMS)
             .finalizedAt(DEFAULT_FINALIZED_AT)
@@ -236,6 +246,8 @@ class InvoiceResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourceInvoiceId(UPDATED_SOURCE_INVOICE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)
@@ -620,6 +632,8 @@ class InvoiceResourceIT {
             .andExpect(jsonPath("$.[*].total").value(hasItem(sameNumber(DEFAULT_TOTAL))))
             .andExpect(jsonPath("$.[*].paidAmount").value(hasItem(sameNumber(DEFAULT_PAID_AMOUNT))))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
+            .andExpect(jsonPath("$.[*].kind").value(hasItem(DEFAULT_KIND.toString())))
+            .andExpect(jsonPath("$.[*].sourceInvoiceId").value(hasItem(DEFAULT_SOURCE_INVOICE_ID.intValue())))
             .andExpect(jsonPath("$.[*].notes").value(hasItem(DEFAULT_NOTES)))
             .andExpect(jsonPath("$.[*].terms").value(hasItem(DEFAULT_TERMS)))
             .andExpect(jsonPath("$.[*].finalizedAt").value(hasItem(DEFAULT_FINALIZED_AT.toString())))
@@ -677,6 +691,8 @@ class InvoiceResourceIT {
             .andExpect(jsonPath("$.total").value(sameNumber(DEFAULT_TOTAL)))
             .andExpect(jsonPath("$.paidAmount").value(sameNumber(DEFAULT_PAID_AMOUNT)))
             .andExpect(jsonPath("$.status").value(DEFAULT_STATUS.toString()))
+            .andExpect(jsonPath("$.kind").value(DEFAULT_KIND.toString()))
+            .andExpect(jsonPath("$.sourceInvoiceId").value(DEFAULT_SOURCE_INVOICE_ID.intValue()))
             .andExpect(jsonPath("$.notes").value(DEFAULT_NOTES))
             .andExpect(jsonPath("$.terms").value(DEFAULT_TERMS))
             .andExpect(jsonPath("$.finalizedAt").value(DEFAULT_FINALIZED_AT.toString()))
@@ -1958,6 +1974,124 @@ class InvoiceResourceIT {
 
     @Test
     @Transactional
+    void getAllInvoicesByKindIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where kind equals to
+        defaultInvoiceFiltering("kind.equals=" + DEFAULT_KIND, "kind.equals=" + UPDATED_KIND);
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesByKindIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where kind in
+        defaultInvoiceFiltering("kind.in=" + DEFAULT_KIND + "," + UPDATED_KIND, "kind.in=" + UPDATED_KIND);
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesByKindIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where kind is not null
+        defaultInvoiceFiltering("kind.specified=true", "kind.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId equals to
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.equals=" + DEFAULT_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.equals=" + UPDATED_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId in
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.in=" + DEFAULT_SOURCE_INVOICE_ID + "," + UPDATED_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.in=" + UPDATED_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId is not null
+        defaultInvoiceFiltering("sourceInvoiceId.specified=true", "sourceInvoiceId.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsGreaterThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId is greater than or equal to
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.greaterThanOrEqual=" + DEFAULT_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.greaterThanOrEqual=" + UPDATED_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsLessThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId is less than or equal to
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.lessThanOrEqual=" + DEFAULT_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.lessThanOrEqual=" + SMALLER_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsLessThanSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId is less than
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.lessThan=" + UPDATED_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.lessThan=" + DEFAULT_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllInvoicesBySourceInvoiceIdIsGreaterThanSomething() throws Exception {
+        // Initialize the database
+        insertedInvoice = invoiceRepository.saveAndFlush(invoice);
+
+        // Get all the invoiceList where sourceInvoiceId is greater than
+        defaultInvoiceFiltering(
+            "sourceInvoiceId.greaterThan=" + SMALLER_SOURCE_INVOICE_ID,
+            "sourceInvoiceId.greaterThan=" + DEFAULT_SOURCE_INVOICE_ID
+        );
+    }
+
+    @Test
+    @Transactional
     void getAllInvoicesByNotesIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedInvoice = invoiceRepository.saveAndFlush(invoice);
@@ -2257,6 +2391,8 @@ class InvoiceResourceIT {
             .andExpect(jsonPath("$.[*].total").value(hasItem(sameNumber(DEFAULT_TOTAL))))
             .andExpect(jsonPath("$.[*].paidAmount").value(hasItem(sameNumber(DEFAULT_PAID_AMOUNT))))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
+            .andExpect(jsonPath("$.[*].kind").value(hasItem(DEFAULT_KIND.toString())))
+            .andExpect(jsonPath("$.[*].sourceInvoiceId").value(hasItem(DEFAULT_SOURCE_INVOICE_ID.intValue())))
             .andExpect(jsonPath("$.[*].notes").value(hasItem(DEFAULT_NOTES)))
             .andExpect(jsonPath("$.[*].terms").value(hasItem(DEFAULT_TERMS)))
             .andExpect(jsonPath("$.[*].finalizedAt").value(hasItem(DEFAULT_FINALIZED_AT.toString())))
@@ -2331,6 +2467,8 @@ class InvoiceResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourceInvoiceId(UPDATED_SOURCE_INVOICE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)
@@ -2434,6 +2572,8 @@ class InvoiceResourceIT {
             .igst(UPDATED_IGST)
             .taxTotal(UPDATED_TAX_TOTAL)
             .total(UPDATED_TOTAL)
+            .finalizedAt(UPDATED_FINALIZED_AT)
+            .deleted(UPDATED_DELETED)
             .createdAt(UPDATED_CREATED_AT)
             .updatedAt(UPDATED_UPDATED_AT);
 
@@ -2484,6 +2624,8 @@ class InvoiceResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourceInvoiceId(UPDATED_SOURCE_INVOICE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)

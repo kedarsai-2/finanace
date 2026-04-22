@@ -124,6 +124,15 @@
       "fieldValues": "DRAFT,FINAL,CANCELLED"
     },
     {
+      "fieldName": "kind",
+      "fieldType": "InvoiceKind",
+      "fieldValues": "INVOICE,CREDIT_NOTE"
+    },
+    {
+      "fieldName": "sourceInvoiceId",
+      "fieldType": "Long"
+    },
+    {
       "fieldName": "notes",
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],

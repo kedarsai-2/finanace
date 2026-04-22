@@ -16,6 +16,7 @@ public class PurchaseTestSamples {
             .partyName("partyName1")
             .partyState("partyState1")
             .businessState("businessState1")
+            .sourcePurchaseId(1L)
             .notes("notes1")
             .terms("terms1");
     }
@@ -27,6 +28,7 @@ public class PurchaseTestSamples {
             .partyName("partyName2")
             .partyState("partyState2")
             .businessState("businessState2")
+            .sourcePurchaseId(2L)
             .notes("notes2")
             .terms("terms2");
     }
@@ -38,6 +40,7 @@ public class PurchaseTestSamples {
             .partyName(UUID.randomUUID().toString())
             .partyState(UUID.randomUUID().toString())
             .businessState(UUID.randomUUID().toString())
+            .sourcePurchaseId(longCount.incrementAndGet())
             .notes(UUID.randomUUID().toString())
             .terms(UUID.randomUUID().toString());
     }

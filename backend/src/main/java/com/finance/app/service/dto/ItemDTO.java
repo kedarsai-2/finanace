@@ -54,6 +54,7 @@ public class ItemDTO implements Serializable {
     @DecimalMin(value = "0")
     private BigDecimal reorderLevel;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;

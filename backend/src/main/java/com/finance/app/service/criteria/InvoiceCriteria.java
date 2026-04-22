@@ -1,6 +1,7 @@
 package com.finance.app.service.criteria;
 
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.InvoiceKind;
 import com.finance.app.domain.enumeration.InvoiceStatus;
 import java.io.Serial;
 import java.io.Serializable;
@@ -57,6 +58,23 @@ public class InvoiceCriteria implements Serializable, Criteria {
         }
     }
 
+    /**
+     * Class for filtering InvoiceKind
+     */
+    public static class InvoiceKindFilter extends Filter<InvoiceKind> {
+
+        public InvoiceKindFilter() {}
+
+        public InvoiceKindFilter(InvoiceKindFilter filter) {
+            super(filter);
+        }
+
+        @Override
+        public InvoiceKindFilter copy() {
+            return new InvoiceKindFilter(this);
+        }
+    }
+
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -102,6 +120,10 @@ public class InvoiceCriteria implements Serializable, Criteria {
 
     private InvoiceStatusFilter status;
 
+    private InvoiceKindFilter kind;
+
+    private LongFilter sourceInvoiceId;
+
     private StringFilter notes;
 
     private StringFilter terms;
@@ -146,6 +168,8 @@ public class InvoiceCriteria implements Serializable, Criteria {
         this.total = other.optionalTotal().map(BigDecimalFilter::copy).orElse(null);
         this.paidAmount = other.optionalPaidAmount().map(BigDecimalFilter::copy).orElse(null);
         this.status = other.optionalStatus().map(InvoiceStatusFilter::copy).orElse(null);
+        this.kind = other.optionalKind().map(InvoiceKindFilter::copy).orElse(null);
+        this.sourceInvoiceId = other.optionalSourceInvoiceId().map(LongFilter::copy).orElse(null);
         this.notes = other.optionalNotes().map(StringFilter::copy).orElse(null);
         this.terms = other.optionalTerms().map(StringFilter::copy).orElse(null);
         this.finalizedAt = other.optionalFinalizedAt().map(InstantFilter::copy).orElse(null);
@@ -562,6 +586,44 @@ public class InvoiceCriteria implements Serializable, Criteria {
         this.status = status;
     }
 
+    public InvoiceKindFilter getKind() {
+        return kind;
+    }
+
+    public Optional<InvoiceKindFilter> optionalKind() {
+        return Optional.ofNullable(kind);
+    }
+
+    public InvoiceKindFilter kind() {
+        if (kind == null) {
+            setKind(new InvoiceKindFilter());
+        }
+        return kind;
+    }
+
+    public void setKind(InvoiceKindFilter kind) {
+        this.kind = kind;
+    }
+
+    public LongFilter getSourceInvoiceId() {
+        return sourceInvoiceId;
+    }
+
+    public Optional<LongFilter> optionalSourceInvoiceId() {
+        return Optional.ofNullable(sourceInvoiceId);
+    }
+
+    public LongFilter sourceInvoiceId() {
+        if (sourceInvoiceId == null) {
+            setSourceInvoiceId(new LongFilter());
+        }
+        return sourceInvoiceId;
+    }
+
+    public void setSourceInvoiceId(LongFilter sourceInvoiceId) {
+        this.sourceInvoiceId = sourceInvoiceId;
+    }
+
     public StringFilter getNotes() {
         return notes;
     }
@@ -783,6 +845,8 @@ public class InvoiceCriteria implements Serializable, Criteria {
             Objects.equals(total, that.total) &&
             Objects.equals(paidAmount, that.paidAmount) &&
             Objects.equals(status, that.status) &&
+            Objects.equals(kind, that.kind) &&
+            Objects.equals(sourceInvoiceId, that.sourceInvoiceId) &&
             Objects.equals(notes, that.notes) &&
             Objects.equals(terms, that.terms) &&
             Objects.equals(finalizedAt, that.finalizedAt) &&
@@ -820,6 +884,8 @@ public class InvoiceCriteria implements Serializable, Criteria {
             total,
             paidAmount,
             status,
+            kind,
+            sourceInvoiceId,
             notes,
             terms,
             finalizedAt,
@@ -858,6 +924,8 @@ public class InvoiceCriteria implements Serializable, Criteria {
             optionalTotal().map(f -> "total=" + f + ", ").orElse("") +
             optionalPaidAmount().map(f -> "paidAmount=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
+            optionalKind().map(f -> "kind=" + f + ", ").orElse("") +
+            optionalSourceInvoiceId().map(f -> "sourceInvoiceId=" + f + ", ").orElse("") +
             optionalNotes().map(f -> "notes=" + f + ", ").orElse("") +
             optionalTerms().map(f -> "terms=" + f + ", ").orElse("") +
             optionalFinalizedAt().map(f -> "finalizedAt=" + f + ", ").orElse("") +

@@ -25,31 +25,40 @@ function GstReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const inRange = (d: string) => {
-    if (from && new Date(d) < new Date(from)) return false;
-    if (to && new Date(d) > new Date(`${to}T23:59:59`)) return false;
-    return true;
-  };
+  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
+  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
 
   const output = useMemo(() => {
-    const f = invoices.filter((i) => i.status === "final" && inRange(i.date));
+    const f = invoices.filter((i) => {
+      if (i.status !== "final") return false;
+      const d = new Date(i.date).getTime();
+      if (fromTs !== undefined && d < fromTs) return false;
+      if (toTs !== undefined && d > toTs) return false;
+      return true;
+    });
     return {
       taxable: f.reduce((s, i) => s + i.taxableValue, 0),
       cgst: f.reduce((s, i) => s + i.cgst, 0),
       sgst: f.reduce((s, i) => s + i.sgst, 0),
       igst: f.reduce((s, i) => s + i.igst, 0),
     };
-  }, [invoices, from, to]);
+  }, [invoices, fromTs, toTs]);
 
   const input = useMemo(() => {
-    const f = purchases.filter((p) => p.status === "final" && inRange(p.date));
+    const f = purchases.filter((p) => {
+      if (p.status !== "final") return false;
+      const d = new Date(p.date).getTime();
+      if (fromTs !== undefined && d < fromTs) return false;
+      if (toTs !== undefined && d > toTs) return false;
+      return true;
+    });
     return {
       taxable: f.reduce((s, p) => s + p.taxableValue, 0),
       cgst: f.reduce((s, p) => s + p.cgst, 0),
       sgst: f.reduce((s, p) => s + p.sgst, 0),
       igst: f.reduce((s, p) => s + p.igst, 0),
     };
-  }, [purchases, from, to]);
+  }, [purchases, fromTs, toTs]);
 
   const net = {
     cgst: output.cgst - input.cgst,
@@ -63,8 +72,20 @@ function GstReport() {
       "gst-report.csv",
       ["Section", "Taxable Value", "CGST", "SGST", "IGST"],
       [
-        ["Output GST (Sales)", output.taxable.toFixed(2), output.cgst.toFixed(2), output.sgst.toFixed(2), output.igst.toFixed(2)],
-        ["Input GST (Purchases)", input.taxable.toFixed(2), input.cgst.toFixed(2), input.sgst.toFixed(2), input.igst.toFixed(2)],
+        [
+          "Output GST (Sales)",
+          output.taxable.toFixed(2),
+          output.cgst.toFixed(2),
+          output.sgst.toFixed(2),
+          output.igst.toFixed(2),
+        ],
+        [
+          "Input GST (Purchases)",
+          input.taxable.toFixed(2),
+          input.cgst.toFixed(2),
+          input.sgst.toFixed(2),
+          input.igst.toFixed(2),
+        ],
         ["Net (Output − Input)", "", net.cgst.toFixed(2), net.sgst.toFixed(2), net.igst.toFixed(2)],
       ],
     );
@@ -77,10 +98,25 @@ function GstReport() {
       onExportCsv={exportCsv}
       filters={
         <>
-          <div><Label htmlFor="from">From</Label><Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-          <div><Label htmlFor="to">To</Label><Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+          <div>
+            <Label htmlFor="from">From</Label>
+            <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="to">To</Label>
+            <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
           {(from || to) && (
-            <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>Reset</Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFrom("");
+                setTo("");
+              }}
+            >
+              Reset
+            </Button>
           )}
         </>
       }
@@ -95,19 +131,26 @@ function GstReport() {
         <div className="mt-3 grid grid-cols-3 gap-4">
           <div>
             <p className="text-xs text-muted-foreground">CGST</p>
-            <p className="text-lg font-semibold tabular-nums">{formatCurrency(net.cgst, currency)}</p>
+            <p className="text-lg font-semibold tabular-nums">
+              {formatCurrency(net.cgst, currency)}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">SGST</p>
-            <p className="text-lg font-semibold tabular-nums">{formatCurrency(net.sgst, currency)}</p>
+            <p className="text-lg font-semibold tabular-nums">
+              {formatCurrency(net.sgst, currency)}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">IGST</p>
-            <p className="text-lg font-semibold tabular-nums">{formatCurrency(net.igst, currency)}</p>
+            <p className="text-lg font-semibold tabular-nums">
+              {formatCurrency(net.igst, currency)}
+            </p>
           </div>
         </div>
         <p className="mt-4 text-2xl font-bold tabular-nums">
-          Total: {netTotal < 0 ? "-" : ""}{formatCurrency(netTotal, currency)}
+          Total: {netTotal < 0 ? "-" : ""}
+          {formatCurrency(netTotal, currency)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {netTotal >= 0 ? "Payable to government" : "Refundable / input credit available"}
@@ -147,11 +190,23 @@ function GstCard({
   );
 }
 
-function Row({ label, value, currency, bold }: { label: string; value: number; currency: string; bold?: boolean }) {
+function Row({
+  label,
+  value,
+  currency,
+  bold,
+}: {
+  label: string;
+  value: number;
+  currency: string;
+  bold?: boolean;
+}) {
   return (
     <div className="flex justify-between">
       <span className={bold ? "font-semibold" : "text-muted-foreground"}>{label}</span>
-      <span className={`tabular-nums ${bold ? "font-semibold" : ""}`}>{formatCurrency(value, currency)}</span>
+      <span className={`tabular-nums ${bold ? "font-semibold" : ""}`}>
+        {formatCurrency(value, currency)}
+      </span>
     </div>
   );
 }

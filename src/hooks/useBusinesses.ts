@@ -58,6 +58,7 @@ export function useBusinesses() {
   const [businesses, setBusinesses] = useState<Business[]>(seed);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const scopedBusinessId = activeId === "__all__" ? undefined : activeId;
 
   useEffect(() => {
     const token = getJwt();
@@ -189,5 +190,5 @@ export function useBusinesses() {
     [activeId, businesses],
   );
 
-  return { businesses, activeId, setActiveId, upsert, remove, hydrated };
+  return { businesses, activeId, scopedBusinessId, setActiveId, upsert, remove, hydrated };
 }

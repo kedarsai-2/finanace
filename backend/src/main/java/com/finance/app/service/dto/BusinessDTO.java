@@ -90,6 +90,7 @@ public class BusinessDTO implements Serializable {
 
     private Boolean hasData;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;

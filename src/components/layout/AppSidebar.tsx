@@ -45,7 +45,9 @@ export function AppSidebar() {
         </div>
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-bold tracking-tight">QOBOX</span>
-          <span className="text-[10px] text-sidebar-foreground/60">Invoicing · Billing · Accounting</span>
+          <span className="text-[10px] text-sidebar-foreground/60">
+            Invoicing · Billing · Accounting
+          </span>
         </div>
       </Link>
 
@@ -88,7 +90,9 @@ export function AppSidebar() {
         ) : null}
       </div>
 
-      <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">© {new Date().getFullYear()} QOBOX</div>
+      <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
+        © {new Date().getFullYear()} QOBOX
+      </div>
     </aside>
   );
 }

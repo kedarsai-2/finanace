@@ -2,6 +2,7 @@ package com.finance.app.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.InvoiceKind;
 import com.finance.app.domain.enumeration.InvoiceStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -127,6 +128,13 @@ public class Invoice implements Serializable {
     @Column(name = "status", nullable = false)
     private InvoiceStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind")
+    private InvoiceKind kind;
+
+    @Column(name = "source_invoice_id")
+    private Long sourceInvoiceId;
+
     @Size(max = 4000)
     @Column(name = "notes", length = 4000)
     private String notes;
@@ -137,21 +145,6 @@ public class Invoice implements Serializable {
 
     @Column(name = "finalized_at")
     private Instant finalizedAt;
-
-    @PrePersist
-    public void prePersist() {
-        if (createdAt == null) createdAt = Instant.now();
-        if (updatedAt == null) updatedAt = createdAt;
-        if (deleted == null) deleted = false;
-        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = Instant.now();
-        if (deleted == null) deleted = false;
-        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-    }
 
     @Column(name = "deleted")
     private Boolean deleted;
@@ -450,6 +443,32 @@ public class Invoice implements Serializable {
         this.status = status;
     }
 
+    public InvoiceKind getKind() {
+        return this.kind;
+    }
+
+    public Invoice kind(InvoiceKind kind) {
+        this.setKind(kind);
+        return this;
+    }
+
+    public void setKind(InvoiceKind kind) {
+        this.kind = kind;
+    }
+
+    public Long getSourceInvoiceId() {
+        return this.sourceInvoiceId;
+    }
+
+    public Invoice sourceInvoiceId(Long sourceInvoiceId) {
+        this.setSourceInvoiceId(sourceInvoiceId);
+        return this;
+    }
+
+    public void setSourceInvoiceId(Long sourceInvoiceId) {
+        this.sourceInvoiceId = sourceInvoiceId;
+    }
+
     public String getNotes() {
         return this.notes;
     }
@@ -629,6 +648,8 @@ public class Invoice implements Serializable {
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
             ", status='" + getStatus() + "'" +
+            ", kind='" + getKind() + "'" +
+            ", sourceInvoiceId=" + getSourceInvoiceId() +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +

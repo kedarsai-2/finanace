@@ -146,18 +146,6 @@ public class PaymentAllocationResource {
     }
 
     /**
-     * {@code GET  /payment-allocations/by-business/:businessId} : get all payment allocations for a business (via payment.business).
-     *
-     * @param businessId the business id.
-     * @return the list of Payment Allocations in body.
-     */
-    @GetMapping("/by-business/{businessId}")
-    public List<PaymentAllocationDTO> getAllPaymentAllocationsByBusiness(@PathVariable("businessId") Long businessId) {
-        LOG.debug("REST request to get all PaymentAllocations for business {}", businessId);
-        return paymentAllocationService.findAllByBusinessId(businessId);
-    }
-
-    /**
      * {@code GET  /payment-allocations/:id} : get the "id" paymentAllocation.
      *
      * @param id the id of the paymentAllocationDTO to retrieve.

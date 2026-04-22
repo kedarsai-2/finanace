@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { format } from "date-fns";
 import {
   ArrowLeft,
   ArrowDownCircle,
@@ -20,8 +21,13 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
+import { usePurchases } from "@/hooks/usePurchases";
+import { usePartyLedger } from "@/hooks/usePartyLedger";
 import { PartyLedger } from "@/components/party/PartyLedger";
 import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
+import type { Invoice } from "@/types/invoice";
+import type { Payment } from "@/types/payment";
+import type { Purchase } from "@/types/purchase";
 import type { PartyType } from "@/types/party";
 
 export const Route = createFileRoute("/parties/$id/")({
@@ -30,8 +36,7 @@ export const Route = createFileRoute("/parties/$id/")({
       { title: "Party Details — Ledger & Balance" },
       {
         name: "description",
-        content:
-          "View party details, outstanding balance and full ledger history in one place.",
+        content: "View party details, outstanding balance and full ledger history in one place.",
       },
     ],
   }),
@@ -43,7 +48,9 @@ export const Route = createFileRoute("/parties/$id/")({
         This party may have been deleted or doesn't belong to the active business.
       </p>
       <Button asChild className="mt-6">
-        <Link to="/parties">Back to Parties</Link>
+        <Link to="/parties" search={{} as never}>
+          Back to Parties
+        </Link>
       </Button>
     </div>
   ),
@@ -73,20 +80,16 @@ function initials(name: string) {
 function PartyDetailsPage() {
   const { id } = Route.useParams();
   const { activeId, businesses } = useBusinesses();
-  const { allParties, ledger, hydrated } = useParties(activeId);
+  const { allParties, hydrated: partiesHydrated } = useParties(activeId);
   const party = allParties.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === party?.businessId);
   const currency = business?.currency ?? "INR";
-  const { invoices } = useInvoices(activeId);
+  const { invoices, allInvoices } = useInvoices(activeId);
   const { payments } = usePayments(activeId);
+  const { allPurchases } = usePurchases(activeId);
+  const { ledger, hydrated: ledgerHydrated } = usePartyLedger(activeId, id);
 
-  const entries = useMemo(
-    () =>
-      ledger
-        .filter((e) => e.partyId === id)
-        .sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [ledger, id],
-  );
+  const entries = useMemo(() => [...ledger].sort((a, b) => (a.date < b.date ? 1 : -1)), [ledger]);
 
   const totals = useMemo(() => {
     let receivable = 0;
@@ -98,7 +101,7 @@ function PartyDetailsPage() {
     return { receivable, payable, net: receivable - payable };
   }, [entries]);
 
-  if (!hydrated) {
+  if (!partiesHydrated || !ledgerHydrated) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
@@ -115,7 +118,7 @@ function PartyDetailsPage() {
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="mx-auto max-w-5xl px-6 py-6">
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-4 gap-1.5">
-            <Link to="/parties">
+            <Link to="/parties" search={{} as never}>
               <ArrowLeft className="h-4 w-4" />
               Back to Parties
             </Link>
@@ -123,14 +126,12 @@ function PartyDetailsPage() {
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-base font-semibold text-primary-foreground shadow">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-base font-semibold text-primary-foreground shadow">
                 {initials(party.name)}
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">
-                    {party.name}
-                  </h1>
+                  <h1 className="text-2xl font-bold tracking-tight">{party.name}</h1>
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -170,7 +171,7 @@ function PartyDetailsPage() {
             </div>
 
             <Button asChild variant="outline" className="gap-2">
-              <Link to="/parties/$id/edit" params={{ id: party.id }}>
+              <Link to="/parties/$id/edit" params={{ id: party.id }} search={{} as never}>
                 <Pencil className="h-4 w-4" />
                 Edit
               </Link>
@@ -207,11 +208,9 @@ function PartyDetailsPage() {
               <Receipt className="h-3.5 w-3.5" />
               Ledger
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="gap-1.5" disabled>
-              Transactions
-              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Soon
-              </span>
+            <TabsTrigger value="history" className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              History
             </TabsTrigger>
           </TabsList>
 
@@ -222,10 +221,14 @@ function PartyDetailsPage() {
             <PartyLedger party={party} entries={entries} currency={currency} />
           </TabsContent>
 
-          <TabsContent value="transactions" className="mt-4">
-            <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center text-sm text-muted-foreground">
-              Transactions view coming soon.
-            </div>
+          <TabsContent value="history" className="mt-4">
+            <PartyTimeline
+              partyId={party.id}
+              invoices={allInvoices}
+              purchases={allPurchases}
+              payments={payments}
+              currency={currency}
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -248,9 +251,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 flex items-center gap-1.5 text-2xl font-bold tabular-nums",
@@ -269,3 +270,121 @@ function SummaryCard({
   );
 }
 
+type TimelineRow = {
+  id: string;
+  date: string;
+  kind: "Invoice" | "Credit Note" | "Purchase" | "Purch. Return" | "Payment";
+  ref: string;
+  link: string;
+  amount: number;
+  tone: "primary" | "destructive" | "success" | "warning";
+};
+
+function PartyTimeline({
+  partyId,
+  invoices,
+  purchases,
+  payments,
+  currency,
+}: {
+  partyId: string;
+  invoices: Invoice[];
+  purchases: Purchase[];
+  payments: Payment[];
+  currency: string;
+}) {
+  const rows: TimelineRow[] = [];
+  for (const inv of invoices) {
+    if (inv.deleted || inv.partyId !== partyId) continue;
+    const isCN = inv.kind === "credit-note";
+    rows.push({
+      id: inv.id,
+      date: inv.date,
+      kind: isCN ? "Credit Note" : "Invoice",
+      ref: inv.number,
+      link: isCN ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
+      amount: isCN ? -inv.total : inv.total,
+      tone: isCN ? "destructive" : "primary",
+    });
+  }
+  for (const p of purchases) {
+    if (p.deleted || p.partyId !== partyId) continue;
+    const isRet = p.kind === "return";
+    rows.push({
+      id: p.id,
+      date: p.date,
+      kind: isRet ? "Purch. Return" : "Purchase",
+      ref: p.number,
+      link: isRet ? `/purchase-returns/${p.id}` : `/purchases/${p.id}`,
+      amount: isRet ? p.total : -p.total,
+      tone: isRet ? "success" : "warning",
+    });
+  }
+  for (const pay of payments) {
+    if (pay.partyId !== partyId) continue;
+    rows.push({
+      id: pay.id,
+      date: pay.date,
+      kind: "Payment",
+      ref: pay.reference || "—",
+      link: `/payments`,
+      amount: pay.direction === "in" ? -pay.amount : pay.amount,
+      tone: "success",
+    });
+  }
+  rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center text-sm text-muted-foreground">
+        No transactions yet for this party.
+      </div>
+    );
+  }
+
+  const toneClass = (t: TimelineRow["tone"]) =>
+    t === "primary"
+      ? "bg-primary/10 text-primary"
+      : t === "destructive"
+        ? "bg-destructive/10 text-destructive"
+        : t === "success"
+          ? "bg-success/15 text-success"
+          : "bg-warning/15 text-warning-foreground/80";
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <li
+            key={`${r.kind}-${r.id}`}
+            className="grid grid-cols-[110px_120px_1fr_140px] items-center gap-3 px-5 py-3 text-sm"
+          >
+            <span className="text-muted-foreground">{format(new Date(r.date), "dd MMM yyyy")}</span>
+            <span>
+              <span
+                className={cn(
+                  "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  toneClass(r.tone),
+                )}
+              >
+                {r.kind}
+              </span>
+            </span>
+            <a href={r.link} className="font-mono text-xs text-primary hover:underline">
+              {r.ref}
+            </a>
+            <span
+              className={cn(
+                "text-right font-mono font-semibold tabular-nums",
+                r.amount > 0 ? "text-success" : "text-destructive",
+              )}
+            >
+              {r.amount >= 0 ? "+ " : "− "}
+              {formatCurrency(r.amount, currency)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

@@ -65,10 +65,7 @@ function PaymentsPage() {
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
-  const partyById = useMemo(
-    () => Object.fromEntries(parties.map((p) => [p.id, p])),
-    [parties],
-  );
+  const partyById = useMemo(() => Object.fromEntries(parties.map((p) => [p.id, p])), [parties]);
   const accountById = useMemo(
     () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
     [safeAccounts],
@@ -80,8 +77,7 @@ function PaymentsPage() {
         if (search.dir !== "all" && p.direction !== search.dir) return false;
         if (search.account && p.accountId !== search.account) return false;
         if (search.from && new Date(p.date) < new Date(search.from)) return false;
-        if (search.to && new Date(p.date) > new Date(`${search.to}T23:59:59`))
-          return false;
+        if (search.to && new Date(p.date) > new Date(`${search.to}T23:59:59`)) return false;
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -97,7 +93,7 @@ function PaymentsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
         </div>
         <Button asChild className="gap-2">
-          <Link to="/payments/new">
+          <Link to="/payments/new" search={{} as never}>
             <Plus className="h-4 w-4" /> Record payment
           </Link>
         </Button>
@@ -109,7 +105,9 @@ function PaymentsPage() {
           <Select
             value={search.dir}
             onValueChange={(v) =>
-              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, dir: v as DirFilter }) })
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, dir: v as DirFilter }),
+              })
             }
           >
             <SelectTrigger>
@@ -127,7 +125,12 @@ function PaymentsPage() {
           <Select
             value={search.account || "_all"}
             onValueChange={(v) =>
-              navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, account: v === "_all" ? "" : v }) })
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({
+                  ...s,
+                  account: v === "_all" ? "" : v,
+                }),
+              })
             }
           >
             <SelectTrigger>
@@ -148,7 +151,11 @@ function PaymentsPage() {
           <Input
             type="date"
             value={search.from}
-            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }) })}
+            onChange={(e) =>
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, from: e.target.value }),
+              })
+            }
           />
         </div>
         <div>
@@ -156,7 +163,11 @@ function PaymentsPage() {
           <Input
             type="date"
             value={search.to}
-            onChange={(e) => navigate({ search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }) })}
+            onChange={(e) =>
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({ ...s, to: e.target.value }),
+              })
+            }
           />
         </div>
       </section>
@@ -167,7 +178,7 @@ function PaymentsPage() {
             <Wallet className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm font-medium">No payments yet</p>
             <Button asChild size="sm" className="mt-3 gap-2">
-              <Link to="/payments/new">
+              <Link to="/payments/new" search={{} as never}>
                 <Plus className="h-4 w-4" /> Record payment
               </Link>
             </Button>
@@ -193,9 +204,7 @@ function PaymentsPage() {
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                       {format(new Date(p.date), "dd MMM yyyy")}
                     </td>
-                    <td className="px-4 py-3 font-medium">
-                      {party?.name ?? "—"}
-                    </td>
+                    <td className="px-4 py-3 font-medium">{party?.name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <DirBadge direction={p.direction} />
                     </td>

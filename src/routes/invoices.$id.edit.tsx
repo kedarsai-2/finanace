@@ -5,7 +5,10 @@ export const Route = createFileRoute("/invoices/$id/edit")({
   head: () => ({
     meta: [
       { title: "Edit Invoice" },
-      { name: "description", content: "Update an invoice that is still within the editable window." },
+      {
+        name: "description",
+        content: "Update an invoice that is still within the editable window.",
+      },
     ],
   }),
   component: EditInvoicePage,

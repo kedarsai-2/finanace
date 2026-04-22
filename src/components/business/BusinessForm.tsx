@@ -17,16 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-
 import { FormSection } from "@/components/business/FormSection";
 import { LogoUpload } from "@/components/business/LogoUpload";
 import { useBusinesses } from "@/hooks/useBusinesses";
-import {
-  CURRENCIES,
-  INDIAN_STATES,
-  MONTHS,
-  type Business,
-} from "@/types/business";
+import { CURRENCIES, INDIAN_STATES, MONTHS, type Business } from "@/types/business";
 import { businessFormSchema, type BusinessFormValues } from "@/lib/businessSchema";
 import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
@@ -120,11 +114,21 @@ export function BusinessForm({ mode, businessId }: Props) {
               billingState: billing.state ?? null,
               billingPincode: billing.pincode ?? null,
               shippingSameAsBilling: values.shippingSameAsBilling,
-              shippingLine1: values.shippingSameAsBilling ? (billing.line1 ?? null) : (values.shippingAddress?.line1 ?? null),
-              shippingLine2: values.shippingSameAsBilling ? ((billing as { line2?: string }).line2 ?? null) : ((values.shippingAddress as { line2?: string } | undefined)?.line2 ?? null),
-              shippingCity: values.shippingSameAsBilling ? (billing.city ?? null) : (values.shippingAddress?.city ?? null),
-              shippingState: values.shippingSameAsBilling ? (billing.state ?? null) : (values.shippingAddress?.state ?? null),
-              shippingPincode: values.shippingSameAsBilling ? (billing.pincode ?? null) : (values.shippingAddress?.pincode ?? null),
+              shippingLine1: values.shippingSameAsBilling
+                ? (billing.line1 ?? null)
+                : (values.shippingAddress?.line1 ?? null),
+              shippingLine2: values.shippingSameAsBilling
+                ? ((billing as { line2?: string }).line2 ?? null)
+                : ((values.shippingAddress as { line2?: string } | undefined)?.line2 ?? null),
+              shippingCity: values.shippingSameAsBilling
+                ? (billing.city ?? null)
+                : (values.shippingAddress?.city ?? null),
+              shippingState: values.shippingSameAsBilling
+                ? (billing.state ?? null)
+                : (values.shippingAddress?.state ?? null),
+              shippingPincode: values.shippingSameAsBilling
+                ? (billing.pincode ?? null)
+                : (values.shippingAddress?.pincode ?? null),
               currency: values.currency || null,
               fyStartMonth: values.fyStartMonth ?? null,
               hasData: existing?.hasData ?? null,
@@ -135,7 +139,7 @@ export function BusinessForm({ mode, businessId }: Props) {
             }
             if (!existing) delete dto.id;
 
-            const saved = await apiFetch<any>(
+            const saved = await apiFetch<{ id: string | number }>(
               existing ? `/api/businesses/${existing.id}` : "/api/businesses",
               { method: existing ? "PUT" : "POST", body: JSON.stringify(dto) },
             );
@@ -153,7 +157,9 @@ export function BusinessForm({ mode, businessId }: Props) {
               panNumber: values.panNumber,
               billingAddress: billing,
               shippingSameAsBilling: values.shippingSameAsBilling,
-              shippingAddress: values.shippingSameAsBilling ? billing : (values.shippingAddress ?? {}),
+              shippingAddress: values.shippingSameAsBilling
+                ? billing
+                : (values.shippingAddress ?? {}),
               city: billing.city ?? existing?.city ?? "—",
               state: billing.state ?? existing?.state ?? "—",
               currency: values.currency,
@@ -181,8 +187,6 @@ export function BusinessForm({ mode, businessId }: Props) {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      
-
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-5">
           <div className="flex items-center gap-3">
@@ -322,7 +326,11 @@ export function BusinessForm({ mode, businessId }: Props) {
           )}
         </FormSection>
 
-        <FormSection step={4} title="Tax & Compliance" description="Optional — add later if you don't have these yet.">
+        <FormSection
+          step={4}
+          title="Tax & Compliance"
+          description="Optional — add later if you don't have these yet."
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="gstNumber">GST number</Label>
@@ -355,9 +363,7 @@ export function BusinessForm({ mode, businessId }: Props) {
           <Controller
             control={control}
             name="logoUrl"
-            render={({ field }) => (
-              <LogoUpload value={field.value} onChange={field.onChange} />
-            )}
+            render={({ field }) => <LogoUpload value={field.value} onChange={field.onChange} />}
           />
           {logoUrl ? null : null}
         </FormSection>
@@ -450,11 +456,19 @@ function AddressFields({ prefix, register, control, errors, onPincode }: Address
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <Label htmlFor={`${prefix}.line1`}>Address line 1</Label>
-        <Input id={`${prefix}.line1`} placeholder="Street, building" {...register(`${prefix}.line1` as const)} />
+        <Input
+          id={`${prefix}.line1`}
+          placeholder="Street, building"
+          {...register(`${prefix}.line1` as const)}
+        />
       </div>
       <div className="sm:col-span-2">
         <Label htmlFor={`${prefix}.line2`}>Address line 2</Label>
-        <Input id={`${prefix}.line2`} placeholder="Area, landmark (optional)" {...register(`${prefix}.line2` as const)} />
+        <Input
+          id={`${prefix}.line2`}
+          placeholder="Area, landmark (optional)"
+          {...register(`${prefix}.line2` as const)}
+        />
       </div>
       <div>
         <Label htmlFor={`${prefix}.city`}>City</Label>

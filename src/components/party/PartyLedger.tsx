@@ -1,24 +1,13 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
-import {
-  CalendarIcon,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Receipt,
-  X,
-} from "lucide-react";
+import { format, startOfMonth, startOfYear, subDays } from "date-fns";
+import { CalendarIcon, Download, FileSpreadsheet, FileText, Receipt, X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,24 +21,30 @@ import type { LedgerEntry, LedgerTxnType, Party } from "@/types/party";
 const TYPE_FILTERS: { value: "all" | LedgerTxnType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "invoice", label: "Invoice" },
+  { value: "credit-note", label: "Credit Note" },
   { value: "payment", label: "Payment" },
   { value: "purchase", label: "Purchase" },
+  { value: "purchase-return", label: "Purchase Return" },
   { value: "expense", label: "Expense" },
 ];
 
 const TYPE_BADGE: Record<LedgerTxnType, string> = {
   opening: "bg-muted text-muted-foreground",
   invoice: "bg-primary/10 text-primary",
+  "credit-note": "bg-primary/10 text-primary",
   payment: "bg-success/15 text-success",
   purchase: "bg-warning/15 text-warning-foreground/80",
+  "purchase-return": "bg-warning/15 text-warning-foreground/80",
   expense: "bg-destructive/10 text-destructive",
 };
 
 const TYPE_LABEL: Record<LedgerTxnType, string> = {
   opening: "Opening",
   invoice: "Invoice",
+  "credit-note": "Credit Note",
   payment: "Payment",
   purchase: "Purchase",
+  "purchase-return": "Purchase Return",
   expense: "Expense",
 };
 
@@ -73,8 +68,7 @@ export function PartyLedger({
   // Compute running balance chronologically over ALL entries (not filtered)
   // so the running figure stays meaningful when filters are applied.
   const allChronological = useMemo(
-    () =>
-      [...entries].sort((a, b) => (a.date < b.date ? -1 : 1)),
+    () => [...entries].sort((a, b) => (a.date < b.date ? -1 : 1)),
     [entries],
   );
 
@@ -162,7 +156,6 @@ export function PartyLedger({
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
         <DateButton label="From" date={from} onChange={setFrom} />
         <DateButton label="To" date={to} onChange={setTo} />
-
         <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
           {TYPE_FILTERS.map((f) => (
             <button
@@ -252,16 +245,11 @@ export function PartyLedger({
                   </span>
                   <span className="font-mono text-xs">
                     {e.refLink ? (
-                      <a
-                        href={e.refLink}
-                        className="text-primary hover:underline"
-                      >
+                      <a href={e.refLink} className="text-primary hover:underline">
                         {e.refNo ?? "—"}
                       </a>
                     ) : (
-                      <span className="text-muted-foreground">
-                        {e.refNo ?? "—"}
-                      </span>
+                      <span className="text-muted-foreground">{e.refNo ?? "—"}</span>
                     )}
                   </span>
                   <span className="font-medium text-foreground">{e.note}</span>
@@ -269,9 +257,7 @@ export function PartyLedger({
                     {isDebit ? formatCurrency(e.amount, currency) : "—"}
                   </span>
                   <span className="text-right font-mono tabular-nums">
-                    {!isDebit && e.amount !== 0
-                      ? formatCurrency(e.amount, currency)
-                      : "—"}
+                    {!isDebit && e.amount !== 0 ? formatCurrency(e.amount, currency) : "—"}
                   </span>
                   <span
                     className={cn(
@@ -308,10 +294,7 @@ function DateButton({
         <Button
           variant="outline"
           size="sm"
-          className={cn(
-            "h-8 gap-1.5 font-normal",
-            !date && "text-muted-foreground",
-          )}
+          className={cn("h-8 gap-1.5 font-normal", !date && "text-muted-foreground")}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
           {date ? format(date, "dd MMM yyyy") : label}

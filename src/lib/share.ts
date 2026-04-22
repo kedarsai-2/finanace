@@ -13,9 +13,7 @@ export interface ShareInvoiceArgs {
 
 /** Build the canonical message body used in WhatsApp + clipboard fallback. */
 export function buildShareMessage(args: ShareInvoiceArgs): string {
-  const lines = [
-    `Hi ${args.partyName || "there"}, here is your invoice ${args.invoiceNumber}.`,
-  ];
+  const lines = [`Hi ${args.partyName || "there"}, here is your invoice ${args.invoiceNumber}.`];
   if (args.summaryLine) lines.push("", args.summaryLine);
   lines.push("", `View / download: ${args.pdfUrl}`);
   return lines.join("\n");
@@ -46,6 +44,19 @@ export function shareInvoiceOnWhatsApp(args: ShareInvoiceArgs) {
         description: "We copied the message + link to your clipboard instead.",
       });
     });
+  }
+}
+
+/** Open the user's email client with a prepared subject + body. */
+export function shareInvoiceByEmail(args: ShareInvoiceArgs & { email?: string }) {
+  const subject = `Invoice ${args.invoiceNumber}`;
+  const body = buildShareMessage(args);
+  const to = args.email ? args.email.trim() : "";
+  const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const win = window.open(href, "_blank");
+  if (!win) {
+    // Popup blocked; fall back to copying the message.
+    void copyShareText(args);
   }
 }
 

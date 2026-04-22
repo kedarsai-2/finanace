@@ -11,8 +11,10 @@ export interface Address {
 export type LedgerTxnType =
   | "opening"
   | "invoice"
+  | "credit-note"
   | "payment"
   | "purchase"
+  | "purchase-return"
   | "expense";
 
 export interface LedgerEntry {

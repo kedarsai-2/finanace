@@ -117,6 +117,15 @@
       "fieldValues": "DRAFT,FINAL,CANCELLED"
     },
     {
+      "fieldName": "kind",
+      "fieldType": "PurchaseKind",
+      "fieldValues": "PURCHASE,RETURN"
+    },
+    {
+      "fieldName": "sourcePurchaseId",
+      "fieldType": "Long"
+    },
+    {
       "fieldName": "notes",
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],

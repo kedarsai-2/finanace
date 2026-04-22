@@ -1,12 +1,10 @@
 package com.finance.app.web.rest;
 
 import com.finance.app.repository.InvoiceRepository;
-import com.finance.app.service.InvoiceLineService;
 import com.finance.app.service.InvoiceQueryService;
 import com.finance.app.service.InvoiceService;
 import com.finance.app.service.criteria.InvoiceCriteria;
 import com.finance.app.service.dto.InvoiceDTO;
-import com.finance.app.service.dto.InvoiceLineDTO;
 import com.finance.app.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -48,18 +46,10 @@ public class InvoiceResource {
 
     private final InvoiceQueryService invoiceQueryService;
 
-    private final InvoiceLineService invoiceLineService;
-
-    public InvoiceResource(
-        InvoiceService invoiceService,
-        InvoiceRepository invoiceRepository,
-        InvoiceQueryService invoiceQueryService,
-        InvoiceLineService invoiceLineService
-    ) {
+    public InvoiceResource(InvoiceService invoiceService, InvoiceRepository invoiceRepository, InvoiceQueryService invoiceQueryService) {
         this.invoiceService = invoiceService;
         this.invoiceRepository = invoiceRepository;
         this.invoiceQueryService = invoiceQueryService;
-        this.invoiceLineService = invoiceLineService;
     }
 
     /**
@@ -148,21 +138,6 @@ public class InvoiceResource {
             result,
             HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, invoiceDTO.getId().toString())
         );
-    }
-
-    /**
-     * {@code GET /invoices/:id/lines} : get all invoice lines for an invoice.
-     *
-     * @param id the id of the invoice.
-     * @return the list of invoice lines.
-     */
-    @GetMapping("/{id}/lines")
-    public ResponseEntity<List<InvoiceLineDTO>> getInvoiceLines(@PathVariable("id") Long id) {
-        LOG.debug("REST request to get InvoiceLines for Invoice : {}", id);
-        if (!invoiceRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(invoiceLineService.findAllByInvoiceId(id));
     }
 
     /**

@@ -90,16 +90,6 @@ public class InvoiceLineService {
         return invoiceLineRepository.findAll().stream().map(invoiceLineMapper::toDto).collect(Collectors.toCollection(LinkedList::new));
     }
 
-    @Transactional(readOnly = true)
-    public List<InvoiceLineDTO> findAllByInvoiceId(Long invoiceId) {
-        LOG.debug("Request to get all InvoiceLines for invoice {}", invoiceId);
-        return invoiceLineRepository
-            .findAllByInvoiceIdWithToOneRelationships(invoiceId)
-            .stream()
-            .map(invoiceLineMapper::toDto)
-            .collect(Collectors.toCollection(LinkedList::new));
-    }
-
     /**
      * Get all the invoiceLines with eager load of many-to-many relationships.
      *

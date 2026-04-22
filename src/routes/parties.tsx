@@ -1,21 +1,7 @@
-import {
-  Outlet,
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Users,
-  ArrowDownCircle,
-  ArrowUpCircle,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -91,9 +77,7 @@ function PartiesPage() {
     return parties.filter((p) => {
       if (type !== "all" && p.type !== type) return false;
       if (!term) return true;
-      return (
-        p.name.toLowerCase().includes(term) || p.mobile.includes(term)
-      );
+      return p.name.toLowerCase().includes(term) || p.mobile.includes(term);
     });
   }, [parties, q, type]);
 
@@ -160,9 +144,7 @@ function PartiesPage() {
             <SummaryCard
               label="Net position"
               value={formatCurrency(totals.receivable - totals.payable)}
-              tone={
-                totals.receivable - totals.payable >= 0 ? "success" : "destructive"
-              }
+              tone={totals.receivable - totals.payable >= 0 ? "success" : "destructive"}
             />
           </div>
 
@@ -213,8 +195,7 @@ function PartiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the party and any linked balance
-              records from this view.
+              This will permanently remove the party and any linked balance records from this view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -245,9 +226,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 flex items-center gap-1.5 text-2xl font-bold tabular-nums",
@@ -325,9 +304,7 @@ function PartiesTable({
                 {TYPE_LABEL[p.type]}
               </span>
 
-              <span className="font-mono text-sm text-muted-foreground">
-                {p.mobile}
-              </span>
+              <span className="font-mono text-sm text-muted-foreground">{p.mobile || "—"}</span>
 
               <div className="flex flex-col items-start sm:items-end">
                 <span
@@ -362,7 +339,11 @@ function PartiesTable({
                   className="h-8 w-8"
                   aria-label={`Edit ${p.name}`}
                 >
-                  <Link to="/parties/$id/edit" params={{ id: p.id }} search={{ q: "", type: "all" }}>
+                  <Link
+                    to="/parties/$id/edit"
+                    params={{ id: p.id }}
+                    search={{ q: "", type: "all" }}
+                  >
                     <Pencil className="h-4 w-4" />
                   </Link>
                 </Button>

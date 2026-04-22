@@ -5,7 +5,10 @@ export const Route = createFileRoute("/businesses/$id/edit")({
   head: () => ({
     meta: [
       { title: "Edit Business — Invoicing, Billing, Accounting" },
-      { name: "description", content: "Update business details, addresses, tax info and branding." },
+      {
+        name: "description",
+        content: "Update business details, addresses, tax info and branding.",
+      },
     ],
   }),
   component: EditPage,

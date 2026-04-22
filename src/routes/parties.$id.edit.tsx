@@ -5,7 +5,10 @@ export const Route = createFileRoute("/parties/$id/edit")({
   head: () => ({
     meta: [
       { title: "Edit Party — Customers & Suppliers" },
-      { name: "description", content: "Update party details, tax info, credit settings and opening balance." },
+      {
+        name: "description",
+        content: "Update party details, tax info, credit settings and opening balance.",
+      },
     ],
   }),
   component: EditPartyPage,

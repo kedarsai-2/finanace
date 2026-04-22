@@ -32,11 +32,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
-import {
-  ACCOUNT_TYPE_LABEL,
-  type Account,
-  type AccountType,
-} from "@/types/account";
+import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
 import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/accounts")({
@@ -188,6 +184,7 @@ function AccountCard({
       <Link
         to="/accounts/$id"
         params={{ id: account.id }}
+        search={{} as never}
         className="block p-5"
       >
         <div className="mb-3 flex items-center gap-3">
@@ -247,8 +244,8 @@ function AccountCard({
             <AlertDialogHeader>
               <AlertDialogTitle>Delete {account.name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                The account will be hidden. Existing transactions on it remain
-                in records but no longer affect any live balance.
+                The account will be hidden. Existing transactions on it remain in records but no
+                longer affect any live balance.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

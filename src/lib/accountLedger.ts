@@ -81,9 +81,7 @@ export function buildAccountTxns(args: {
     });
   }
 
-  return txns.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
+  return txns.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export function accountBalance(txns: AccountTxn[]): number {

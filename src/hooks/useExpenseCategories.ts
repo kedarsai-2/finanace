@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  DEFAULT_EXPENSE_CATEGORIES,
-  type ExpenseCategoryRecord,
-} from "@/types/expense";
+import { DEFAULT_EXPENSE_CATEGORIES, type ExpenseCategoryRecord } from "@/types/expense";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
@@ -179,9 +176,7 @@ export function useExpenseCategories(businessId?: string | null) {
       })();
       return;
     }
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, deleted: true } : c)),
-    );
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, deleted: true } : c)));
     if (before) {
       logAudit({
         module: "expenseCategory",
@@ -195,10 +190,7 @@ export function useExpenseCategories(businessId?: string | null) {
   }, []);
 
   const scoped = useMemo(
-    () =>
-      categories.filter(
-        (c) => !c.deleted && (!businessId || c.businessId === businessId),
-      ),
+    () => categories.filter((c) => !c.deleted && (!businessId || c.businessId === businessId)),
     [categories, businessId],
   );
 

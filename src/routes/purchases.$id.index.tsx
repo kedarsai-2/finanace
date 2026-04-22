@@ -41,7 +41,10 @@ export const Route = createFileRoute("/purchases/$id/")({
   head: () => ({
     meta: [
       { title: "Purchase Details" },
-      { name: "description", content: "View purchase header, items, tax breakdown, and activity timeline." },
+      {
+        name: "description",
+        content: "View purchase header, items, tax breakdown, and activity timeline.",
+      },
     ],
   }),
   component: PurchaseDetailsPage,
@@ -128,7 +131,7 @@ function PurchaseDetailsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" className="gap-2">
-              <Link to="/purchases/$id/print" params={{ id: purchase.id }}>
+              <Link to="/purchases/$id/print" params={{ id: purchase.id }} search={{} as never}>
                 <Printer className="h-4 w-4" />
                 <span className="hidden sm:inline">Print / PDF</span>
               </Link>
@@ -145,8 +148,8 @@ function PurchaseDetailsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Cancel this purchase?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cancelling {purchase.number} marks it void. It stays in records
-                      for audit but cannot be edited again.
+                      Cancelling {purchase.number} marks it void. It stays in records for audit but
+                      cannot be edited again.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -163,7 +166,7 @@ function PurchaseDetailsPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/purchases/$id/edit" params={{ id: purchase.id }}>
+                <Link to="/purchases/$id/edit" params={{ id: purchase.id }} search={{} as never}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -208,9 +211,7 @@ function PurchaseDetailsPage() {
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                   Supplier
                 </p>
-                <p className="mt-1 text-base font-semibold">
-                  {purchase.partyName}
-                </p>
+                <p className="mt-1 text-base font-semibold">{purchase.partyName}</p>
                 {party && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {party.mobile}
@@ -227,13 +228,9 @@ function PurchaseDetailsPage() {
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                   Billed to
                 </p>
-                <p className="mt-1 text-base font-semibold">
-                  {business?.name ?? "—"}
-                </p>
+                <p className="mt-1 text-base font-semibold">{business?.name ?? "—"}</p>
                 {business?.state && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {business.state}
-                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{business.state}</p>
                 )}
                 {business?.gstNumber && (
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -273,14 +270,10 @@ function PurchaseDetailsPage() {
                         <td className="px-6 py-3">
                           <p className="font-medium">{line.name}</p>
                           {line.unit && (
-                            <p className="text-xs text-muted-foreground">
-                              {line.unit}
-                            </p>
+                            <p className="text-xs text-muted-foreground">{line.unit}</p>
                           )}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {line.qty}
-                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{line.qty}</td>
                         <td className="px-3 py-3 text-right tabular-nums">
                           {formatCurrency(line.rate, currency)}
                         </td>
@@ -291,9 +284,7 @@ function PurchaseDetailsPage() {
                               : formatCurrency(line.discountValue, currency)
                             : "—"}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {line.taxPercent}%
-                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{line.taxPercent}%</td>
                         <td className="px-6 py-3 text-right font-semibold tabular-nums">
                           {formatCurrency(m.total, currency)}
                         </td>
@@ -330,10 +321,7 @@ function PurchaseDetailsPage() {
                   muted
                 />
               )}
-              <Row
-                label="Taxable value"
-                value={formatCurrency(purchase.taxableValue, currency)}
-              />
+              <Row label="Taxable value" value={formatCurrency(purchase.taxableValue, currency)} />
               {intraState ? (
                 <>
                   <Row label="CGST (Input)" value={formatCurrency(purchase.cgst, currency)} muted />
@@ -391,8 +379,8 @@ function PurchaseDetailsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {purchase.number}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This soft-deletes the purchase. It will disappear from lists and
-                    totals, but is retained for audit.
+                    This soft-deletes the purchase. It will disappear from lists and totals, but is
+                    retained for audit.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -536,7 +524,8 @@ function Timeline({ purchase }: { purchase: Purchase }) {
               className={cn(
                 "absolute -left-[22px] flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background",
                 e.tone === "success" && "border-primary/40 bg-primary/15 text-primary",
-                e.tone === "destructive" && "border-destructive/40 bg-destructive/15 text-destructive",
+                e.tone === "destructive" &&
+                  "border-destructive/40 bg-destructive/15 text-destructive",
               )}
             >
               <Icon className="h-2.5 w-2.5" />

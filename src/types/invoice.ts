@@ -1,6 +1,7 @@
 export type InvoiceStatus = "draft" | "final" | "cancelled";
 export type PaymentStatus = "unpaid" | "partial" | "paid";
 export type DiscountKind = "percent" | "amount";
+export type InvoiceKind = "invoice" | "credit-note";
 
 export interface InvoiceLine {
   id: string;
@@ -17,6 +18,9 @@ export interface InvoiceLine {
 export interface Invoice {
   id: string;
   businessId: string;
+  kind?: InvoiceKind;
+  /** For credit-notes: the source invoice id (string in frontend). */
+  sourceInvoiceId?: string;
   number: string; // e.g. INV-0001
   date: string; // ISO
   dueDate?: string; // ISO
@@ -67,6 +71,10 @@ export function lineMath(line: InvoiceLine) {
   const taxable = Math.max(0, gross - discount);
   const tax = (taxable * (line.taxPercent || 0)) / 100;
   return { gross, discount, taxable, tax, total: taxable + tax };
+}
+
+export function invoiceLedgerEntryId(invoiceId: string) {
+  return `le_inv_${invoiceId}`;
 }
 
 export interface InvoiceTotals {

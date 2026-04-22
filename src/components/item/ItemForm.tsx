@@ -22,12 +22,7 @@ import { FormSection } from "@/components/business/FormSection";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useItems } from "@/hooks/useItems";
 import type { Item } from "@/types/item";
-import {
-  itemFormSchema,
-  ITEM_UNITS,
-  TAX_RATES,
-  type ItemFormValues,
-} from "@/lib/itemSchema";
+import { itemFormSchema, ITEM_UNITS, TAX_RATES, type ItemFormValues } from "@/lib/itemSchema";
 import { emptyToUndef } from "@/lib/businessSchema";
 import { cn } from "@/lib/utils";
 
@@ -62,10 +57,8 @@ export function ItemForm({ mode, itemId }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const defaults: ItemFormValues = useMemo(() => {
-    const unit = (ITEM_UNITS as readonly string[]).includes(
-      (existing?.unit ?? "").toLowerCase(),
-    )
-      ? ((existing!.unit.toLowerCase()) as ItemFormValues["unit"])
+    const unit = (ITEM_UNITS as readonly string[]).includes((existing?.unit ?? "").toLowerCase())
+      ? (existing!.unit.toLowerCase() as ItemFormValues["unit"])
       : "pcs";
     const tax = (TAX_RATES as readonly number[]).includes(existing?.taxPercent ?? -1)
       ? (existing!.taxPercent as ItemFormValues["taxPercent"])
@@ -125,9 +118,7 @@ export function ItemForm({ mode, itemId }: Props) {
           sku: emptyToUndef(values.sku)?.toUpperCase(),
           sellingPrice: values.sellingPrice,
           purchasePrice:
-            values.purchasePrice && values.purchasePrice > 0
-              ? values.purchasePrice
-              : undefined,
+            values.purchasePrice && values.purchasePrice > 0 ? values.purchasePrice : undefined,
           taxPercent: values.taxPercent,
           unit: values.unit,
           openingStock:
@@ -196,7 +187,7 @@ export function ItemForm({ mode, itemId }: Props) {
               <Label htmlFor="name">Item name *</Label>
               <Input
                 id="name"
-                placeholder="e.g. Steel Bracket 4&quot;"
+                placeholder='e.g. Steel Bracket 4"'
                 aria-invalid={!!errors.name}
                 {...register("name")}
                 className={cn(errors.name && "border-destructive")}
@@ -219,9 +210,7 @@ export function ItemForm({ mode, itemId }: Props) {
                         <SelectItem value="service">Service</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {TYPE_HINT[field.value]}
-                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{TYPE_HINT[field.value]}</p>
                   </>
                 )}
               />
@@ -264,8 +253,7 @@ export function ItemForm({ mode, itemId }: Props) {
                 placeholder="0.00"
                 aria-invalid={!!errors.purchasePrice}
                 {...register("purchasePrice", {
-                  setValueAs: (v) =>
-                    v === "" || v === null ? undefined : Number(v),
+                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
                 })}
                 className={cn(errors.purchasePrice && "border-destructive")}
               />
@@ -334,8 +322,8 @@ export function ItemForm({ mode, itemId }: Props) {
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <p>
-              Inventory features are not active yet. Values you enter here will
-              be preserved and used once stock tracking is enabled
+              Inventory features are not active yet. Values you enter here will be preserved and
+              used once stock tracking is enabled
               {isService ? " (services do not track stock)" : ""}.
             </p>
           </div>
@@ -350,8 +338,7 @@ export function ItemForm({ mode, itemId }: Props) {
                 placeholder="0"
                 disabled={isService}
                 {...register("openingStock", {
-                  setValueAs: (v) =>
-                    v === "" || v === null ? undefined : Number(v),
+                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
                 })}
               />
             </div>
@@ -365,8 +352,7 @@ export function ItemForm({ mode, itemId }: Props) {
                 placeholder="0"
                 disabled={isService}
                 {...register("reorderLevel", {
-                  setValueAs: (v) =>
-                    v === "" || v === null ? undefined : Number(v),
+                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
                 })}
               />
             </div>

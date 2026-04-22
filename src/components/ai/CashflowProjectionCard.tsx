@@ -15,7 +15,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Projection = {
-  projection: Array<{ week: string; expected_inflow: number; expected_outflow: number; net: number }>;
+  projection: Array<{
+    week: string;
+    expected_inflow: number;
+    expected_outflow: number;
+    net: number;
+  }>;
   confidence: "low" | "medium" | "high";
   assumptions: string[];
 };
@@ -84,9 +89,7 @@ export function CashflowProjectionCard({
         </div>
       </div>
 
-      {loading && !data && (
-        <div className="h-56 animate-pulse rounded-xl bg-muted/40" />
-      )}
+      {loading && !data && <div className="h-56 animate-pulse rounded-xl bg-muted/40" />}
       {error && (
         <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">{error}</p>
       )}
@@ -168,7 +171,11 @@ export function CashflowProjectionCard({
 }
 
 function format(v: number, currency: string) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(v);
 }
 function compact(v: number) {
   if (Math.abs(v) >= 1e7) return (v / 1e7).toFixed(1) + "Cr";

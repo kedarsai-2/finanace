@@ -1,12 +1,10 @@
 package com.finance.app.web.rest;
 
 import com.finance.app.repository.PurchaseRepository;
-import com.finance.app.service.PurchaseLineService;
 import com.finance.app.service.PurchaseQueryService;
 import com.finance.app.service.PurchaseService;
 import com.finance.app.service.criteria.PurchaseCriteria;
 import com.finance.app.service.dto.PurchaseDTO;
-import com.finance.app.service.dto.PurchaseLineDTO;
 import com.finance.app.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -48,18 +46,14 @@ public class PurchaseResource {
 
     private final PurchaseQueryService purchaseQueryService;
 
-    private final PurchaseLineService purchaseLineService;
-
     public PurchaseResource(
         PurchaseService purchaseService,
         PurchaseRepository purchaseRepository,
-        PurchaseQueryService purchaseQueryService,
-        PurchaseLineService purchaseLineService
+        PurchaseQueryService purchaseQueryService
     ) {
         this.purchaseService = purchaseService;
         this.purchaseRepository = purchaseRepository;
         this.purchaseQueryService = purchaseQueryService;
-        this.purchaseLineService = purchaseLineService;
     }
 
     /**
@@ -148,21 +142,6 @@ public class PurchaseResource {
             result,
             HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, purchaseDTO.getId().toString())
         );
-    }
-
-    /**
-     * {@code GET /purchases/:id/lines} : get all purchase lines for a purchase.
-     *
-     * @param id the id of the purchase.
-     * @return the list of purchase lines.
-     */
-    @GetMapping("/{id}/lines")
-    public ResponseEntity<List<PurchaseLineDTO>> getPurchaseLines(@PathVariable("id") Long id) {
-        LOG.debug("REST request to get PurchaseLines for Purchase : {}", id);
-        if (!purchaseRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(purchaseLineService.findAllByPurchaseId(id));
     }
 
     /**

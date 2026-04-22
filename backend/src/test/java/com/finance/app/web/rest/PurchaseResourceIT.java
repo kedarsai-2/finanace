@@ -15,6 +15,7 @@ import com.finance.app.domain.Business;
 import com.finance.app.domain.Party;
 import com.finance.app.domain.Purchase;
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import com.finance.app.repository.PurchaseRepository;
 import com.finance.app.service.PurchaseService;
@@ -119,6 +120,13 @@ class PurchaseResourceIT {
     private static final PurchaseStatus DEFAULT_STATUS = PurchaseStatus.DRAFT;
     private static final PurchaseStatus UPDATED_STATUS = PurchaseStatus.FINAL;
 
+    private static final PurchaseKind DEFAULT_KIND = PurchaseKind.PURCHASE;
+    private static final PurchaseKind UPDATED_KIND = PurchaseKind.RETURN;
+
+    private static final Long DEFAULT_SOURCE_PURCHASE_ID = 1L;
+    private static final Long UPDATED_SOURCE_PURCHASE_ID = 2L;
+    private static final Long SMALLER_SOURCE_PURCHASE_ID = 1L - 1L;
+
     private static final String DEFAULT_NOTES = "AAAAAAAAAA";
     private static final String UPDATED_NOTES = "BBBBBBBBBB";
 
@@ -195,6 +203,8 @@ class PurchaseResourceIT {
             .total(DEFAULT_TOTAL)
             .paidAmount(DEFAULT_PAID_AMOUNT)
             .status(DEFAULT_STATUS)
+            .kind(DEFAULT_KIND)
+            .sourcePurchaseId(DEFAULT_SOURCE_PURCHASE_ID)
             .notes(DEFAULT_NOTES)
             .terms(DEFAULT_TERMS)
             .finalizedAt(DEFAULT_FINALIZED_AT)
@@ -230,6 +240,8 @@ class PurchaseResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourcePurchaseId(UPDATED_SOURCE_PURCHASE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)
@@ -613,6 +625,8 @@ class PurchaseResourceIT {
             .andExpect(jsonPath("$.[*].total").value(hasItem(sameNumber(DEFAULT_TOTAL))))
             .andExpect(jsonPath("$.[*].paidAmount").value(hasItem(sameNumber(DEFAULT_PAID_AMOUNT))))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
+            .andExpect(jsonPath("$.[*].kind").value(hasItem(DEFAULT_KIND.toString())))
+            .andExpect(jsonPath("$.[*].sourcePurchaseId").value(hasItem(DEFAULT_SOURCE_PURCHASE_ID.intValue())))
             .andExpect(jsonPath("$.[*].notes").value(hasItem(DEFAULT_NOTES)))
             .andExpect(jsonPath("$.[*].terms").value(hasItem(DEFAULT_TERMS)))
             .andExpect(jsonPath("$.[*].finalizedAt").value(hasItem(DEFAULT_FINALIZED_AT.toString())))
@@ -669,6 +683,8 @@ class PurchaseResourceIT {
             .andExpect(jsonPath("$.total").value(sameNumber(DEFAULT_TOTAL)))
             .andExpect(jsonPath("$.paidAmount").value(sameNumber(DEFAULT_PAID_AMOUNT)))
             .andExpect(jsonPath("$.status").value(DEFAULT_STATUS.toString()))
+            .andExpect(jsonPath("$.kind").value(DEFAULT_KIND.toString()))
+            .andExpect(jsonPath("$.sourcePurchaseId").value(DEFAULT_SOURCE_PURCHASE_ID.intValue()))
             .andExpect(jsonPath("$.notes").value(DEFAULT_NOTES))
             .andExpect(jsonPath("$.terms").value(DEFAULT_TERMS))
             .andExpect(jsonPath("$.finalizedAt").value(DEFAULT_FINALIZED_AT.toString()))
@@ -1868,6 +1884,124 @@ class PurchaseResourceIT {
 
     @Test
     @Transactional
+    void getAllPurchasesByKindIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where kind equals to
+        defaultPurchaseFiltering("kind.equals=" + DEFAULT_KIND, "kind.equals=" + UPDATED_KIND);
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesByKindIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where kind in
+        defaultPurchaseFiltering("kind.in=" + DEFAULT_KIND + "," + UPDATED_KIND, "kind.in=" + UPDATED_KIND);
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesByKindIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where kind is not null
+        defaultPurchaseFiltering("kind.specified=true", "kind.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId equals to
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.equals=" + DEFAULT_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.equals=" + UPDATED_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId in
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.in=" + DEFAULT_SOURCE_PURCHASE_ID + "," + UPDATED_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.in=" + UPDATED_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId is not null
+        defaultPurchaseFiltering("sourcePurchaseId.specified=true", "sourcePurchaseId.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsGreaterThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId is greater than or equal to
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.greaterThanOrEqual=" + DEFAULT_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.greaterThanOrEqual=" + UPDATED_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsLessThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId is less than or equal to
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.lessThanOrEqual=" + DEFAULT_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.lessThanOrEqual=" + SMALLER_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsLessThanSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId is less than
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.lessThan=" + UPDATED_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.lessThan=" + DEFAULT_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllPurchasesBySourcePurchaseIdIsGreaterThanSomething() throws Exception {
+        // Initialize the database
+        insertedPurchase = purchaseRepository.saveAndFlush(purchase);
+
+        // Get all the purchaseList where sourcePurchaseId is greater than
+        defaultPurchaseFiltering(
+            "sourcePurchaseId.greaterThan=" + SMALLER_SOURCE_PURCHASE_ID,
+            "sourcePurchaseId.greaterThan=" + DEFAULT_SOURCE_PURCHASE_ID
+        );
+    }
+
+    @Test
+    @Transactional
     void getAllPurchasesByNotesIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPurchase = purchaseRepository.saveAndFlush(purchase);
@@ -2166,6 +2300,8 @@ class PurchaseResourceIT {
             .andExpect(jsonPath("$.[*].total").value(hasItem(sameNumber(DEFAULT_TOTAL))))
             .andExpect(jsonPath("$.[*].paidAmount").value(hasItem(sameNumber(DEFAULT_PAID_AMOUNT))))
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS.toString())))
+            .andExpect(jsonPath("$.[*].kind").value(hasItem(DEFAULT_KIND.toString())))
+            .andExpect(jsonPath("$.[*].sourcePurchaseId").value(hasItem(DEFAULT_SOURCE_PURCHASE_ID.intValue())))
             .andExpect(jsonPath("$.[*].notes").value(hasItem(DEFAULT_NOTES)))
             .andExpect(jsonPath("$.[*].terms").value(hasItem(DEFAULT_TERMS)))
             .andExpect(jsonPath("$.[*].finalizedAt").value(hasItem(DEFAULT_FINALIZED_AT.toString())))
@@ -2239,6 +2375,8 @@ class PurchaseResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourcePurchaseId(UPDATED_SOURCE_PURCHASE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)
@@ -2344,9 +2482,9 @@ class PurchaseResourceIT {
             .igst(UPDATED_IGST)
             .taxTotal(UPDATED_TAX_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
-            .notes(UPDATED_NOTES)
-            .terms(UPDATED_TERMS)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .kind(UPDATED_KIND)
+            .sourcePurchaseId(UPDATED_SOURCE_PURCHASE_ID)
+            .deleted(UPDATED_DELETED);
 
         restPurchaseMockMvc
             .perform(
@@ -2394,6 +2532,8 @@ class PurchaseResourceIT {
             .total(UPDATED_TOTAL)
             .paidAmount(UPDATED_PAID_AMOUNT)
             .status(UPDATED_STATUS)
+            .kind(UPDATED_KIND)
+            .sourcePurchaseId(UPDATED_SOURCE_PURCHASE_ID)
             .notes(UPDATED_NOTES)
             .terms(UPDATED_TERMS)
             .finalizedAt(UPDATED_FINALIZED_AT)

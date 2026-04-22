@@ -95,6 +95,8 @@ class PurchaseCriteriaTest {
         purchaseCriteria.total();
         purchaseCriteria.paidAmount();
         purchaseCriteria.status();
+        purchaseCriteria.kind();
+        purchaseCriteria.sourcePurchaseId();
         purchaseCriteria.notes();
         purchaseCriteria.terms();
         purchaseCriteria.finalizedAt();
@@ -130,6 +132,8 @@ class PurchaseCriteriaTest {
                 condition.apply(criteria.getTotal()) &&
                 condition.apply(criteria.getPaidAmount()) &&
                 condition.apply(criteria.getStatus()) &&
+                condition.apply(criteria.getKind()) &&
+                condition.apply(criteria.getSourcePurchaseId()) &&
                 condition.apply(criteria.getNotes()) &&
                 condition.apply(criteria.getTerms()) &&
                 condition.apply(criteria.getFinalizedAt()) &&
@@ -167,6 +171,8 @@ class PurchaseCriteriaTest {
                 condition.apply(criteria.getTotal(), copy.getTotal()) &&
                 condition.apply(criteria.getPaidAmount(), copy.getPaidAmount()) &&
                 condition.apply(criteria.getStatus(), copy.getStatus()) &&
+                condition.apply(criteria.getKind(), copy.getKind()) &&
+                condition.apply(criteria.getSourcePurchaseId(), copy.getSourcePurchaseId()) &&
                 condition.apply(criteria.getNotes(), copy.getNotes()) &&
                 condition.apply(criteria.getTerms(), copy.getTerms()) &&
                 condition.apply(criteria.getFinalizedAt(), copy.getFinalizedAt()) &&

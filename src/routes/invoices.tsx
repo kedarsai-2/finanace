@@ -1,33 +1,14 @@
-import {
-  Outlet,
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  FileText,
-  Ban,
-  CalendarIcon,
-  X,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileText, Ban, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,8 +95,10 @@ function InvoicesPage() {
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
 
-  const fromDate = from ? new Date(from) : undefined;
-  const toDate = to ? new Date(to) : undefined;
+  const fromDate = useMemo(() => (from ? new Date(from) : undefined), [from]);
+  const toDate = useMemo(() => (to ? new Date(to) : undefined), [to]);
+  const fromTs = useMemo(() => (from ? new Date(from).setHours(0, 0, 0, 0) : undefined), [from]);
+  const toTs = useMemo(() => (to ? new Date(to).setHours(23, 59, 59, 999) : undefined), [to]);
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -124,16 +107,15 @@ function InvoicesPage() {
         if (status !== "all" && inv.status !== status) return false;
         if (payment !== "all" && paymentStatusOf(inv) !== payment) return false;
         const d = new Date(inv.date).getTime();
-        if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
-        if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
+        if (fromTs !== undefined && d < fromTs) return false;
+        if (toTs !== undefined && d > toTs) return false;
         if (!term) return true;
         return (
-          inv.number.toLowerCase().includes(term) ||
-          inv.partyName.toLowerCase().includes(term)
+          inv.number.toLowerCase().includes(term) || inv.partyName.toLowerCase().includes(term)
         );
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [invoices, q, status, payment, fromDate, toDate]);
+  }, [invoices, q, status, payment, fromTs, toTs]);
 
   const totals = useMemo(() => {
     let total = 0;
@@ -186,7 +168,7 @@ function InvoicesPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/invoices/new">
+              <Link to="/invoices/new" search={{} as never}>
                 <Plus className="h-4 w-4" />
                 Create Invoice
               </Link>
@@ -195,7 +177,11 @@ function InvoicesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <SummaryCard label="Total billed" value={formatCurrency(totals.total, currency)} />
-            <SummaryCard label="Total received" value={formatCurrency(totals.paid, currency)} tone="success" />
+            <SummaryCard
+              label="Total received"
+              value={formatCurrency(totals.paid, currency)}
+              tone="success"
+            />
             <SummaryCard
               label="Outstanding"
               value={formatCurrency(totals.outstanding, currency)}
@@ -268,8 +254,8 @@ function InvoicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.number}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide the invoice from your list. Past payments and
-              ledger entries are kept for audit.
+              This will hide the invoice from your list. Past payments and ledger entries are kept
+              for audit.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -289,15 +275,12 @@ function InvoicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel {cancelling?.number}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cancelled invoices remain visible but are excluded from
-              receivables and totals.
+              Cancelled invoices remain visible but are excluded from receivables and totals.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep invoice</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel}>
-              Cancel invoice
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmCancel}>Cancel invoice</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -316,9 +299,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 text-2xl font-bold tabular-nums",
@@ -421,9 +402,7 @@ function DatePill({
           type="button"
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
-            value
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+            value ? "text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
@@ -479,6 +458,7 @@ function InvoicesTable({
               <Link
                 to="/invoices/$id"
                 params={{ id: inv.id }}
+                search={{} as never}
                 className="font-mono text-sm font-semibold text-foreground hover:text-primary"
               >
                 {inv.number}
@@ -489,6 +469,7 @@ function InvoicesTable({
               <Link
                 to="/parties/$id"
                 params={{ id: inv.partyId }}
+                search={{} as never}
                 className="truncate text-sm font-medium text-foreground hover:text-primary"
               >
                 {inv.partyName}
@@ -539,7 +520,7 @@ function InvoicesTable({
                       className="h-8 w-8"
                       aria-label={`Edit ${inv.number}`}
                     >
-                      <Link to="/invoices/$id/edit" params={{ id: inv.id }}>
+                      <Link to="/invoices/$id/edit" params={{ id: inv.id }} search={{} as never}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -589,7 +570,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Create your first invoice to start tracking sales and receivables."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/invoices/new">
+        <Link to="/invoices/new" search={{} as never}>
           <Plus className="h-4 w-4" />
           Create Invoice
         </Link>

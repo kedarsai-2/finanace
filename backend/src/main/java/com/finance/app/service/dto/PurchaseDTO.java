@@ -1,6 +1,7 @@
 package com.finance.app.service.dto;
 
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
@@ -85,6 +86,10 @@ public class PurchaseDTO implements Serializable {
     @NotNull
     private PurchaseStatus status;
 
+    private PurchaseKind kind;
+
+    private Long sourcePurchaseId;
+
     @Size(max = 4000)
     private String notes;
 
@@ -95,6 +100,7 @@ public class PurchaseDTO implements Serializable {
 
     private Boolean deleted;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -263,6 +269,22 @@ public class PurchaseDTO implements Serializable {
         this.status = status;
     }
 
+    public PurchaseKind getKind() {
+        return kind;
+    }
+
+    public void setKind(PurchaseKind kind) {
+        this.kind = kind;
+    }
+
+    public Long getSourcePurchaseId() {
+        return sourcePurchaseId;
+    }
+
+    public void setSourcePurchaseId(Long sourcePurchaseId) {
+        this.sourcePurchaseId = sourcePurchaseId;
+    }
+
     public String getNotes() {
         return notes;
     }
@@ -372,6 +394,8 @@ public class PurchaseDTO implements Serializable {
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
             ", status='" + getStatus() + "'" +
+            ", kind='" + getKind() + "'" +
+            ", sourcePurchaseId=" + getSourcePurchaseId() +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +

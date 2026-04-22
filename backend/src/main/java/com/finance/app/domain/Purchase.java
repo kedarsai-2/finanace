@@ -2,6 +2,7 @@ package com.finance.app.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -122,6 +123,13 @@ public class Purchase implements Serializable {
     @Column(name = "status", nullable = false)
     private PurchaseStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind")
+    private PurchaseKind kind;
+
+    @Column(name = "source_purchase_id")
+    private Long sourcePurchaseId;
+
     @Size(max = 4000)
     @Column(name = "notes", length = 4000)
     private String notes;
@@ -132,21 +140,6 @@ public class Purchase implements Serializable {
 
     @Column(name = "finalized_at")
     private Instant finalizedAt;
-
-    @PrePersist
-    public void prePersist() {
-        if (createdAt == null) createdAt = Instant.now();
-        if (updatedAt == null) updatedAt = createdAt;
-        if (deleted == null) deleted = false;
-        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = Instant.now();
-        if (deleted == null) deleted = false;
-        if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-    }
 
     @Column(name = "deleted")
     private Boolean deleted;
@@ -432,6 +425,32 @@ public class Purchase implements Serializable {
         this.status = status;
     }
 
+    public PurchaseKind getKind() {
+        return this.kind;
+    }
+
+    public Purchase kind(PurchaseKind kind) {
+        this.setKind(kind);
+        return this;
+    }
+
+    public void setKind(PurchaseKind kind) {
+        this.kind = kind;
+    }
+
+    public Long getSourcePurchaseId() {
+        return this.sourcePurchaseId;
+    }
+
+    public Purchase sourcePurchaseId(Long sourcePurchaseId) {
+        this.setSourcePurchaseId(sourcePurchaseId);
+        return this;
+    }
+
+    public void setSourcePurchaseId(Long sourcePurchaseId) {
+        this.sourcePurchaseId = sourcePurchaseId;
+    }
+
     public String getNotes() {
         return this.notes;
     }
@@ -610,6 +629,8 @@ public class Purchase implements Serializable {
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
             ", status='" + getStatus() + "'" +
+            ", kind='" + getKind() + "'" +
+            ", sourcePurchaseId=" + getSourcePurchaseId() +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +

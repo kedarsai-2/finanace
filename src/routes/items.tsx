@@ -1,10 +1,4 @@
-import {
-  Outlet,
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
@@ -82,10 +76,7 @@ function ItemsPage() {
     return items.filter((it) => {
       if (type !== "all" && it.type !== type) return false;
       if (!term) return true;
-      return (
-        it.name.toLowerCase().includes(term) ||
-        (it.sku ?? "").toLowerCase().includes(term)
-      );
+      return it.name.toLowerCase().includes(term) || (it.sku ?? "").toLowerCase().includes(term);
     });
   }, [items, q, type]);
 
@@ -121,7 +112,7 @@ function ItemsPage() {
               </p>
             </div>
             <Button asChild size="lg" className="gap-2">
-              <Link to="/items/new">
+              <Link to="/items/new" search={{} as never}>
                 <Plus className="h-4 w-4" />
                 Add Item
               </Link>
@@ -171,8 +162,8 @@ function ItemsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This item will be hidden from your catalog and from invoice
-              selection. Past transactions referencing it remain unchanged.
+              This item will be hidden from your catalog and from invoice selection. Past
+              transactions referencing it remain unchanged.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -220,6 +211,7 @@ function ItemsTable({
             <Link
               to="/items/$id"
               params={{ id: it.id }}
+              search={{} as never}
               className="flex min-w-0 items-center gap-3 text-left"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
@@ -230,9 +222,7 @@ function ItemsTable({
                   {it.name}
                 </p>
                 {it.sku && (
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    {it.sku}
-                  </p>
+                  <p className="truncate font-mono text-xs text-muted-foreground">{it.sku}</p>
                 )}
               </div>
             </Link>
@@ -254,16 +244,12 @@ function ItemsTable({
               {it.taxPercent}%
             </span>
 
-            <span className="font-mono text-xs uppercase text-muted-foreground">
-              {it.unit}
-            </span>
+            <span className="font-mono text-xs uppercase text-muted-foreground">{it.unit}</span>
 
             <span
               className={cn(
                 "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                it.active
-                  ? "bg-success/10 text-success"
-                  : "bg-muted text-muted-foreground",
+                it.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
               )}
             >
               <span
@@ -283,7 +269,7 @@ function ItemsTable({
                 className="h-8 w-8"
                 aria-label={`Edit ${it.name}`}
               >
-                <Link to="/items/$id/edit" params={{ id: it.id }}>
+                <Link to="/items/$id/edit" params={{ id: it.id }} search={{} as never}>
                   <Pencil className="h-4 w-4" />
                 </Link>
               </Button>
@@ -319,7 +305,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
           : "Add your first product or service to start invoicing."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
-        <Link to="/items/new">
+        <Link to="/items/new" search={{} as never}>
           <Plus className="h-4 w-4" />
           Add Item
         </Link>

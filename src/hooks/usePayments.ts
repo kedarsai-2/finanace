@@ -128,9 +128,11 @@ export function usePayments(businessId?: string | null) {
       `/api/payments?businessId.equals=${encodeURIComponent(String(businessId))}&size=500&sort=id,desc`,
     );
 
-    const allocs = await apiFetch<Array<{ docId: string; docNumber: string; amount: number; payment?: { id?: number } }>>(
-      `/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`,
-    ).catch(() => []);
+    const allocs = await apiFetch<
+      Array<{ docId: string; docNumber: string; amount: number; payment?: { id?: number } }>
+    >(`/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`).catch(
+      () => [],
+    );
 
     const allocByPayment = new Map<string, Payment["allocations"]>();
     for (const a of allocs) {
@@ -154,7 +156,10 @@ export function usePayments(businessId?: string | null) {
       if (USE_BACKEND) {
         if (!businessId) throw new Error("Missing businessId");
         const paymentDto = paymentToDto(p, businessId);
-        const saved = await apiFetch<PaymentDTO>(`/api/payments`, { method: "POST", body: JSON.stringify(paymentDto) });
+        const saved = await apiFetch<PaymentDTO>(`/api/payments`, {
+          method: "POST",
+          body: JSON.stringify(paymentDto),
+        });
         const savedId = toStrId(saved.id);
 
         for (const a of p.allocations ?? []) {
@@ -171,10 +176,7 @@ export function usePayments(businessId?: string | null) {
         }
 
         await refresh();
-        return (
-          payments.find((x) => x.id === savedId) ??
-          dtoToPayment(saved, p.allocations)
-        );
+        return payments.find((x) => x.id === savedId) ?? dtoToPayment(saved, p.allocations);
       }
 
       const id = newPaymentId();

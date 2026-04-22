@@ -33,10 +33,9 @@ import { cn } from "@/lib/utils";
 const quickSchema = z.object({
   name: z.string().trim().min(1, "Item name is required").max(120),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
-  taxPercent: z.number().refine(
-    (v) => (TAX_RATES as readonly number[]).includes(v),
-    "Select a valid tax rate",
-  ),
+  taxPercent: z
+    .number()
+    .refine((v) => (TAX_RATES as readonly number[]).includes(v), "Select a valid tax rate"),
   unit: z.enum(ITEM_UNITS),
 });
 
@@ -155,7 +154,7 @@ export function QuickAddItemDialog({
             <Input
               id="qa-name"
               autoFocus
-              placeholder="e.g. Steel Bracket 4&quot;"
+              placeholder='e.g. Steel Bracket 4"'
               aria-invalid={!!errors.name}
               {...register("name")}
               className={cn(errors.name && "border-destructive")}

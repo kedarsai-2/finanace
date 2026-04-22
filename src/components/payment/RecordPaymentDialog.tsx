@@ -81,18 +81,12 @@ export function RecordPaymentDialog({
   const openInvoices = useMemo(() => {
     return invoices
       .filter(
-        (i) =>
-          i.partyId === partyId &&
-          i.status !== "cancelled" &&
-          i.total - i.paidAmount > 0.01,
+        (i) => i.partyId === partyId && i.status !== "cancelled" && i.total - i.paidAmount > 0.01,
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [invoices, partyId]);
 
-  const totalOutstanding = openInvoices.reduce(
-    (sum, i) => sum + (i.total - i.paidAmount),
-    0,
-  );
+  const totalOutstanding = openInvoices.reduce((sum, i) => sum + (i.total - i.paidAmount), 0);
 
   // ---------- Form state --------------------------------------------------
   const [date, setDate] = useState<Date>(new Date());
@@ -134,9 +128,7 @@ export function RecordPaymentDialog({
       const focused = openInvoices.find((i) => i.id === focusInvoiceId);
       setAmount(focused ? focused.total - focused.paidAmount : 0);
     } else {
-      setAmount(
-        initialRows.reduce((s, r) => s + (r.selected ? r.outstanding : 0), 0),
-      );
+      setAmount(initialRows.reduce((s, r) => s + (r.selected ? r.outstanding : 0), 0));
     }
     // We intentionally only re-init on open / party change — not on every row tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -177,9 +169,7 @@ export function RecordPaymentDialog({
     });
   }, [amount, autoAllocate]);
 
-  const allocatedTotal = rows
-    .filter((r) => r.selected)
-    .reduce((s, r) => s + r.amount, 0);
+  const allocatedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
   const unallocated = Math.max(0, amount - allocatedTotal);
   const overAllocated = allocatedTotal - amount > 0.01;
 
@@ -301,8 +291,7 @@ export function RecordPaymentDialog({
             Record Payment
           </DialogTitle>
           <DialogDescription>
-            From <span className="font-medium text-foreground">{partyName}</span>{" "}
-            • Outstanding{" "}
+            From <span className="font-medium text-foreground">{partyName}</span> • Outstanding{" "}
             <span className="font-semibold text-foreground">
               {formatCurrency(totalOutstanding, currency)}
             </span>
@@ -344,10 +333,7 @@ export function RecordPaymentDialog({
                 <Label>Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-10 w-full justify-between font-normal"
-                    >
+                    <Button variant="outline" className="h-10 w-full justify-between font-normal">
                       {format(date, "dd MMM yyyy")}
                       <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
                     </Button>
@@ -374,10 +360,7 @@ export function RecordPaymentDialog({
                     first.
                   </p>
                 ) : (
-                  <Select
-                    value={accountId || undefined}
-                    onValueChange={(v) => setAccountId(v)}
-                  >
+                  <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v)}>
                     <SelectTrigger id="account">
                       <SelectValue placeholder="Select account" />
                     </SelectTrigger>
@@ -462,10 +445,7 @@ export function RecordPaymentDialog({
                       return (
                         <tr
                           key={r.invoice.id}
-                          className={cn(
-                            "transition-colors",
-                            r.selected ? "" : "opacity-60",
-                          )}
+                          className={cn("transition-colors", r.selected ? "" : "opacity-60")}
                         >
                           <td className="px-3 py-2">
                             <Checkbox
@@ -474,9 +454,7 @@ export function RecordPaymentDialog({
                             />
                           </td>
                           <td className="px-3 py-2">
-                            <p className="font-mono font-medium">
-                              {r.invoice.number}
-                            </p>
+                            <p className="font-mono font-medium">{r.invoice.number}</p>
                             {r.selected && r.amount > 0 && (
                               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                                 → {newStatus}
@@ -496,9 +474,7 @@ export function RecordPaymentDialog({
                               max={r.outstanding}
                               step="0.01"
                               value={r.amount || ""}
-                              onChange={(e) =>
-                                editRowAmount(r.invoice.id, Number(e.target.value))
-                              }
+                              onChange={(e) => editRowAmount(r.invoice.id, Number(e.target.value))}
                               disabled={!r.selected}
                               className="ml-auto h-8 w-28 text-right tabular-nums"
                             />
@@ -516,15 +492,15 @@ export function RecordPaymentDialog({
                     overAllocated
                       ? "bg-destructive/10 text-destructive"
                       : unallocated > 0.01
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-primary/10 text-primary",
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-primary/10 text-primary",
                   )}
                 >
                   {overAllocated
                     ? `Over-allocated by ${formatCurrency(allocatedTotal - amount, currency)}`
                     : unallocated > 0.01
-                    ? `Unallocated ${formatCurrency(unallocated, currency)}`
-                    : "Allocation balanced"}
+                      ? `Unallocated ${formatCurrency(unallocated, currency)}`
+                      : "Allocation balanced"}
                 </span>
                 <span className="text-muted-foreground">
                   Allocated{" "}
@@ -547,7 +523,11 @@ export function RecordPaymentDialog({
             disabled={submitting || openInvoices.length === 0}
             className="gap-2"
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
             Record payment
           </Button>
         </DialogFooter>

@@ -1,6 +1,7 @@
 package com.finance.app.service.dto;
 
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.InvoiceKind;
 import com.finance.app.domain.enumeration.InvoiceStatus;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
@@ -89,6 +90,10 @@ public class InvoiceDTO implements Serializable {
     @NotNull
     private InvoiceStatus status;
 
+    private InvoiceKind kind;
+
+    private Long sourceInvoiceId;
+
     @Size(max = 4000)
     private String notes;
 
@@ -99,6 +104,7 @@ public class InvoiceDTO implements Serializable {
 
     private Boolean deleted;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -275,6 +281,22 @@ public class InvoiceDTO implements Serializable {
         this.status = status;
     }
 
+    public InvoiceKind getKind() {
+        return kind;
+    }
+
+    public void setKind(InvoiceKind kind) {
+        this.kind = kind;
+    }
+
+    public Long getSourceInvoiceId() {
+        return sourceInvoiceId;
+    }
+
+    public void setSourceInvoiceId(Long sourceInvoiceId) {
+        this.sourceInvoiceId = sourceInvoiceId;
+    }
+
     public String getNotes() {
         return notes;
     }
@@ -385,6 +407,8 @@ public class InvoiceDTO implements Serializable {
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
             ", status='" + getStatus() + "'" +
+            ", kind='" + getKind() + "'" +
+            ", sourceInvoiceId=" + getSourceInvoiceId() +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +

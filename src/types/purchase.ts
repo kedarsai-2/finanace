@@ -2,6 +2,7 @@ import type { DiscountKind, InvoiceLine } from "@/types/invoice";
 export type { DiscountKind } from "@/types/invoice";
 
 export type PurchaseStatus = "draft" | "final" | "cancelled";
+export type PurchaseKind = "purchase" | "return";
 
 /** Same shape as InvoiceLine — purchases reuse the line/tax math helpers. */
 export type PurchaseLine = InvoiceLine;
@@ -9,6 +10,9 @@ export type PurchaseLine = InvoiceLine;
 export interface Purchase {
   id: string;
   businessId: string;
+  kind?: PurchaseKind;
+  /** For returns: the source purchase id (string in frontend). */
+  sourcePurchaseId?: string;
   /** Purchase / bill number. */
   number: string;
   date: string; // ISO

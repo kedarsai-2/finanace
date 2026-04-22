@@ -19,6 +19,7 @@ public class InvoiceTestSamples {
             .partyName("partyName1")
             .partyState("partyState1")
             .businessState("businessState1")
+            .sourceInvoiceId(1L)
             .notes("notes1")
             .terms("terms1");
     }
@@ -31,6 +32,7 @@ public class InvoiceTestSamples {
             .partyName("partyName2")
             .partyState("partyState2")
             .businessState("businessState2")
+            .sourceInvoiceId(2L)
             .notes("notes2")
             .terms("terms2");
     }
@@ -43,6 +45,7 @@ public class InvoiceTestSamples {
             .partyName(UUID.randomUUID().toString())
             .partyState(UUID.randomUUID().toString())
             .businessState(UUID.randomUUID().toString())
+            .sourceInvoiceId(longCount.incrementAndGet())
             .notes(UUID.randomUUID().toString())
             .terms(UUID.randomUUID().toString());
     }

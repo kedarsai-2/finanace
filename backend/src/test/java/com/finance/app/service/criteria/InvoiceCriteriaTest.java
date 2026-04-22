@@ -96,6 +96,8 @@ class InvoiceCriteriaTest {
         invoiceCriteria.total();
         invoiceCriteria.paidAmount();
         invoiceCriteria.status();
+        invoiceCriteria.kind();
+        invoiceCriteria.sourceInvoiceId();
         invoiceCriteria.notes();
         invoiceCriteria.terms();
         invoiceCriteria.finalizedAt();
@@ -132,6 +134,8 @@ class InvoiceCriteriaTest {
                 condition.apply(criteria.getTotal()) &&
                 condition.apply(criteria.getPaidAmount()) &&
                 condition.apply(criteria.getStatus()) &&
+                condition.apply(criteria.getKind()) &&
+                condition.apply(criteria.getSourceInvoiceId()) &&
                 condition.apply(criteria.getNotes()) &&
                 condition.apply(criteria.getTerms()) &&
                 condition.apply(criteria.getFinalizedAt()) &&
@@ -170,6 +174,8 @@ class InvoiceCriteriaTest {
                 condition.apply(criteria.getTotal(), copy.getTotal()) &&
                 condition.apply(criteria.getPaidAmount(), copy.getPaidAmount()) &&
                 condition.apply(criteria.getStatus(), copy.getStatus()) &&
+                condition.apply(criteria.getKind(), copy.getKind()) &&
+                condition.apply(criteria.getSourceInvoiceId(), copy.getSourceInvoiceId()) &&
                 condition.apply(criteria.getNotes(), copy.getNotes()) &&
                 condition.apply(criteria.getTerms(), copy.getTerms()) &&
                 condition.apply(criteria.getFinalizedAt(), copy.getFinalizedAt()) &&

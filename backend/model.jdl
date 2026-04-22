@@ -27,10 +27,20 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum InvoiceKind {
+  INVOICE,
+  CREDIT_NOTE
+}
+
 enum PurchaseStatus {
   DRAFT,
   FINAL,
   CANCELLED
+}
+
+enum PurchaseKind {
+  PURCHASE,
+  RETURN
 }
 
 enum DiscountKind {
@@ -164,6 +174,8 @@ entity Invoice {
   paidAmount BigDecimal required min(0)
 
   status InvoiceStatus required
+  kind InvoiceKind
+  sourceInvoiceId Long
   notes String maxlength(4000)
   terms String maxlength(4000)
   finalizedAt Instant
@@ -207,6 +219,8 @@ entity Purchase {
   paidAmount BigDecimal required min(0)
 
   status PurchaseStatus required
+  kind PurchaseKind
+  sourcePurchaseId Long
   notes String maxlength(4000)
   terms String maxlength(4000)
   finalizedAt Instant

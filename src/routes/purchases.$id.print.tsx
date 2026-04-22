@@ -12,7 +12,10 @@ export const Route = createFileRoute("/purchases/$id/print")({
   head: () => ({
     meta: [
       { title: "Purchase — Print preview" },
-      { name: "description", content: "Print-ready purchase bill layout. Use Print → Save as PDF to download." },
+      {
+        name: "description",
+        content: "Print-ready purchase bill layout. Use Print → Save as PDF to download.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -64,7 +67,7 @@ function PurchasePrintPage() {
     <div className="invoice-print-shell min-h-screen bg-slate-200/60 py-6">
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] items-center justify-between px-2">
         <Button asChild variant="ghost" className="gap-2">
-          <Link to="/purchases/$id" params={{ id: purchase.id }}>
+          <Link to="/purchases/$id" params={{ id: purchase.id }} search={{} as never}>
             <ArrowLeft className="h-4 w-4" />
             Back to purchase
           </Link>

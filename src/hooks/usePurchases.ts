@@ -13,6 +13,7 @@ const STORAGE_KEY = "bm.purchases";
 
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendPurchaseStatus = "DRAFT" | "FINAL" | "CANCELLED";
+type BackendPurchaseKind = "PURCHASE" | "RETURN";
 
 type PurchaseDTO = {
   id?: number;
@@ -35,6 +36,8 @@ type PurchaseDTO = {
   total: number;
   paidAmount: number;
   status: BackendPurchaseStatus;
+  kind?: BackendPurchaseKind | null;
+  sourcePurchaseId?: number | null;
   notes?: string | null;
   terms?: string | null;
   finalizedAt?: string | null;
@@ -62,7 +65,9 @@ type PurchaseLineDTO = {
 function toBackendDiscountKind(k: PurchaseLine["discountKind"]): BackendDiscountKind {
   return k === "amount" ? "AMOUNT" : "PERCENT";
 }
-function fromBackendDiscountKind(k: BackendDiscountKind | null | undefined): PurchaseLine["discountKind"] {
+function fromBackendDiscountKind(
+  k: BackendDiscountKind | null | undefined,
+): PurchaseLine["discountKind"] {
   return k === "AMOUNT" ? "amount" : "percent";
 }
 
@@ -71,10 +76,19 @@ function toBackendPurchaseStatus(s: Purchase["status"]): BackendPurchaseStatus {
   if (s === "cancelled") return "CANCELLED";
   return "DRAFT";
 }
-function fromBackendPurchaseStatus(s: BackendPurchaseStatus | null | undefined): Purchase["status"] {
+function fromBackendPurchaseStatus(
+  s: BackendPurchaseStatus | null | undefined,
+): Purchase["status"] {
   if (s === "FINAL") return "final";
   if (s === "CANCELLED") return "cancelled";
   return "draft";
+}
+
+function toBackendPurchaseKind(k: Purchase["kind"] | null | undefined): BackendPurchaseKind {
+  return k === "return" ? "RETURN" : "PURCHASE";
+}
+function fromBackendPurchaseKind(k: BackendPurchaseKind | null | undefined): Purchase["kind"] {
+  return k === "RETURN" ? "return" : "purchase";
 }
 
 function dtoToPurchase(dto: PurchaseDTO): Purchase {
@@ -102,6 +116,8 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     total: Number(dto.total ?? 0),
     paidAmount: Number(dto.paidAmount ?? 0),
     status: fromBackendPurchaseStatus(dto.status),
+    kind: fromBackendPurchaseKind(dto.kind),
+    sourcePurchaseId: dto.sourcePurchaseId != null ? toStrId(dto.sourcePurchaseId) : undefined,
     deleted: dto.deleted ?? undefined,
     notes: dto.notes ?? undefined,
     terms: dto.terms ?? undefined,
@@ -145,6 +161,8 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     total: p.total,
     paidAmount: p.paidAmount,
     status: toBackendPurchaseStatus(p.status),
+    kind: toBackendPurchaseKind(p.kind),
+    sourcePurchaseId: p.sourcePurchaseId ? (toNumId(p.sourcePurchaseId) ?? null) : null,
     notes: p.notes ?? null,
     terms: p.terms ?? null,
     finalizedAt: p.finalizedAt ?? null,
@@ -222,23 +240,45 @@ function seedPurchase(args: {
 
 const seed: Purchase[] = [
   seedPurchase({
-    id: "pur1", businessId: "b1", number: "PUR-0001",
-    date: "2025-03-08T00:00:00.000Z", dueDate: "2025-04-07T00:00:00.000Z",
-    partyId: "p2", partyName: "Lotus Stationery", partyState: "Karnataka", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "A4 Sheets (500)", qty: 20, unit: "pack", rate: 320, taxPercent: 12 }],
-    status: "final", finalizedAt: "2025-03-08T00:00:00.000Z",
+    id: "pur1",
+    businessId: "b1",
+    number: "PUR-0001",
+    date: "2025-03-08T00:00:00.000Z",
+    dueDate: "2025-04-07T00:00:00.000Z",
+    partyId: "p2",
+    partyName: "Lotus Stationery",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: "A4 Sheets (500)", qty: 20, unit: "pack", rate: 320, taxPercent: 12 },
+    ],
+    status: "final",
+    finalizedAt: "2025-03-08T00:00:00.000Z",
   }),
   seedPurchase({
-    id: "pur2", businessId: "b1", number: "PUR-0002",
+    id: "pur2",
+    businessId: "b1",
+    number: "PUR-0002",
     date: "2025-03-22T00:00:00.000Z",
-    partyId: "p5", partyName: "Kavya Logistics", partyState: "Tamil Nadu", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "Freight charges", qty: 1, unit: "lot", rate: 18000, taxPercent: 18 }],
-    status: "final", finalizedAt: "2025-03-22T00:00:00.000Z",
+    partyId: "p5",
+    partyName: "Kavya Logistics",
+    partyState: "Tamil Nadu",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: "Freight charges", qty: 1, unit: "lot", rate: 18000, taxPercent: 18 },
+    ],
+    status: "final",
+    finalizedAt: "2025-03-22T00:00:00.000Z",
   }),
   seedPurchase({
-    id: "pur3", businessId: "b1", number: "PUR-0003",
+    id: "pur3",
+    businessId: "b1",
+    number: "PUR-0003",
     date: "2025-04-05T00:00:00.000Z",
-    partyId: "p2", partyName: "Lotus Stationery", partyState: "Karnataka", businessState: "Karnataka",
+    partyId: "p2",
+    partyName: "Lotus Stationery",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
     lines: [{ id: "l1", name: "Box files", qty: 50, unit: "pcs", rate: 95, taxPercent: 18 }],
     status: "draft",
   }),
@@ -273,7 +313,6 @@ export function usePurchases(businessId?: string | null) {
     if (!hydrated) return;
     if (!USE_BACKEND) localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
   }, [purchases, hydrated]);
-
 
   /**
    * Mirror the purchase into the supplier's party ledger.
@@ -335,52 +374,67 @@ export function usePurchases(businessId?: string | null) {
     );
   }, []);
 
-  const upsert = useCallback(async (p: Purchase) => {
-    if (!USE_BACKEND) {
-      const before = purchasesRef.current.find((x) => x.id === p.id);
+  const upsert = useCallback(
+    async (p: Purchase) => {
+      if (!USE_BACKEND) {
+        const before = purchasesRef.current.find((x) => x.id === p.id);
+        setPurchases((prev) => {
+          const exists = prev.some((x) => x.id === p.id);
+          return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+        });
+        syncLedger(p);
+        logAudit({
+          module: "purchase",
+          action: before ? "edit" : "create",
+          recordId: p.id,
+          reference: p.number,
+          refLink: `/purchases/${p.id}`,
+          businessId: p.businessId,
+          before: before ? snapshot(before) : null,
+          after: snapshot(p),
+        });
+        return;
+      }
+
+      const dto = purchaseToDto(p);
+      const isUpdate = toNumId(p.id) != null;
+      const saved = isUpdate
+        ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, {
+            method: "PUT",
+            body: JSON.stringify(dto),
+          })
+        : await apiFetch<PurchaseDTO>(`/api/purchases`, {
+            method: "POST",
+            body: JSON.stringify({ ...dto, id: undefined }),
+          });
+
+      const savedId = toStrId(saved.id);
+
+      const existingLines = await apiFetch<PurchaseLineDTO[]>(
+        `/api/purchases/${savedId}/lines`,
+      ).catch(() => []);
+      await Promise.all(
+        existingLines.map((l) =>
+          apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" }),
+        ),
+      );
+      for (let i = 0; i < p.lines.length; i++) {
+        const line = p.lines[i];
+        const lineDto = lineToDto(savedId, line, i);
+        await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
+          method: "POST",
+          body: JSON.stringify({ ...lineDto, id: undefined }),
+        });
+      }
+
+      const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
       setPurchases((prev) => {
-        const exists = prev.some((x) => x.id === p.id);
-        return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+        const exists = prev.some((x) => x.id === savedId);
+        return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
       });
-      syncLedger(p);
-      logAudit({
-        module: "purchase",
-        action: before ? "edit" : "create",
-        recordId: p.id,
-        reference: p.number,
-        refLink: `/purchases/${p.id}`,
-        businessId: p.businessId,
-        before: before ? snapshot(before) : null,
-        after: snapshot(p),
-      });
-      return;
-    }
-
-    const dto = purchaseToDto(p);
-    const isUpdate = toNumId(p.id) != null;
-    const saved = isUpdate
-      ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, { method: "PUT", body: JSON.stringify(dto) })
-      : await apiFetch<PurchaseDTO>(`/api/purchases`, { method: "POST", body: JSON.stringify({ ...dto, id: undefined }) });
-
-    const savedId = toStrId(saved.id);
-
-    const existingLines = await apiFetch<PurchaseLineDTO[]>(`/api/purchases/${savedId}/lines`).catch(() => []);
-    await Promise.all(existingLines.map((l) => apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" })));
-    for (let i = 0; i < p.lines.length; i++) {
-      const line = p.lines[i];
-      const lineDto = lineToDto(savedId, line, i);
-      await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
-        method: "POST",
-        body: JSON.stringify({ ...lineDto, id: undefined }),
-      });
-    }
-
-    const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
-    setPurchases((prev) => {
-      const exists = prev.some((x) => x.id === savedId);
-      return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
-    });
-  }, [syncLedger]);
+    },
+    [syncLedger],
+  );
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(
@@ -428,7 +482,9 @@ export function usePurchases(businessId?: string | null) {
           body: JSON.stringify(patch),
         });
         setPurchases((prev) =>
-          prev.map((x) => (x.id === id ? { ...x, status: fromBackendPurchaseStatus(saved.status) } : x)),
+          prev.map((x) =>
+            x.id === id ? { ...x, status: fromBackendPurchaseStatus(saved.status) } : x,
+          ),
         );
       } else {
         setPurchases((prev) =>
@@ -456,12 +512,80 @@ export function usePurchases(businessId?: string | null) {
   );
 
   const scoped = useMemo(
+    () => purchases.filter((x) => !x.deleted && (!businessId || x.businessId === businessId)),
+    [purchases, businessId],
+  );
+  const returns = useMemo(
     () =>
       purchases.filter(
-        (x) => !x.deleted && (!businessId || x.businessId === businessId),
+        (x) => !x.deleted && x.kind === "return" && (!businessId || x.businessId === businessId),
       ),
     [purchases, businessId],
   );
 
-  return { purchases: scoped, allPurchases: purchases, hydrated, upsert, remove, cancel, ensureLines, refresh };
+  /**
+   * Convert a finalised purchase into a draft purchase-return mirroring its
+   * lines. The user can edit before finalising.
+   */
+  const convertToReturn = useCallback(
+    async (sourceId: string): Promise<Purchase | null> => {
+      const src = purchasesRef.current.find((x) => x.id === sourceId);
+      if (!src) return null;
+      const allRet = purchasesRef.current.filter((x) => x.kind === "return");
+      const number = nextDocNumber(allRet, src.businessId, "PRET-");
+      const id = `pret_${Date.now()}`;
+      const now = new Date().toISOString();
+      const ret: Purchase = {
+        ...src,
+        id,
+        number,
+        date: now,
+        finalizedAt: undefined,
+        status: "draft",
+        paidAmount: 0,
+        deleted: false,
+        kind: "return",
+        sourcePurchaseId: src.id,
+        notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
+        lines: src.lines.map((l, i) => ({ ...l, id: `pretl_${id}_${i}` })),
+      };
+      await upsert(ret);
+      return ret;
+    },
+    [upsert],
+  );
+
+  return {
+    purchases: scoped,
+    returns,
+    allPurchases: purchases,
+    hydrated,
+    upsert,
+    remove,
+    cancel,
+    ensureLines,
+    refresh,
+    convertToReturn,
+  };
+}
+
+function nextDocNumber(
+  existing: { number: string; businessId: string }[],
+  businessId: string,
+  prefix: string,
+): string {
+  const re = /^([A-Z]+-?)(\d+)$/i;
+  let max = 0;
+  let pad = 4;
+  for (const x of existing) {
+    if (x.businessId !== businessId) continue;
+    const m = x.number.match(re);
+    if (!m) continue;
+    const n = parseInt(m[2], 10);
+    if (!isNaN(n) && n > max) {
+      max = n;
+      pad = Math.max(pad, m[2].length);
+    }
+  }
+  return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }

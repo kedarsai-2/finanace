@@ -29,7 +29,13 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const partyId = dto.party?.id;
   const accountId = dto.account?.id;
   const mode =
-    dto.mode === "BANK" ? "bank" : dto.mode === "UPI" ? "upi" : dto.mode === "CASH" ? "cash" : undefined;
+    dto.mode === "BANK"
+      ? "bank"
+      : dto.mode === "UPI"
+        ? "upi"
+        : dto.mode === "CASH"
+          ? "cash"
+          : undefined;
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
@@ -48,7 +54,8 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
 }
 
 function expenseToDto(e: Expense): ExpenseDTO {
-  const mode = e.mode === "bank" ? "BANK" : e.mode === "upi" ? "UPI" : e.mode === "cash" ? "CASH" : null;
+  const mode =
+    e.mode === "bank" ? "BANK" : e.mode === "upi" ? "UPI" : e.mode === "cash" ? "CASH" : null;
   return {
     id: toNumId(e.id) ?? undefined,
     date: e.date,
@@ -163,24 +170,27 @@ export function useExpenses(businessId?: string | null) {
     return Promise.resolve(e);
   }, []);
 
-  const add = useCallback((e: Expense) => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
-      // In backend mode, treat add() as create.
-      void upsert(e);
-      return;
-    }
-    setExpenses((prev) => [...prev, e]);
-    logAudit({
-      module: "expense",
-      action: "create",
-      recordId: e.id,
-      reference: `${e.category} · ₹${e.amount}`,
-      refLink: `/expenses/${e.id}`,
-      businessId: e.businessId,
-      after: snapshot(e),
-    });
-  }, []);
+  const add = useCallback(
+    (e: Expense) => {
+      const token = getJwt();
+      if (USE_BACKEND && token) {
+        // In backend mode, treat add() as create.
+        void upsert(e);
+        return;
+      }
+      setExpenses((prev) => [...prev, e]);
+      logAudit({
+        module: "expense",
+        action: "create",
+        recordId: e.id,
+        reference: `${e.category} · ₹${e.amount}`,
+        refLink: `/expenses/${e.id}`,
+        businessId: e.businessId,
+        after: snapshot(e),
+      });
+    },
+    [upsert],
+  );
 
   const remove = useCallback((id: string) => {
     const before = expensesRef.current.find((x) => x.id === id);
@@ -215,10 +225,9 @@ export function useExpenses(businessId?: string | null) {
 
   const scoped = useMemo(
     () =>
-      (businessId
-        ? expenses.filter((e) => e.businessId === businessId)
-        : expenses
-      ).filter((e) => !e.deleted),
+      (businessId ? expenses.filter((e) => e.businessId === businessId) : expenses).filter(
+        (e) => !e.deleted,
+      ),
     [expenses, businessId],
   );
 

@@ -95,16 +95,6 @@ public class PaymentAllocationService {
             .collect(Collectors.toCollection(LinkedList::new));
     }
 
-    @Transactional(readOnly = true)
-    public List<PaymentAllocationDTO> findAllByBusinessId(Long businessId) {
-        LOG.debug("Request to get all PaymentAllocations for business {}", businessId);
-        return paymentAllocationRepository
-            .findAllByBusinessId(businessId)
-            .stream()
-            .map(paymentAllocationMapper::toDto)
-            .collect(Collectors.toCollection(LinkedList::new));
-    }
-
     /**
      * Get one paymentAllocation by id.
      *

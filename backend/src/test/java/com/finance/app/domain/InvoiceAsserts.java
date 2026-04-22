@@ -99,6 +99,8 @@ public class InvoiceAsserts {
                     .isEqualTo(expected.getPaidAmount())
             )
             .satisfies(a -> assertThat(a.getStatus()).as("check status").isEqualTo(expected.getStatus()))
+            .satisfies(a -> assertThat(a.getKind()).as("check kind").isEqualTo(expected.getKind()))
+            .satisfies(a -> assertThat(a.getSourceInvoiceId()).as("check sourceInvoiceId").isEqualTo(expected.getSourceInvoiceId()))
             .satisfies(a -> assertThat(a.getNotes()).as("check notes").isEqualTo(expected.getNotes()))
             .satisfies(a -> assertThat(a.getTerms()).as("check terms").isEqualTo(expected.getTerms()))
             .satisfies(a -> assertThat(a.getFinalizedAt()).as("check finalizedAt").isEqualTo(expected.getFinalizedAt()))

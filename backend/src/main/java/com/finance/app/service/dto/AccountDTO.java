@@ -39,6 +39,7 @@ public class AccountDTO implements Serializable {
 
     private Boolean deleted;
 
+    @NotNull
     private Instant createdAt;
 
     private Instant updatedAt;
