@@ -160,11 +160,7 @@ function ItemDetailsPage() {
               }
             />
             <Field
-              label="Tax rate"
-              value={<span className="font-mono">{item.taxPercent}%</span>}
-            />
-            <Field
-              label="Unit"
+              label="Quantity unit"
               value={<span className="font-mono uppercase">{item.unit}</span>}
             />
             {item.purchasePrice !== undefined && (

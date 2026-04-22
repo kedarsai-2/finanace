@@ -204,12 +204,12 @@ function ItemsTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[2fr_110px_140px_90px_90px_110px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[2fr_110px_110px_140px_140px_110px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Item name</span>
         <span>Type</span>
-        <span className="text-right">Selling price</span>
-        <span className="text-right">Tax</span>
-        <span>Unit</span>
+        <span className="text-right">Unit (Qty)</span>
+        <span className="text-right">Unit price</span>
+        <span className="text-right">Total price</span>
         <span>Status</span>
         <span className="text-right">Actions</span>
       </div>
@@ -218,7 +218,7 @@ function ItemsTable({
         {items.map((it) => (
           <li
             key={it.id}
-            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_110px_140px_90px_90px_110px_120px]"
+            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_110px_110px_140px_140px_110px_120px]"
           >
             <Link
               to="/items/$id"
@@ -249,16 +249,17 @@ function ItemsTable({
               {TYPE_LABEL[it.type]}
             </span>
 
+            <span className="text-right font-mono text-sm text-muted-foreground">
+              <span className="tabular-nums">{it.openingStock ?? 0}</span>{" "}
+              <span className="text-xs uppercase">{it.unit}</span>
+            </span>
+
             <span className="text-right font-semibold tabular-nums">
               {formatCurrency(it.sellingPrice, currency)}
             </span>
 
-            <span className="text-right font-mono text-sm text-muted-foreground">
-              {it.taxPercent}%
-            </span>
-
-            <span className="font-mono text-xs uppercase text-muted-foreground">
-              {it.unit}
+            <span className="text-right font-semibold tabular-nums">
+              {formatCurrency((it.openingStock ?? 0) * it.sellingPrice, currency)}
             </span>
 
             <span
