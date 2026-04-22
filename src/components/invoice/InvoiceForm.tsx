@@ -290,6 +290,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const buildInvoice = (status: Invoice["status"]): Invoice => {
     const isFinal = status === "final";
+    const newPaidAmount = payments.reduce((s, p) => s + (p.amount || 0), 0);
     return {
       id: existing?.id ?? `inv_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -305,7 +306,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
-      paidAmount: existing?.paidAmount ?? 0,
+      paidAmount: (existing?.paidAmount ?? 0) + newPaidAmount,
       status,
       deleted: existing?.deleted,
       notes: notes.trim() || undefined,
@@ -330,6 +331,29 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     try {
       const inv = buildInvoice(status);
       await upsert(inv);
+      // Persist payment splits as Payment records (only for new payments
+      // captured in this form session — `payments` is reset after save).
+      for (const s of payments) {
+        try {
+          await createPayment({
+            businessId: inv.businessId,
+            partyId: inv.partyId,
+            direction: "in",
+            date: inv.date,
+            amount: s.amount,
+            mode: s.mode,
+            accountId: s.accountId,
+            reference: s.reference,
+            notes: s.notes,
+            proofDataUrl: s.proofDataUrl,
+            allocations: [
+              { docId: inv.id, docNumber: inv.number, amount: s.amount },
+            ],
+          });
+        } catch (e) {
+          console.error("Failed to record payment split", e);
+        }
+      }
       toast.success(
         status === "final"
           ? `Invoice ${inv.number} finalised`
