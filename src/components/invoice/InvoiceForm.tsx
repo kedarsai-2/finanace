@@ -12,6 +12,8 @@ import {
   UserPlus,
   Search as SearchIcon,
   Lock,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -177,11 +179,49 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       taxPercent: item.taxPercent,
     });
 
+  /**
+   * Re-syncs every line that was picked from the catalog with the most recent
+   * item price / unit / tax. Lines without an `itemId` (free-text) are untouched.
+   */
+  const refreshFromCatalog = () => {
+    let changed = 0;
+    setLines((prev) =>
+      prev.map((l) => {
+        if (!l.itemId) return l;
+        const it = items.find((x) => x.id === l.itemId);
+        if (!it) return l;
+        if (
+          it.sellingPrice === l.rate &&
+          it.taxPercent === l.taxPercent &&
+          it.unit === l.unit &&
+          it.name === l.name
+        ) {
+          return l;
+        }
+        changed += 1;
+        return {
+          ...l,
+          name: it.name,
+          unit: it.unit,
+          rate: it.sellingPrice,
+          taxPercent: it.taxPercent,
+        };
+      }),
+    );
+    toast.success(
+      changed === 0
+        ? "All items already up to date"
+        : `Refreshed ${changed} ${changed === 1 ? "line" : "lines"} from latest catalog`,
+    );
+  };
+
   // -------- Validation ----------------------------------------------------
   const validate = (): string | null => {
     if (!activeId) return "Select an active business first";
     if (!partyId) return "Please select a party";
     if (!number.trim()) return "Invoice number is required";
+    if (!/^[A-Z0-9-]{1,30}$/i.test(number.trim()))
+      return "Invoice number can only contain letters, numbers and dashes (max 30)";
     if (
       allInvoices.some(
         (i) =>
@@ -198,7 +238,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
+      if (l.discountValue < 0)
+        return `Discount cannot be negative for ${l.name}`;
+      if (l.discountKind === "percent" && l.discountValue > 100)
+        return `Discount % cannot exceed 100 for ${l.name}`;
     }
+    if (overallDiscountValue < 0) return "Overall discount cannot be negative";
+    if (overallDiscountKind === "percent" && overallDiscountValue > 100)
+      return "Overall discount % cannot exceed 100";
     return null;
   };
 
