@@ -14,8 +14,6 @@ import {
   Lock,
   RefreshCw,
   AlertTriangle,
-  Upload,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -256,25 +254,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
-      if (l.discountValue < 0) return `Discount cannot be negative for ${l.name}`;
+      if (l.discountValue < 0)
+        return `Discount cannot be negative for ${l.name}`;
       if (l.discountKind === "percent" && l.discountValue > 100)
         return `Discount % cannot exceed 100 for ${l.name}`;
     }
     if (overallDiscountValue < 0) return "Overall discount cannot be negative";
     if (overallDiscountKind === "percent" && overallDiscountValue > 100)
       return "Overall discount % cannot exceed 100";
-    // Payment splits
-    let paySum = 0;
-    for (const s of payments) {
-      if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
-      if (s.mode !== "cash" && !s.accountId)
-        return `Select a ${PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
-      if (s.mode !== "cash" && !s.proofDataUrl)
-        return `Upload a proof image for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
-      paySum += s.amount;
-    }
-    if (paySum - 0.001 > totals.total)
-      return `Payments (${paySum.toFixed(2)}) exceed invoice total (${totals.total.toFixed(2)})`;
     return null;
   };
 
