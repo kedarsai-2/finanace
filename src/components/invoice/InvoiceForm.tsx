@@ -348,7 +348,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             reference: s.reference,
             notes: s.notes,
             proofDataUrl: s.proofDataUrl,
-            allocations: [{ docId: inv.id, docNumber: inv.number, amount: s.amount }],
+            allocations: [
+              { docId: inv.id, docNumber: inv.number, amount: s.amount },
+            ],
           });
         } catch (e) {
           console.error("Failed to record payment split", e);
