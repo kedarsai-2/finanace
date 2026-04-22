@@ -628,13 +628,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                       </td>
                       <td className="w-20 px-2 py-2">
                         <Input
-                          value={line.unit}
-                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
-                          className="h-9"
-                        />
-                      </td>
-                      <td className="w-20 px-2 py-2">
-                        <Input
                           type="number"
                           min={0}
                           step="0.01"
