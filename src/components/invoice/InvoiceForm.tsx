@@ -639,13 +639,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                       </td>
                       <td className="w-20 px-2 py-2">
                         <Input
-                          value={line.unit}
-                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
-                          className="h-9"
-                        />
-                      </td>
-                      <td className="w-20 px-2 py-2">
-                        <Input
                           type="number"
                           min={0}
                           step="0.01"
@@ -661,34 +654,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           step="0.01"
                           value={line.rate}
                           onChange={(e) => updateLine(line.id, { rate: Number(e.target.value) })}
-                          className="h-9 text-right tabular-nums"
-                        />
-                      </td>
-                      <td className="w-20 px-1 py-2">
-                        <Select
-                          value={line.discountKind}
-                          onValueChange={(v) =>
-                            updateLine(line.id, { discountKind: v as DiscountKind })
-                          }
-                        >
-                          <SelectTrigger className="h-9 px-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percent">%</SelectItem>
-                            <SelectItem value="amount">₹</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="w-24 px-2 py-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={line.discountValue}
-                          onChange={(e) =>
-                            updateLine(line.id, { discountValue: Number(e.target.value) })
-                          }
                           className="h-9 text-right tabular-nums"
                         />
                       </td>
