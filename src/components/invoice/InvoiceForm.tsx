@@ -684,7 +684,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </Button>
         </FormSection>
 
-        {/* 4 + 5. GST + Summary ------------------------------------------------ */}
+        {/* 4. GST + Summary ------------------------------------------------ */}
         <FormSection step={4} title="Summary" description={
           intraState
             ? "Same-state invoice — CGST + SGST applied."
@@ -692,51 +692,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             ? "Inter-state invoice — IGST applied."
             : "GST split is computed once a party is selected."
         }>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <Label className="mb-2 block">Overall discount</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={overallDiscountKind}
-                    onValueChange={(v) => setOverallDiscountKind(v as DiscountKind)}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percent">%</SelectItem>
-                      <SelectItem value="amount">₹</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={overallDiscountValue}
-                    onChange={(e) => setOverallDiscountValue(Number(e.target.value))}
-                    className="text-right tabular-nums"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <dl className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
+          <div className="flex justify-end">
+            <dl className="w-full max-w-sm space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <Row label="Subtotal" value={formatCurrency(totals.subtotal, currency)} />
-              {totals.itemDiscountTotal > 0 && (
-                <Row
-                  label="Line discounts"
-                  value={`− ${formatCurrency(totals.itemDiscountTotal, currency)}`}
-                  muted
-                />
-              )}
-              {totals.overallDiscountAmount > 0 && (
-                <Row
-                  label="Overall discount"
-                  value={`− ${formatCurrency(totals.overallDiscountAmount, currency)}`}
-                  muted
-                />
-              )}
               <Row
                 label="Taxable value"
                 value={formatCurrency(totals.taxableValue, currency)}
@@ -759,8 +717,26 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </div>
         </FormSection>
 
-        {/* 7. Notes & terms -------------------------------------------------- */}
-        <FormSection step={5} title="Notes & Terms" description="Optional, shown on the printable invoice.">
+        {/* 5. Payments ---------------------------------------------------- */}
+        <FormSection
+          step={5}
+          title="Payment"
+          description="Optional. Add one or more payments — supports split tender (e.g. part Cash, part Bank). Bank, UPI and Cheque payments require a proof image."
+        >
+          <PaymentSplitsEditor
+            splits={payments}
+            accounts={accounts}
+            currency={currency}
+            invoiceTotal={totals.total}
+            onChange={(s, patch) => updateSplit(s, patch)}
+            onRemove={removeSplit}
+            onAdd={() => setPayments((p) => [...p, emptySplit()])}
+            disabled={locked}
+          />
+        </FormSection>
+
+        {/* 6. Notes & terms -------------------------------------------------- */}
+        <FormSection step={6} title="Notes & Terms" description="Optional, shown on the printable invoice.">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="notes">Notes</Label>
