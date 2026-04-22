@@ -928,3 +928,222 @@ function ItemPicker({
     </div>
   );
 }
+
+// ---------- Payment splits editor ----------------------------------------
+
+const PAYMENT_MODES: PaymentMode[] = ["cash", "bank", "upi", "cheque"];
+const MAX_PROOF_BYTES = 2 * 1024 * 1024; // 2 MB
+
+function PaymentSplitsEditor({
+  splits,
+  accounts,
+  currency,
+  invoiceTotal,
+  onChange,
+  onRemove,
+  onAdd,
+  disabled,
+}: {
+  splits: PaymentSplit[];
+  accounts: Account[];
+  currency: string;
+  invoiceTotal: number;
+  onChange: (id: string, patch: Partial<PaymentSplit>) => void;
+  onRemove: (id: string) => void;
+  onAdd: () => void;
+  disabled?: boolean;
+}) {
+  const paid = splits.reduce((s, p) => s + (p.amount || 0), 0);
+  const remaining = Math.max(0, invoiceTotal - paid);
+
+  const handleProof = (id: string, file: File | null) => {
+    if (!file) {
+      onChange(id, { proofDataUrl: undefined, proofName: undefined });
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Proof must be an image");
+      return;
+    }
+    if (file.size > MAX_PROOF_BYTES) {
+      toast.error("Proof image must be under 2 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange(id, {
+        proofDataUrl: typeof reader.result === "string" ? reader.result : undefined,
+        proofName: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-3">
+      {splits.length === 0 && (
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          No payments captured yet. Click <span className="font-medium">Add payment</span> to record Cash, Bank, UPI or Cheque receipts.
+        </p>
+      )}
+      {splits.map((s) => {
+        const requiresAccount = s.mode !== "cash";
+        const requiresProof = s.mode !== "cash";
+        const accountOptions = accounts.filter((a) => {
+          if (s.mode === "cash") return a.type === "cash";
+          if (s.mode === "bank" || s.mode === "cheque") return a.type === "bank";
+          if (s.mode === "upi") return a.type === "upi";
+          return true;
+        });
+        return (
+          <div key={s.id} className="rounded-xl border border-border bg-card p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_1fr_140px_auto] sm:items-end">
+              <div>
+                <Label>Mode *</Label>
+                <Select
+                  value={s.mode}
+                  onValueChange={(v) =>
+                    onChange(s.id, { mode: v as PaymentMode, accountId: undefined })
+                  }
+                  disabled={disabled}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_MODES.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {PAYMENT_MODE_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{requiresAccount ? "Account *" : "Account"}</Label>
+                <Select
+                  value={s.accountId ?? ""}
+                  onValueChange={(v) => onChange(s.id, { accountId: v || undefined })}
+                  disabled={disabled || (s.mode === "cash" && accountOptions.length === 0)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      accountOptions.length === 0
+                        ? `No ${PAYMENT_MODE_LABEL[s.mode]} accounts configured`
+                        : "Select account…"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accountOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                        {a.accountNumber ? ` · ${a.accountNumber.slice(-4).padStart(a.accountNumber.length, "•")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={s.amount || ""}
+                  onChange={(e) => onChange(s.id, { amount: Number(e.target.value) })}
+                  placeholder="0.00"
+                  className="text-right tabular-nums"
+                  disabled={disabled}
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 self-end text-destructive hover:bg-destructive/10"
+                onClick={() => onRemove(s.id)}
+                disabled={disabled}
+                aria-label="Remove payment"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Reference {s.mode === "cheque" ? "(cheque no.)" : ""}</Label>
+                <Input
+                  value={s.reference ?? ""}
+                  onChange={(e) => onChange(s.id, { reference: e.target.value })}
+                  placeholder={
+                    s.mode === "cheque" ? "Cheque #" : s.mode === "upi" ? "UPI txn id" : "Reference"
+                  }
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <Label>
+                  Proof {requiresProof ? "*" : "(optional)"}
+                </Label>
+                {s.proofDataUrl ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+                    <img
+                      src={s.proofDataUrl}
+                      alt="proof"
+                      className="h-9 w-9 rounded object-cover"
+                    />
+                    <span className="flex-1 truncate text-xs text-muted-foreground">
+                      {s.proofName ?? "Proof image"}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleProof(s.id, null)}
+                      aria-label="Remove proof"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label
+                    className={cn(
+                      "flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
+                      disabled && "pointer-events-none opacity-50",
+                    )}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {requiresProof ? "Upload proof image (required)" : "Upload proof image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleProof(s.id, e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onAdd}
+          className="gap-2"
+          disabled={disabled}
+        >
+          <Plus className="h-4 w-4" />
+          Add payment
+        </Button>
+        {splits.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Captured: <span className="font-semibold text-foreground tabular-nums">{paid.toFixed(2)} {currency}</span>
+            {" · "}
+            Remaining: <span className="font-semibold text-foreground tabular-nums">{remaining.toFixed(2)} {currency}</span>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
