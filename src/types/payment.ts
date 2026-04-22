@@ -1,4 +1,4 @@
-export type PaymentMode = "cash" | "bank" | "upi";
+export type PaymentMode = "cash" | "bank" | "upi" | "cheque";
 export type PaymentDirection = "in" | "out";
 
 export interface Payment {
@@ -16,6 +16,11 @@ export interface Payment {
   account?: string;
   reference?: string;
   notes?: string;
+  /**
+   * Optional proof image as a base64 data URL (e.g. cheque photo or transfer
+   * screenshot). Required client-side for non-cash modes.
+   */
+  proofDataUrl?: string;
   /** Allocations against invoices (direction "in") or purchases (direction "out"). */
   allocations: PaymentAllocation[];
 }
@@ -31,6 +36,7 @@ export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = {
   cash: "Cash",
   bank: "Bank",
   upi: "UPI",
+  cheque: "Cheque",
 };
 
 export const PAYMENT_DIRECTION_LABEL: Record<PaymentDirection, string> = {

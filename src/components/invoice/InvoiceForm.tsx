@@ -14,6 +14,8 @@ import {
   Lock,
   RefreshCw,
   AlertTriangle,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +53,8 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useAccounts } from "@/hooks/useAccounts";
+import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
 import {
   computeTotals,
@@ -62,6 +66,8 @@ import {
   type DiscountKind,
 } from "@/types/invoice";
 import type { Item } from "@/types/item";
+import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
+import type { Account } from "@/types/account";
 
 interface Props {
   mode: "new" | "edit";
@@ -69,6 +75,17 @@ interface Props {
 }
 
 const PAYMENT_TERMS = [0, 7, 15, 30, 45, 60, 90] as const;
+
+type PaymentSplit = {
+  id: string;
+  mode: PaymentMode;
+  accountId?: string;
+  amount: number;
+  reference?: string;
+  notes?: string;
+  proofDataUrl?: string;
+  proofName?: string;
+};
 
 function emptyLine(): InvoiceLine {
   return {
@@ -89,6 +106,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { parties } = useParties(activeId);
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
+  const { accounts } = useAccounts(activeId);
+  const { create: createPayment } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -112,6 +131,15 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [partyOpen, setPartyOpen] = useState(false);
   const [quickPartyOpen, setQuickPartyOpen] = useState(false);
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
+
+  // -------- Payment splits ------------------------------------------------
+  const newSplitId = () => `pay_${Math.random().toString(36).slice(2, 9)}`;
+  const emptySplit = (): PaymentSplit => ({ id: newSplitId(), mode: "cash", amount: 0 });
+  const [payments, setPayments] = useState<PaymentSplit[]>([]);
+  const updateSplit = (id: string, patch: Partial<PaymentSplit>) =>
+    setPayments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const removeSplit = (id: string) =>
+    setPayments((prev) => prev.filter((s) => s.id !== id));
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
@@ -246,11 +274,24 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     if (overallDiscountValue < 0) return "Overall discount cannot be negative";
     if (overallDiscountKind === "percent" && overallDiscountValue > 100)
       return "Overall discount % cannot exceed 100";
+    // Payment splits
+    let paySum = 0;
+    for (const s of payments) {
+      if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
+      if (s.mode !== "cash" && !s.accountId)
+        return `Select a ${PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
+      if (s.mode !== "cash" && !s.proofDataUrl)
+        return `Upload a proof image for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
+      paySum += s.amount;
+    }
+    if (paySum - 0.001 > totals.total)
+      return `Payments (${paySum.toFixed(2)}) exceed invoice total (${totals.total.toFixed(2)})`;
     return null;
   };
 
   const buildInvoice = (status: Invoice["status"]): Invoice => {
     const isFinal = status === "final";
+    const newPaidAmount = payments.reduce((s, p) => s + (p.amount || 0), 0);
     return {
       id: existing?.id ?? `inv_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -266,7 +307,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
-      paidAmount: existing?.paidAmount ?? 0,
+      paidAmount: (existing?.paidAmount ?? 0) + newPaidAmount,
       status,
       deleted: existing?.deleted,
       notes: notes.trim() || undefined,
@@ -291,6 +332,29 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     try {
       const inv = buildInvoice(status);
       await upsert(inv);
+      // Persist payment splits as Payment records (only for new payments
+      // captured in this form session — `payments` is reset after save).
+      for (const s of payments) {
+        try {
+          await createPayment({
+            businessId: inv.businessId,
+            partyId: inv.partyId,
+            direction: "in",
+            date: inv.date,
+            amount: s.amount,
+            mode: s.mode,
+            accountId: s.accountId,
+            reference: s.reference,
+            notes: s.notes,
+            proofDataUrl: s.proofDataUrl,
+            allocations: [
+              { docId: inv.id, docNumber: inv.number, amount: s.amount },
+            ],
+          });
+        } catch (e) {
+          console.error("Failed to record payment split", e);
+        }
+      }
       toast.success(
         status === "final"
           ? `Invoice ${inv.number} finalised`
@@ -534,10 +598,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-left">Unit</th>
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-right">Unit Price</th>
-                  <th className="px-3 py-2 text-left" colSpan={2}>Discount</th>
                   <th className="px-3 py-2 text-right">Total Price</th>
                   <th className="px-3 py-2"></th>
                 </tr>
@@ -578,13 +640,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                       </td>
                       <td className="w-20 px-2 py-2">
                         <Input
-                          value={line.unit}
-                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
-                          className="h-9"
-                        />
-                      </td>
-                      <td className="w-20 px-2 py-2">
-                        <Input
                           type="number"
                           min={0}
                           step="0.01"
@@ -600,34 +655,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           step="0.01"
                           value={line.rate}
                           onChange={(e) => updateLine(line.id, { rate: Number(e.target.value) })}
-                          className="h-9 text-right tabular-nums"
-                        />
-                      </td>
-                      <td className="w-20 px-1 py-2">
-                        <Select
-                          value={line.discountKind}
-                          onValueChange={(v) =>
-                            updateLine(line.id, { discountKind: v as DiscountKind })
-                          }
-                        >
-                          <SelectTrigger className="h-9 px-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percent">%</SelectItem>
-                            <SelectItem value="amount">₹</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="w-24 px-2 py-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={line.discountValue}
-                          onChange={(e) =>
-                            updateLine(line.id, { discountValue: Number(e.target.value) })
-                          }
                           className="h-9 text-right tabular-nums"
                         />
                       </td>
@@ -658,7 +685,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </Button>
         </FormSection>
 
-        {/* 4 + 5. GST + Summary ------------------------------------------------ */}
+        {/* 4. GST + Summary ------------------------------------------------ */}
         <FormSection step={4} title="Summary" description={
           intraState
             ? "Same-state invoice — CGST + SGST applied."
@@ -666,51 +693,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             ? "Inter-state invoice — IGST applied."
             : "GST split is computed once a party is selected."
         }>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <Label className="mb-2 block">Overall discount</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={overallDiscountKind}
-                    onValueChange={(v) => setOverallDiscountKind(v as DiscountKind)}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percent">%</SelectItem>
-                      <SelectItem value="amount">₹</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={overallDiscountValue}
-                    onChange={(e) => setOverallDiscountValue(Number(e.target.value))}
-                    className="text-right tabular-nums"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <dl className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
+          <div className="flex justify-end">
+            <dl className="w-full max-w-sm space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <Row label="Subtotal" value={formatCurrency(totals.subtotal, currency)} />
-              {totals.itemDiscountTotal > 0 && (
-                <Row
-                  label="Line discounts"
-                  value={`− ${formatCurrency(totals.itemDiscountTotal, currency)}`}
-                  muted
-                />
-              )}
-              {totals.overallDiscountAmount > 0 && (
-                <Row
-                  label="Overall discount"
-                  value={`− ${formatCurrency(totals.overallDiscountAmount, currency)}`}
-                  muted
-                />
-              )}
               <Row
                 label="Taxable value"
                 value={formatCurrency(totals.taxableValue, currency)}
@@ -733,8 +718,26 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </div>
         </FormSection>
 
-        {/* 7. Notes & terms -------------------------------------------------- */}
-        <FormSection step={5} title="Notes & Terms" description="Optional, shown on the printable invoice.">
+        {/* 5. Payments ---------------------------------------------------- */}
+        <FormSection
+          step={5}
+          title="Payment"
+          description="Optional. Add one or more payments — supports split tender (e.g. part Cash, part Bank). Bank, UPI and Cheque payments require a proof image."
+        >
+          <PaymentSplitsEditor
+            splits={payments}
+            accounts={accounts}
+            currency={currency}
+            invoiceTotal={totals.total}
+            onChange={(s, patch) => updateSplit(s, patch)}
+            onRemove={removeSplit}
+            onAdd={() => setPayments((p) => [...p, emptySplit()])}
+            disabled={locked}
+          />
+        </FormSection>
+
+        {/* 6. Notes & terms -------------------------------------------------- */}
+        <FormSection step={6} title="Notes & Terms" description="Optional, shown on the printable invoice.">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="notes">Notes</Label>
@@ -922,6 +925,225 @@ function ItemPicker({
       >
         <Plus className="h-4 w-4" />
       </Button>
+    </div>
+  );
+}
+
+// ---------- Payment splits editor ----------------------------------------
+
+const PAYMENT_MODES: PaymentMode[] = ["cash", "bank", "upi", "cheque"];
+const MAX_PROOF_BYTES = 2 * 1024 * 1024; // 2 MB
+
+function PaymentSplitsEditor({
+  splits,
+  accounts,
+  currency,
+  invoiceTotal,
+  onChange,
+  onRemove,
+  onAdd,
+  disabled,
+}: {
+  splits: PaymentSplit[];
+  accounts: Account[];
+  currency: string;
+  invoiceTotal: number;
+  onChange: (id: string, patch: Partial<PaymentSplit>) => void;
+  onRemove: (id: string) => void;
+  onAdd: () => void;
+  disabled?: boolean;
+}) {
+  const paid = splits.reduce((s, p) => s + (p.amount || 0), 0);
+  const remaining = Math.max(0, invoiceTotal - paid);
+
+  const handleProof = (id: string, file: File | null) => {
+    if (!file) {
+      onChange(id, { proofDataUrl: undefined, proofName: undefined });
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Proof must be an image");
+      return;
+    }
+    if (file.size > MAX_PROOF_BYTES) {
+      toast.error("Proof image must be under 2 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange(id, {
+        proofDataUrl: typeof reader.result === "string" ? reader.result : undefined,
+        proofName: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-3">
+      {splits.length === 0 && (
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          No payments captured yet. Click <span className="font-medium">Add payment</span> to record Cash, Bank, UPI or Cheque receipts.
+        </p>
+      )}
+      {splits.map((s) => {
+        const requiresAccount = s.mode !== "cash";
+        const requiresProof = s.mode !== "cash";
+        const accountOptions = accounts.filter((a) => {
+          if (s.mode === "cash") return a.type === "cash";
+          if (s.mode === "bank" || s.mode === "cheque") return a.type === "bank";
+          if (s.mode === "upi") return a.type === "upi";
+          return true;
+        });
+        return (
+          <div key={s.id} className="rounded-xl border border-border bg-card p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_1fr_140px_auto] sm:items-end">
+              <div>
+                <Label>Mode *</Label>
+                <Select
+                  value={s.mode}
+                  onValueChange={(v) =>
+                    onChange(s.id, { mode: v as PaymentMode, accountId: undefined })
+                  }
+                  disabled={disabled}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_MODES.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {PAYMENT_MODE_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{requiresAccount ? "Account *" : "Account"}</Label>
+                <Select
+                  value={s.accountId ?? ""}
+                  onValueChange={(v) => onChange(s.id, { accountId: v || undefined })}
+                  disabled={disabled || (s.mode === "cash" && accountOptions.length === 0)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      accountOptions.length === 0
+                        ? `No ${PAYMENT_MODE_LABEL[s.mode]} accounts configured`
+                        : "Select account…"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accountOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                        {a.accountNumber ? ` · ${a.accountNumber.slice(-4).padStart(a.accountNumber.length, "•")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={s.amount || ""}
+                  onChange={(e) => onChange(s.id, { amount: Number(e.target.value) })}
+                  placeholder="0.00"
+                  className="text-right tabular-nums"
+                  disabled={disabled}
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 self-end text-destructive hover:bg-destructive/10"
+                onClick={() => onRemove(s.id)}
+                disabled={disabled}
+                aria-label="Remove payment"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Reference {s.mode === "cheque" ? "(cheque no.)" : ""}</Label>
+                <Input
+                  value={s.reference ?? ""}
+                  onChange={(e) => onChange(s.id, { reference: e.target.value })}
+                  placeholder={
+                    s.mode === "cheque" ? "Cheque #" : s.mode === "upi" ? "UPI txn id" : "Reference"
+                  }
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <Label>
+                  Proof {requiresProof ? "*" : "(optional)"}
+                </Label>
+                {s.proofDataUrl ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+                    <img
+                      src={s.proofDataUrl}
+                      alt="proof"
+                      className="h-9 w-9 rounded object-cover"
+                    />
+                    <span className="flex-1 truncate text-xs text-muted-foreground">
+                      {s.proofName ?? "Proof image"}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleProof(s.id, null)}
+                      aria-label="Remove proof"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label
+                    className={cn(
+                      "flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
+                      disabled && "pointer-events-none opacity-50",
+                    )}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {requiresProof ? "Upload proof image (required)" : "Upload proof image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleProof(s.id, e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onAdd}
+          className="gap-2"
+          disabled={disabled}
+        >
+          <Plus className="h-4 w-4" />
+          Add payment
+        </Button>
+        {splits.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Captured: <span className="font-semibold text-foreground tabular-nums">{paid.toFixed(2)} {currency}</span>
+            {" · "}
+            Remaining: <span className="font-semibold text-foreground tabular-nums">{remaining.toFixed(2)} {currency}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
