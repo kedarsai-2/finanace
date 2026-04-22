@@ -99,6 +99,16 @@ public class PurchaseLineService {
         return purchaseLineRepository.findAllWithEagerRelationships(pageable).map(purchaseLineMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
+    public List<PurchaseLineDTO> findAllByPurchaseId(Long purchaseId) {
+        LOG.debug("Request to get PurchaseLines by purchaseId: {}", purchaseId);
+        return purchaseLineRepository
+            .findAllByPurchaseIdWithItem(purchaseId)
+            .stream()
+            .map(purchaseLineMapper::toDto)
+            .collect(Collectors.toCollection(LinkedList::new));
+    }
+
     /**
      * Get one purchaseLine by id.
      *

@@ -39,4 +39,9 @@ public interface PurchaseLineRepository extends JpaRepository<PurchaseLine, Long
         "select purchaseLine from PurchaseLine purchaseLine left join fetch purchaseLine.item left join fetch purchaseLine.purchase where purchaseLine.id =:id"
     )
     Optional<PurchaseLine> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Query(
+        "select purchaseLine from PurchaseLine purchaseLine left join fetch purchaseLine.item where purchaseLine.purchase.id = :purchaseId order by purchaseLine.lineOrder asc, purchaseLine.id asc"
+    )
+    List<PurchaseLine> findAllByPurchaseIdWithItem(@Param("purchaseId") Long purchaseId);
 }

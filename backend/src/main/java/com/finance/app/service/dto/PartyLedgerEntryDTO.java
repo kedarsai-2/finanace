@@ -83,4 +83,3 @@ public class PartyLedgerEntryDTO implements Serializable {
         this.refLink = refLink;
     }
 }
-

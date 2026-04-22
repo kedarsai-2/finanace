@@ -99,6 +99,16 @@ public class InvoiceLineService {
         return invoiceLineRepository.findAllWithEagerRelationships(pageable).map(invoiceLineMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
+    public List<InvoiceLineDTO> findAllByInvoiceId(Long invoiceId) {
+        LOG.debug("Request to get InvoiceLines by invoiceId: {}", invoiceId);
+        return invoiceLineRepository
+            .findAllByInvoiceIdWithItem(invoiceId)
+            .stream()
+            .map(invoiceLineMapper::toDto)
+            .collect(Collectors.toCollection(LinkedList::new));
+    }
+
     /**
      * Get one invoiceLine by id.
      *

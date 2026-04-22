@@ -133,8 +133,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
   const updateSplit = (id: string, patch: Partial<PaymentSplit>) =>
     setPayments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const removeSplit = (id: string) =>
-    setPayments((prev) => prev.filter((s) => s.id !== id));
+  const removeSplit = (id: string) => setPayments((prev) => prev.filter((s) => s.id !== id));
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
@@ -257,8 +256,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
-      if (l.discountValue < 0)
-        return `Discount cannot be negative for ${l.name}`;
+      if (l.discountValue < 0) return `Discount cannot be negative for ${l.name}`;
       if (l.discountKind === "percent" && l.discountValue > 100)
         return `Discount % cannot exceed 100 for ${l.name}`;
     }
@@ -338,9 +336,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             reference: s.reference,
             notes: s.notes,
             proofDataUrl: s.proofDataUrl,
-            allocations: [
-              { docId: inv.id, docNumber: inv.number, amount: s.amount },
-            ],
+            allocations: [{ docId: inv.id, docNumber: inv.number, amount: s.amount }],
           });
         } catch (e) {
           console.error("Failed to record payment split", e);
@@ -585,9 +581,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <tbody className="divide-y divide-border">
                 {lines.map((line) => {
                   const m = lineMath(line);
-                  const catalog = line.itemId
-                    ? items.find((x) => x.id === line.itemId)
-                    : undefined;
+                  const catalog = line.itemId ? items.find((x) => x.id === line.itemId) : undefined;
                   const drift =
                     catalog &&
                     (catalog.sellingPrice !== line.rate ||

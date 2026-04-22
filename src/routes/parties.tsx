@@ -9,15 +9,7 @@ import {
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Users,
-  ArrowDownCircle,
-  ArrowUpCircle,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -347,24 +339,7 @@ function PartiesTable({
                 {TYPE_LABEL[p.type]}
               </span>
 
-<<<<<<< HEAD
               <span className="font-mono text-sm text-muted-foreground">{p.mobile || "—"}</span>
-
-              <div className="text-xs text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground/80">Added:</span>{" "}
-                  {p.createdAt ? format(new Date(p.createdAt), "dd MMM yyyy") : "—"}
-                </p>
-                <p className="mt-0.5">
-                  <span className="font-medium text-foreground/80">Last:</span>{" "}
-                  {last ? format(new Date(last), "dd MMM yyyy") : "No activity"}
-                </p>
-              </div>
-=======
-              <span className="font-mono text-sm text-muted-foreground">
-                {p.mobile || "—"}
-              </span>
->>>>>>> 77a25eb (Changes)
 
               <div className="text-xs text-muted-foreground">
                 <p>

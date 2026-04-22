@@ -322,9 +322,7 @@ export function useParties(businessId?: string | null) {
       : { ...p, createdAt: p.createdAt ?? new Date().toISOString() };
     setParties((prev) => {
       const exists = prev.some((x) => x.id === stamped.id);
-      return exists
-        ? prev.map((x) => (x.id === stamped.id ? stamped : x))
-        : [...prev, stamped];
+      return exists ? prev.map((x) => (x.id === stamped.id ? stamped : x)) : [...prev, stamped];
     });
     logAudit({
       module: "party",

@@ -39,19 +39,10 @@ public class PartyLedgerResource {
         Party party = partyRepository
             .findById(partyId)
             .orElseThrow(() -> new BadRequestAlertException("Party not found", "partyLedger", "partynotfound"));
-        if (
-            party.getBusiness() == null ||
-            party.getBusiness().getId() == null ||
-            !party.getBusiness().getId().equals(businessId)
-        ) {
-            throw new BadRequestAlertException(
-                "Party does not belong to business",
-                "partyLedger",
-                "partybusinessmismatch"
-            );
+        if (party.getBusiness() == null || party.getBusiness().getId() == null || !party.getBusiness().getId().equals(businessId)) {
+            throw new BadRequestAlertException("Party does not belong to business", "partyLedger", "partybusinessmismatch");
         }
 
         return ResponseEntity.ok(partyLedgerService.getPartyLedger(party));
     }
 }
-

@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 import org.springframework.http.ResponseEntity;
 
 class PartyLedgerResourceIT {
+
     @Test
     void getPartyLedgerReturnsListFromService() throws Exception {
         PartyLedgerService partyLedgerService = Mockito.mock(PartyLedgerService.class);
@@ -58,4 +59,3 @@ class PartyLedgerResourceIT {
         Assertions.assertEquals("INV-TEST-1", res.getBody().get(1).getRefNo());
     }
 }
-

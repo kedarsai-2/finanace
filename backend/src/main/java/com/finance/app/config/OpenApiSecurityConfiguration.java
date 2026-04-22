@@ -16,15 +16,13 @@ public class OpenApiSecurityConfiguration {
     public OpenAPI openAPI() {
         return new OpenAPI()
             .components(
-                new Components()
-                    .addSecuritySchemes(
-                        SECURITY_SCHEME_NAME,
-                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
-                    )
+                new Components().addSecuritySchemes(
+                    SECURITY_SCHEME_NAME,
+                    new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
+                )
             )
             // Make Swagger UI show "Authorize" and send the token by default.
             // Endpoints that are permitAll() will still work without providing a token.
             .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
     }
 }
-

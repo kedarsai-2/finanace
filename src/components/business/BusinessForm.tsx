@@ -139,7 +139,7 @@ export function BusinessForm({ mode, businessId }: Props) {
             }
             if (!existing) delete dto.id;
 
-            const saved = await apiFetch<any>(
+            const saved = await apiFetch<{ id: string | number }>(
               existing ? `/api/businesses/${existing.id}` : "/api/businesses",
               { method: existing ? "PUT" : "POST", body: JSON.stringify(dto) },
             );

@@ -52,10 +52,7 @@ public class PartyLedgerService {
 
         // Invoices (FINAL, non-deleted)
         List<Invoice> invoices = em
-            .createQuery(
-                "select i from Invoice i where i.business.id = :biz and i.party.id = :party",
-                Invoice.class
-            )
+            .createQuery("select i from Invoice i where i.business.id = :biz and i.party.id = :party", Invoice.class)
             .setParameter("biz", businessId)
             .setParameter("party", partyId)
             .getResultList();
@@ -76,10 +73,7 @@ public class PartyLedgerService {
 
         // Purchases (FINAL, non-deleted) -> payable => negative
         List<Purchase> purchases = em
-            .createQuery(
-                "select p from Purchase p where p.business.id = :biz and p.party.id = :party",
-                Purchase.class
-            )
+            .createQuery("select p from Purchase p where p.business.id = :biz and p.party.id = :party", Purchase.class)
             .setParameter("biz", businessId)
             .setParameter("party", partyId)
             .getResultList();
@@ -100,10 +94,7 @@ public class PartyLedgerService {
 
         // Payments -> IN reduces receivable (negative), OUT reduces payable (positive)
         List<Payment> payments = em
-            .createQuery(
-                "select pay from Payment pay where pay.business.id = :biz and pay.party.id = :party",
-                Payment.class
-            )
+            .createQuery("select pay from Payment pay where pay.business.id = :biz and pay.party.id = :party", Payment.class)
             .setParameter("biz", businessId)
             .setParameter("party", partyId)
             .getResultList();
@@ -123,10 +114,7 @@ public class PartyLedgerService {
 
         // Expenses (if linked to party) -> payable => negative
         List<Expense> expenses = em
-            .createQuery(
-                "select exp from Expense exp where exp.business.id = :biz and exp.party.id = :party",
-                Expense.class
-            )
+            .createQuery("select exp from Expense exp where exp.business.id = :biz and exp.party.id = :party", Expense.class)
             .setParameter("biz", businessId)
             .setParameter("party", partyId)
             .getResultList();
@@ -152,4 +140,3 @@ public class PartyLedgerService {
         return v == null ? BigDecimal.ZERO : v;
     }
 }
-
