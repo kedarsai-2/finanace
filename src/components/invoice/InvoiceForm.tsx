@@ -76,6 +76,17 @@ interface Props {
 
 const PAYMENT_TERMS = [0, 7, 15, 30, 45, 60, 90] as const;
 
+type PaymentSplit = {
+  id: string;
+  mode: PaymentMode;
+  accountId?: string;
+  amount: number;
+  reference?: string;
+  notes?: string;
+  proofDataUrl?: string;
+  proofName?: string;
+};
+
 function emptyLine(): InvoiceLine {
   return {
     id: `ln_${Math.random().toString(36).slice(2, 9)}`,
