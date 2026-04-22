@@ -133,16 +133,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
 
   // -------- Payment splits ------------------------------------------------
-  type PaymentSplit = {
-    id: string;
-    mode: PaymentMode;
-    accountId?: string;
-    amount: number;
-    reference?: string;
-    notes?: string;
-    proofDataUrl?: string;
-    proofName?: string;
-  };
   const newSplitId = () => `pay_${Math.random().toString(36).slice(2, 9)}`;
   const emptySplit = (): PaymentSplit => ({ id: newSplitId(), mode: "cash", amount: 0 });
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
