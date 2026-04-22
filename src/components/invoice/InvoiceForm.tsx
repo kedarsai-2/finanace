@@ -559,6 +559,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left">Item</th>
+                  <th className="px-3 py-2 text-left">Unit</th>
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-right">Unit Price</th>
                   <th className="px-3 py-2 text-right">Total Price</th>
@@ -568,7 +569,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <tbody className="divide-y divide-border">
                 {lines.map((line) => {
                   const m = lineMath(line);
-                  const catalog = line.itemId ? items.find((x) => x.id === line.itemId) : undefined;
+                  const catalog = line.itemId
+                    ? items.find((x) => x.id === line.itemId)
+                    : undefined;
                   const drift =
                     catalog &&
                     (catalog.sellingPrice !== line.rate ||
@@ -596,6 +599,13 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                             Catalog updated — Use latest
                           </button>
                         )}
+                      </td>
+                      <td className="w-20 px-2 py-2">
+                        <Input
+                          value={line.unit}
+                          onChange={(e) => updateLine(line.id, { unit: e.target.value })}
+                          className="h-9"
+                        />
                       </td>
                       <td className="w-20 px-2 py-2">
                         <Input
