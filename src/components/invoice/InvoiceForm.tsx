@@ -14,6 +14,8 @@ import {
   Lock,
   RefreshCw,
   AlertTriangle,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +53,8 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useAccounts } from "@/hooks/useAccounts";
+import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
 import {
   computeTotals,
@@ -62,6 +66,8 @@ import {
   type DiscountKind,
 } from "@/types/invoice";
 import type { Item } from "@/types/item";
+import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
+import type { Account } from "@/types/account";
 
 interface Props {
   mode: "new" | "edit";
