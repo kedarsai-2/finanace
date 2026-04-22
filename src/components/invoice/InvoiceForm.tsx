@@ -586,7 +586,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-left">Unit</th>
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-right">Unit Price</th>
                   <th className="px-3 py-2 text-right">Total Price</th>
