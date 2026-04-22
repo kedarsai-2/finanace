@@ -273,6 +273,18 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     if (overallDiscountValue < 0) return "Overall discount cannot be negative";
     if (overallDiscountKind === "percent" && overallDiscountValue > 100)
       return "Overall discount % cannot exceed 100";
+    // Payment splits
+    let paySum = 0;
+    for (const s of payments) {
+      if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
+      if (s.mode !== "cash" && !s.accountId)
+        return `Select a ${PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
+      if (s.mode !== "cash" && !s.proofDataUrl)
+        return `Upload a proof image for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
+      paySum += s.amount;
+    }
+    if (paySum - 0.001 > totals.total)
+      return `Payments (${paySum.toFixed(2)}) exceed invoice total (${totals.total.toFixed(2)})`;
     return null;
   };
 
