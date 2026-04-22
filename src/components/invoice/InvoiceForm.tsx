@@ -12,6 +12,8 @@ import {
   UserPlus,
   Search as SearchIcon,
   Lock,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -177,11 +179,49 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       taxPercent: item.taxPercent,
     });
 
+  /**
+   * Re-syncs every line that was picked from the catalog with the most recent
+   * item price / unit / tax. Lines without an `itemId` (free-text) are untouched.
+   */
+  const refreshFromCatalog = () => {
+    let changed = 0;
+    setLines((prev) =>
+      prev.map((l) => {
+        if (!l.itemId) return l;
+        const it = items.find((x) => x.id === l.itemId);
+        if (!it) return l;
+        if (
+          it.sellingPrice === l.rate &&
+          it.taxPercent === l.taxPercent &&
+          it.unit === l.unit &&
+          it.name === l.name
+        ) {
+          return l;
+        }
+        changed += 1;
+        return {
+          ...l,
+          name: it.name,
+          unit: it.unit,
+          rate: it.sellingPrice,
+          taxPercent: it.taxPercent,
+        };
+      }),
+    );
+    toast.success(
+      changed === 0
+        ? "All items already up to date"
+        : `Refreshed ${changed} ${changed === 1 ? "line" : "lines"} from latest catalog`,
+    );
+  };
+
   // -------- Validation ----------------------------------------------------
   const validate = (): string | null => {
     if (!activeId) return "Select an active business first";
     if (!partyId) return "Please select a party";
     if (!number.trim()) return "Invoice number is required";
+    if (!/^[A-Z0-9-]{1,30}$/i.test(number.trim()))
+      return "Invoice number can only contain letters, numbers and dashes (max 30)";
     if (
       allInvoices.some(
         (i) =>
@@ -198,7 +238,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
+      if (l.discountValue < 0)
+        return `Discount cannot be negative for ${l.name}`;
+      if (l.discountKind === "percent" && l.discountValue > 100)
+        return `Discount % cannot exceed 100 for ${l.name}`;
     }
+    if (overallDiscountValue < 0) return "Overall discount cannot be negative";
+    if (overallDiscountKind === "percent" && overallDiscountValue > 100)
+      return "Overall discount % cannot exceed 100";
     return null;
   };
 
@@ -462,7 +509,26 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         </FormSection>
 
         {/* 3. Items ---------------------------------------------------------- */}
-        <FormSection step={3} title="Items" description="Each row becomes a line on the invoice.">
+        <FormSection
+          step={3}
+          title="Items"
+          description="Each row becomes a line on the invoice. Pulled prices reflect the current catalog."
+        >
+          {lines.some((l) => !!l.itemId) && (
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={refreshFromCatalog}
+                disabled={locked}
+                className="gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh from catalog
+              </Button>
+            </div>
+          )}
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -479,6 +545,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <tbody className="divide-y divide-border">
                 {lines.map((line) => {
                   const m = lineMath(line);
+                  const catalog = line.itemId
+                    ? items.find((x) => x.id === line.itemId)
+                    : undefined;
+                  const drift =
+                    catalog &&
+                    (catalog.sellingPrice !== line.rate ||
+                      catalog.taxPercent !== line.taxPercent ||
+                      catalog.unit !== line.unit);
                   return (
                     <tr key={line.id} className="align-top">
                       <td className="min-w-[220px] px-2 py-2">
@@ -490,6 +564,17 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                           onQuickAdd={() => setQuickItemForRow(line.id)}
                           locked={!!line.itemId}
                         />
+                        {drift && catalog && (
+                          <button
+                            type="button"
+                            onClick={() => applyItemToLine(line.id, catalog)}
+                            className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-warning-foreground/80 hover:text-warning-foreground"
+                            title={`Catalog: ${formatCurrency(catalog.sellingPrice, currency)} · ${catalog.taxPercent}% · ${catalog.unit}`}
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            Catalog updated — Use latest
+                          </button>
+                        )}
                       </td>
                       <td className="w-20 px-2 py-2">
                         <Input

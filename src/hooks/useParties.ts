@@ -242,39 +242,44 @@ export function useParties(businessId?: string | null) {
     }
 
     const before = partiesRef.current.find((x) => x.id === p.id);
+    const stamped: Party = before
+      ? { ...p, createdAt: before.createdAt ?? p.createdAt }
+      : { ...p, createdAt: p.createdAt ?? new Date().toISOString() };
     setParties((prev) => {
-      const exists = prev.some((x) => x.id === p.id);
-      return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+      const exists = prev.some((x) => x.id === stamped.id);
+      return exists
+        ? prev.map((x) => (x.id === stamped.id ? stamped : x))
+        : [...prev, stamped];
     });
     logAudit({
       module: "party",
       action: before ? "edit" : "create",
-      recordId: p.id,
-      reference: p.name,
-      refLink: `/parties/${p.id}`,
-      businessId: p.businessId,
+      recordId: stamped.id,
+      reference: stamped.name,
+      refLink: `/parties/${stamped.id}`,
+      businessId: stamped.businessId,
       before: before ? snapshot(before) : null,
-      after: snapshot(p),
+      after: snapshot(stamped),
     });
     setLedger((prev) => {
       const filtered = prev.filter(
-        (e) => !(e.partyId === p.id && e.note === "Opening balance"),
+        (e) => !(e.partyId === stamped.id && e.note === "Opening balance"),
       );
-      if (!p.openingBalance) return filtered;
+      if (!stamped.openingBalance) return filtered;
       return [
         ...filtered,
         {
-          id: `le_${p.id}_opening`,
-          partyId: p.id,
-          date: new Date().toISOString(),
+          id: `le_${stamped.id}_opening`,
+          partyId: stamped.id,
+          date: stamped.createdAt ?? new Date().toISOString(),
           note: "Opening balance",
-          amount: p.openingBalance,
+          amount: stamped.openingBalance,
           type: "opening" as const,
           refNo: "OPEN",
         },
       ];
     });
-    return Promise.resolve(p);
+    return Promise.resolve(stamped);
   }, []);
 
   const scoped = useMemo(
