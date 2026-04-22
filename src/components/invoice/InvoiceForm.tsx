@@ -95,6 +95,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { parties } = useParties(activeId);
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
+  const { accounts } = useAccounts(activeId);
+  const { create: createPayment } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
