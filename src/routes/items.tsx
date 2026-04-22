@@ -261,7 +261,9 @@ function ItemsTable({
               <span
                 className={cn(
                   "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                  it.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
+                  it.active
+                    ? "bg-success/10 text-success"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 <span
