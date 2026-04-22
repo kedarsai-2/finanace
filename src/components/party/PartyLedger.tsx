@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  startOfYear,
+  subDays,
+} from "date-fns";
 import {
   CalendarIcon,
   Download,
@@ -39,6 +44,37 @@ const TYPE_FILTERS: { value: "all" | LedgerTxnType; label: string }[] = [
   { value: "purchase-return", label: "Purch. Return" },
 ];
 
+type Preset = "today" | "7d" | "30d" | "month" | "ytd" | "all" | "custom";
+const PRESETS: { value: Preset; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "month", label: "This month" },
+  { value: "ytd", label: "This year" },
+  { value: "all", label: "All time" },
+  { value: "custom", label: "Custom" },
+];
+
+function rangeForPreset(p: Preset): { from?: Date; to?: Date } {
+  const today = new Date();
+  switch (p) {
+    case "today":
+      return { from: today, to: today };
+    case "7d":
+      return { from: subDays(today, 6), to: today };
+    case "30d":
+      return { from: subDays(today, 29), to: today };
+    case "month":
+      return { from: startOfMonth(today), to: today };
+    case "ytd":
+      return { from: startOfYear(today), to: today };
+    case "all":
+    case "custom":
+    default:
+      return { from: undefined, to: undefined };
+  }
+}
+
 const TYPE_BADGE: Record<LedgerTxnType, string> = {
   opening: "bg-muted text-muted-foreground",
   invoice: "bg-primary/10 text-primary",
@@ -75,6 +111,16 @@ export function PartyLedger({
   const [from, setFrom] = useState<Date | undefined>();
   const [to, setTo] = useState<Date | undefined>();
   const [type, setType] = useState<"all" | LedgerTxnType>("all");
+  const [preset, setPreset] = useState<Preset>("all");
+
+  const applyPreset = (p: Preset) => {
+    setPreset(p);
+    if (p !== "custom") {
+      const r = rangeForPreset(p);
+      setFrom(r.from);
+      setTo(r.to);
+    }
+  };
 
   // Compute running balance chronologically over ALL entries (not filtered)
   // so the running figure stays meaningful when filters are applied.
@@ -112,6 +158,7 @@ export function PartyLedger({
     setFrom(undefined);
     setTo(undefined);
     setType("all");
+    setPreset("all");
   };
 
   const hasFilters = from || to || type !== "all";
@@ -165,9 +212,44 @@ export function PartyLedger({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
-        <DateButton label="From" date={from} onChange={setFrom} />
-        <DateButton label="To" date={to} onChange={setTo} />
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Date range
+          </span>
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => applyPreset(p.value)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                preset === p.value
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "border border-border bg-background text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <DateButton
+            label="From"
+            date={from}
+            onChange={(d) => {
+              setFrom(d);
+              setPreset("custom");
+            }}
+          />
+          <DateButton
+            label="To"
+            date={to}
+            onChange={(d) => {
+              setTo(d);
+              setPreset("custom");
+            }}
+          />
 
         <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
           {TYPE_FILTERS.map((f) => (
@@ -217,6 +299,7 @@ export function PartyLedger({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
         </div>
       </div>
 

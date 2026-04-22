@@ -204,13 +204,13 @@ function ItemsTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[2fr_110px_110px_140px_140px_110px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[minmax(0,2.4fr)_100px_140px_140px_160px_110px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Item name</span>
         <span>Type</span>
         <span className="text-right">Unit (Qty)</span>
         <span className="text-right">Unit price</span>
         <span className="text-right">Total price</span>
-        <span>Status</span>
+        <span className="text-center">Status</span>
         <span className="text-right">Actions</span>
       </div>
 
@@ -218,7 +218,7 @@ function ItemsTable({
         {items.map((it) => (
           <li
             key={it.id}
-            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[2fr_110px_110px_140px_140px_110px_120px]"
+            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(0,2.4fr)_100px_140px_140px_160px_110px_100px]"
           >
             <Link
               to="/items/$id"
@@ -262,24 +262,26 @@ function ItemsTable({
               {formatCurrency((it.openingStock ?? 0) * it.sellingPrice, currency)}
             </span>
 
-            <span
-              className={cn(
-                "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                it.active
-                  ? "bg-success/10 text-success"
-                  : "bg-muted text-muted-foreground",
-              )}
-            >
+            <div className="flex sm:justify-center">
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  it.active ? "bg-success" : "bg-muted-foreground/60",
+                  "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                  it.active
+                    ? "bg-success/10 text-success"
+                    : "bg-muted text-muted-foreground",
                 )}
-              />
-              {it.active ? "Active" : "Inactive"}
-            </span>
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    it.active ? "bg-success" : "bg-muted-foreground/60",
+                  )}
+                />
+                {it.active ? "Active" : "Inactive"}
+              </span>
+            </div>
 
-            <div className="flex justify-start gap-1 sm:justify-end sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <div className="flex justify-start gap-1 sm:justify-end sm:opacity-100 sm:transition-opacity">
               <Button
                 asChild
                 size="icon"
