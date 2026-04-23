@@ -140,17 +140,11 @@ export function useParties(businessId?: string | null) {
   useEffect(() => {
     const token = getJwt();
     if (!USE_BACKEND || !token) return;
-    const biz = businessId ? parseInt(businessId, 10) : NaN;
-    if (!businessId || isNaN(biz)) {
-      setParties([]);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
-        const list = await apiFetch<PartyDTO[]>(
-          `/api/parties?businessId.equals=${biz}&size=200&sort=id,desc`,
-        );
+        // Production requirement: show ALL parties irrespective of selected business.
+        const list = await apiFetch<PartyDTO[]>(`/api/parties?size=500&sort=id,desc`);
         if (cancelled) return;
         setParties(list.map(dtoToParty));
       } catch {
@@ -283,11 +277,11 @@ export function useParties(businessId?: string | null) {
     return Promise.resolve(stamped);
   }, []);
 
-  const scoped = useMemo(
-    () =>
-      businessId ? parties.filter((p) => p.businessId === businessId) : parties,
-    [parties, businessId],
-  );
+  const scoped = useMemo(() => {
+    const token = getJwt();
+    if (USE_BACKEND && token) return parties;
+    return businessId ? parties.filter((p) => p.businessId === businessId) : parties;
+  }, [parties, businessId]);
 
   return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
 }
