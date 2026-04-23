@@ -352,10 +352,8 @@ export function useParties(businessId?: string | null) {
     return Promise.resolve(stamped);
   }, []);
 
-  const scoped = useMemo(() => {
-    if (USE_BACKEND && token) return parties;
-    return businessId ? parties.filter((p) => p.businessId === businessId) : parties;
-  }, [parties, businessId, token]);
+  // Production requirement: always show all parties irrespective of selected business.
+  const scoped = useMemo(() => parties, [parties]);
 
   return {
     parties: scoped,

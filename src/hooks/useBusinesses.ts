@@ -3,7 +3,7 @@ import type { Business } from "@/types/business";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
-import { getJwt } from "@/lib/auth";
+import { getJwt, subscribeAuth } from "@/lib/auth";
 
 const STORAGE_KEY = "bm.businesses";
 const ACTIVE_KEY = "bm.activeBusinessId";
@@ -55,12 +55,16 @@ function read(): Business[] {
 }
 
 export function useBusinesses() {
-  const [businesses, setBusinesses] = useState<Business[]>(seed);
+  const [token, setToken] = useState<string | null>(() => getJwt());
+  const [businesses, setBusinesses] = useState<Business[]>(() => (USE_BACKEND ? [] : seed));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const token = getJwt();
+    return subscribeAuth(() => setToken(getJwt()));
+  }, []);
+
+  useEffect(() => {
     if (!USE_BACKEND || !token) {
       const list = read();
       setBusinesses(list);
@@ -70,6 +74,7 @@ export function useBusinesses() {
       return;
     }
 
+    setBusinesses([]); // avoid showing seed data in backend mode
     (async () => {
       try {
         const list = await apiFetch<
@@ -111,7 +116,7 @@ export function useBusinesses() {
         setHydrated(true);
       }
     })();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!hydrated) return;
