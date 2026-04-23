@@ -27,8 +27,8 @@ type AccountDTO = {
 
 function dtoToAccount(dto: AccountDTO): Account {
   // Legacy UPI accounts surface as "bank" — UPI as a separate type is retired.
-  const type: Account["type"] =
-    dto.type === "CASH" ? "cash" : "bank";
+  const rawType = String(dto.type ?? "").toUpperCase();
+  const type: Account["type"] = rawType === "CASH" ? "cash" : "bank";
   const bizId = dto.business?.id;
   return {
     id: toStrId(dto.id),
