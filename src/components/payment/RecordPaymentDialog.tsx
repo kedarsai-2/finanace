@@ -40,6 +40,7 @@ import {
   type PaymentMode,
 } from "@/types/payment";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
+import { ProofUpload } from "@/components/proof/ProofUpload";
 
 interface Props {
   open: boolean;
@@ -103,6 +104,8 @@ export function RecordPaymentDialog({
   const [autoAllocate, setAutoAllocate] = useState(true);
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
+  const [proofName, setProofName] = useState<string | undefined>(undefined);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
   const mode: PaymentMode = selectedAccount?.type ?? "upi";
@@ -116,6 +119,8 @@ export function RecordPaymentDialog({
     setReference("");
     setNotes("");
     setAutoAllocate(true);
+    setProofDataUrl(undefined);
+    setProofName(undefined);
     // Default: pre-select focused invoice if given, else all open invoices.
     const initialRows: AllocRow[] = openInvoices.map((inv) => {
       const outstanding = inv.total - inv.paidAmount;

@@ -29,6 +29,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties } from "@/hooks/useParties";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
+import { ProofUpload } from "@/components/proof/ProofUpload";
 import { ACCOUNT_TYPE_LABEL, type AccountType } from "@/types/account";
 import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
 import type { Expense } from "@/types/expense";
@@ -75,6 +76,12 @@ export function ExpenseForm({
   const [partyId, setPartyId] = useState<string>(initial?.partyId ?? "");
   const [reference, setReference] = useState<string>(initial?.reference ?? "");
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(
+    initial?.proofDataUrl,
+  );
+  const [proofName, setProofName] = useState<string | undefined>(
+    initial?.proofName,
+  );
   const [showQuickParty, setShowQuickParty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,6 +114,10 @@ export function ExpenseForm({
     if (!accountId) return toast.error("Account is required");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!category) return toast.error("Pick a category");
+    if (mode !== "cash" && !proofDataUrl)
+      return toast.error(
+        `Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} expense`,
+      );
 
     setSubmitting(true);
     try {
@@ -122,6 +133,8 @@ export function ExpenseForm({
         mode,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
+        proofDataUrl,
+        proofName,
         createdAt: initial?.createdAt ?? now,
         updatedAt: initial ? now : undefined,
       };
@@ -296,6 +309,23 @@ export function ExpenseForm({
                 />
               </div>
             </div>
+          </Section>
+
+          <Section
+            title="Proof"
+            description="Bill, receipt or transfer screenshot. Required for Bank, UPI and Cheque modes."
+          >
+            <ProofUpload
+              id="exp-proof"
+              label="Proof image"
+              required={mode !== "cash"}
+              proofDataUrl={proofDataUrl}
+              proofName={proofName}
+              onChange={(p) => {
+                setProofDataUrl(p.proofDataUrl);
+                setProofName(p.proofName);
+              }}
+            />
           </Section>
         </>
       )}
