@@ -32,7 +32,7 @@ import type { Expense } from "@/types/expense";
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
 function modeFromAccountType(t: AccountType): PaymentMode {
-  return t === "bank" ? "bank" : t === "upi" ? "upi" : "cash";
+  return t === "bank" ? "bank" : "cash";
 }
 
 interface QuickAddExpenseDialogProps {

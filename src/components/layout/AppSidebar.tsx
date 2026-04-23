@@ -14,6 +14,7 @@ import {
   History,
   FileMinus,
   Undo2,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +28,8 @@ const navLinks = [
   { to: "/purchases", label: "Purchases", icon: ShoppingCart },
   { to: "/purchase-returns", label: "Purchase Returns", icon: Undo2 },
   { to: "/payments", label: "Payments", icon: Wallet },
-  { to: "/accounts", label: "Accounts", icon: Landmark },
+  { to: "/accounts", label: "Bank Accounts", icon: Landmark },
+  { to: "/cash", label: "Cash", icon: Banknote },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/audit", label: "Audit", icon: History },

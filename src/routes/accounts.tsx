@@ -4,7 +4,6 @@ import {
   Plus,
   Wallet,
   Building2,
-  Smartphone,
   Banknote,
   Pencil,
   Trash2,
@@ -42,11 +41,11 @@ import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 export const Route = createFileRoute("/accounts")({
   head: () => ({
     meta: [
-      { title: "Accounts — Cash, Bank & UPI" },
+      { title: "Bank Accounts" },
       {
         name: "description",
         content:
-          "Manage cash, bank and UPI accounts. Track live balances driven by payments, expenses and transfers.",
+          "Manage bank accounts. Track live balances driven by payments, expenses and transfers.",
       },
     ],
   }),
@@ -62,13 +61,11 @@ function AccountsRouteLayout() {
 const TYPE_ICON: Record<AccountType, typeof Wallet> = {
   cash: Banknote,
   bank: Building2,
-  upi: Smartphone,
 };
 
 const TYPE_TONE: Record<AccountType, string> = {
   cash: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   bank: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  upi: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
 };
 
 function AccountsPage() {
@@ -84,8 +81,14 @@ function AccountsPage() {
     [accounts],
   );
 
+  // Only bank accounts are managed on this page; cash lives on /cash.
+  const bankAccounts = useMemo(
+    () => accounts.filter((a) => a.type === "bank"),
+    [accounts],
+  );
+
   const cards = useMemo(() => {
-    return accounts.map((a) => {
+    return bankAccounts.map((a) => {
       const txns = buildAccountTxns({
         account: a,
         payments,
@@ -95,7 +98,7 @@ function AccountsPage() {
       });
       return { account: a, balance: accountBalance(txns), txns: txns.length - 1 };
     });
-  }, [accounts, payments, transfers, expenses, accountsById]);
+  }, [bankAccounts, payments, transfers, expenses, accountsById]);
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
@@ -109,9 +112,9 @@ function AccountsPage() {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Money in & out
+            Bank balances
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Accounts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Bank Accounts</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="gap-2">
@@ -127,7 +130,7 @@ function AccountsPage() {
         </div>
       </header>
 
-      {accounts.length === 0 ? (
+      {bankAccounts.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -156,13 +159,13 @@ function EmptyState() {
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
         <Wallet className="h-6 w-6 text-primary" />
       </div>
-      <h2 className="mb-1 text-lg font-semibold">No accounts added</h2>
+      <h2 className="mb-1 text-lg font-semibold">No bank accounts added</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Add Cash, Bank or UPI accounts to track money flowing in and out.
+        Add a bank account to track money flowing in and out. Cash is managed under the dedicated Cash tab.
       </p>
       <Button asChild className="gap-2">
         <Link to="/accounts/new">
-          <Plus className="h-4 w-4" /> Add account
+          <Plus className="h-4 w-4" /> Add bank account
         </Link>
       </Button>
     </div>

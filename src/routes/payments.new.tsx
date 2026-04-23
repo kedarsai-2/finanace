@@ -90,7 +90,8 @@ function NewPaymentPage() {
   }, [accountsHydrated, firstAccountId, accountId]);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
-  const mode = selectedAccount?.type ?? "upi";
+  const mode: import("@/types/payment").PaymentMode =
+    selectedAccount?.type ?? "bank";
 
   // All parties are eligible — direction is now derived from doc allocations only.
   const filteredParties = parties;
@@ -451,7 +452,7 @@ function NewPaymentPage() {
                 id="reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="Cheque / UTR / UPI txn ID"
+                placeholder="Cheque / UTR / Reference"
               />
             </div>
             <div className="sm:col-span-2">

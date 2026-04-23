@@ -108,7 +108,7 @@ export function RecordPaymentDialog({
   const [proofName, setProofName] = useState<string | undefined>(undefined);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
-  const mode: PaymentMode = selectedAccount?.type ?? "upi";
+  const mode: PaymentMode = selectedAccount?.type ?? "bank";
   const firstAccountId = safeAccounts[0]?.id ?? "";
 
   // Reset whenever the dialog opens.
@@ -413,7 +413,7 @@ export function RecordPaymentDialog({
                   id="reference"
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
-                  placeholder="Cheque / UTR / UPI txn ID"
+                  placeholder="Cheque / UTR / Reference"
                 />
               </div>
               <div className="sm:col-span-2">

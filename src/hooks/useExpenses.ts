@@ -29,7 +29,11 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const partyId = dto.party?.id;
   const accountId = dto.account?.id;
   const mode =
-    dto.mode === "BANK" ? "bank" : dto.mode === "UPI" ? "upi" : dto.mode === "CASH" ? "cash" : undefined;
+    dto.mode === "BANK" || dto.mode === "UPI"
+      ? "bank"
+      : dto.mode === "CASH"
+        ? "cash"
+        : undefined;
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
@@ -48,7 +52,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
 }
 
 function expenseToDto(e: Expense): ExpenseDTO {
-  const mode = e.mode === "bank" ? "BANK" : e.mode === "upi" ? "UPI" : e.mode === "cash" ? "CASH" : null;
+  const mode = e.mode === "bank" ? "BANK" : e.mode === "cash" ? "CASH" : null;
   return {
     id: toNumId(e.id) ?? undefined,
     date: e.date,

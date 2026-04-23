@@ -35,13 +35,13 @@ type PaymentAllocationDTO = {
 
 function toBackendMode(m: Payment["mode"]): BackendPaymentMode {
   if (m === "bank") return "BANK";
-  if (m === "upi") return "UPI";
   if (m === "cheque") return "BANK";
   return "CASH";
 }
 function fromBackendMode(m: BackendPaymentMode | null | undefined): Payment["mode"] {
   if (m === "BANK") return "bank";
-  if (m === "UPI") return "upi";
+  // Legacy UPI payments now surface as "bank" since UPI mode is retired.
+  if (m === "UPI") return "bank";
   return "cash";
 }
 
