@@ -10,6 +10,8 @@
         Added the entity Invoice.
     -->
     <changeSet id="20260420090839-1" author="jhipster">
+        <!-- Previously deployed checksum(s) for this changeset -->
+        <validCheckSum>9:943526fc3becb709bac715d4fa585782</validCheckSum>
         <createTable tableName="invoice">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>

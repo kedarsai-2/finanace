@@ -10,6 +10,8 @@
         Added the entity Purchase.
     -->
     <changeSet id="20260420090841-1" author="jhipster">
+        <!-- Previously deployed checksum(s) for this changeset -->
+        <validCheckSum>9:df47b5cf8a6d371a6602fd4e5c23fe46</validCheckSum>
         <createTable tableName="purchase">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
