@@ -908,7 +908,7 @@ function ItemPicker({
 
 // ---------- Payment splits editor ----------------------------------------
 
-const PAYMENT_MODES: PaymentMode[] = ["cash", "bank", "upi", "cheque"];
+const PAYMENT_MODES: PaymentMode[] = ["cash", "bank", "cheque"];
 const MAX_PROOF_BYTES = 2 * 1024 * 1024; // 2 MB
 
 function PaymentSplitsEditor({
@@ -969,7 +969,6 @@ function PaymentSplitsEditor({
         const accountOptions = accounts.filter((a) => {
           if (s.mode === "cash") return a.type === "cash";
           if (s.mode === "bank" || s.mode === "cheque") return a.type === "bank";
-          if (s.mode === "upi") return a.type === "upi";
           return true;
         });
         return (
@@ -1050,7 +1049,7 @@ function PaymentSplitsEditor({
                   value={s.reference ?? ""}
                   onChange={(e) => onChange(s.id, { reference: e.target.value })}
                   placeholder={
-                    s.mode === "cheque" ? "Cheque #" : s.mode === "upi" ? "UPI txn id" : "Reference"
+                    s.mode === "cheque" ? "Cheque #" : "Reference"
                   }
                   disabled={disabled}
                 />

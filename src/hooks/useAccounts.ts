@@ -26,7 +26,9 @@ type AccountDTO = {
 };
 
 function dtoToAccount(dto: AccountDTO): Account {
-  const type = dto.type === "CASH" ? "cash" : dto.type === "BANK" ? "bank" : "upi";
+  // Legacy UPI accounts surface as "bank" — UPI as a separate type is retired.
+  const type: Account["type"] =
+    dto.type === "CASH" ? "cash" : "bank";
   const bizId = dto.business?.id;
   return {
     id: toStrId(dto.id),
@@ -44,7 +46,7 @@ function dtoToAccount(dto: AccountDTO): Account {
 }
 
 function accountToDto(a: Account): AccountDTO {
-  const type = a.type === "cash" ? "CASH" : a.type === "bank" ? "BANK" : "UPI";
+  const type = a.type === "cash" ? "CASH" : "BANK";
   return {
     id: toNumId(a.id) ?? undefined,
     name: a.name,

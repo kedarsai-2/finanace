@@ -13,7 +13,6 @@ import {
   Pencil,
   Wallet,
   Building2,
-  Smartphone,
   Banknote,
 } from "lucide-react";
 import { z } from "zod";
@@ -90,12 +89,10 @@ export const Route = createFileRoute("/accounts/$id/")({
 const TYPE_ICON: Record<AccountType, typeof Wallet> = {
   cash: Banknote,
   bank: Building2,
-  upi: Smartphone,
 };
 const TYPE_TONE: Record<AccountType, string> = {
   cash: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   bank: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  upi: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
 };
 
 function kindMatches(kind: AccountTxnKind, filter: KindFilter): boolean {
