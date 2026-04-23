@@ -26,17 +26,13 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useItems } from "@/hooks/useItems";
-import { ITEM_UNITS, TAX_RATES } from "@/lib/itemSchema";
+import { ITEM_UNITS } from "@/lib/itemSchema";
 import type { Item, ItemType } from "@/types/item";
 import { cn } from "@/lib/utils";
 
 const quickSchema = z.object({
   name: z.string().trim().min(1, "Item name is required").max(120),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
-  taxPercent: z.number().refine(
-    (v) => (TAX_RATES as readonly number[]).includes(v),
-    "Select a valid tax rate",
-  ),
   unit: z.enum(ITEM_UNITS),
 });
 
@@ -82,7 +78,6 @@ export function QuickAddItemDialog({
     defaultValues: {
       name: defaultName,
       sellingPrice: 0,
-      taxPercent: 18,
       unit: "pcs",
     },
     mode: "onBlur",
@@ -94,7 +89,6 @@ export function QuickAddItemDialog({
       reset({
         name: defaultName,
         sellingPrice: 0,
-        taxPercent: 18,
         unit: "pcs",
       });
     }
@@ -117,7 +111,7 @@ export function QuickAddItemDialog({
           name: values.name.trim(),
           type: defaultType,
           sellingPrice: values.sellingPrice,
-          taxPercent: values.taxPercent,
+          taxPercent: 0,
           unit: values.unit,
           active: true,
         };
@@ -178,52 +172,26 @@ export function QuickAddItemDialog({
             {errMsg(errors.sellingPrice?.message)}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="qa-tax">Tax rate</Label>
-              <Controller
-                control={control}
-                name="taxPercent"
-                render={({ field }) => (
-                  <Select
-                    value={String(field.value)}
-                    onValueChange={(v) => field.onChange(Number(v))}
-                  >
-                    <SelectTrigger id="qa-tax">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TAX_RATES.map((r) => (
-                        <SelectItem key={r} value={String(r)}>
-                          {r}%
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div>
-              <Label htmlFor="qa-unit">Unit</Label>
-              <Controller
-                control={control}
-                name="unit"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="qa-unit">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ITEM_UNITS.map((u) => (
-                        <SelectItem key={u} value={u}>
-                          {UNIT_LABEL[u]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+          <div>
+            <Label htmlFor="qa-unit">Unit</Label>
+            <Controller
+              control={control}
+              name="unit"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="qa-unit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ITEM_UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {UNIT_LABEL[u]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">

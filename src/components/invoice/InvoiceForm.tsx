@@ -655,7 +655,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                         />
                       </td>
                       <td className="w-32 px-3 py-2 text-right font-semibold tabular-nums">
-                        {formatCurrency(m.total, currency)}
+                        {formatCurrency(m.taxable, currency)}
                       </td>
                       <td className="w-10 px-2 py-2 text-right">
                         <Button
