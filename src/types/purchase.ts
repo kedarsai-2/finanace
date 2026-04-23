@@ -40,6 +40,13 @@ export interface Purchase {
   /** Reserved for phase-2 supplier payments. */
   paidAmount: number;
   status: PurchaseStatus;
+  /**
+   * Bill / invoice proof image as a base64 data URL. Required client-side
+   * when finalising a purchase.
+   */
+  proofDataUrl?: string;
+  /** Original filename for display purposes. */
+  proofName?: string;
   /** Soft-delete marker. Hidden everywhere when true. */
   deleted?: boolean;
   notes?: string;
