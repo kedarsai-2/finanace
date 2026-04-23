@@ -39,14 +39,12 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePurchases } from "@/hooks/usePurchases";
 import { usePayments } from "@/hooks/usePayments";
-import type { Party, PartyType } from "@/types/party";
-
-const FILTERS = ["all", "customer", "supplier", "both"] as const;
-type Filter = (typeof FILTERS)[number];
+import type { Party } from "@/types/party";
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
-  type: z.enum(FILTERS).catch("all").default("all"),
+  // Kept for URL backward compatibility but no longer used in the UI.
+  type: z.string().catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/parties")({
@@ -55,28 +53,16 @@ export const Route = createFileRoute("/parties")({
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Parties — Customers & Suppliers" },
+      { title: "Parties" },
       {
         name: "description",
         content:
-          "Manage all your customers and suppliers. Track balances, receivables and payables in one place.",
+          "Manage all your parties. Track balances, receivables and payables in one place.",
       },
     ],
   }),
   component: PartiesRouteLayout,
 });
-
-const TYPE_LABEL: Record<PartyType, string> = {
-  customer: "Customer",
-  supplier: "Supplier",
-  both: "Both",
-};
-
-const TYPE_BADGE: Record<PartyType, string> = {
-  customer: "bg-primary/10 text-primary",
-  supplier: "bg-warning/15 text-warning-foreground/80",
-  both: "bg-accent text-accent-foreground",
-};
 
 function PartiesRouteLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
