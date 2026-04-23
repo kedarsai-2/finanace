@@ -27,7 +27,8 @@ type CashBalanceSnapshot = {
 
 function CashBalancePage() {
   const navigate = useNavigate();
-  const { scopedBusinessId, isAll } = useBusinesses();
+  const { businesses, scopedBusinessId, isAll, setActiveId } = useBusinesses();
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
 
   const [opening, setOpening] = useState<number>(0);
   const [current, setCurrent] = useState<number | null>(null);
@@ -42,12 +43,13 @@ function CashBalancePage() {
         setCurrent(null);
         return;
       }
-      if (isAll || !scopedBusinessId) {
+      if (!effectiveBusinessId) {
         setHydrated(true);
         setCurrent(null);
         return;
       }
-      const businessNumericId = Number(scopedBusinessId);
+      if (isAll) setActiveId(effectiveBusinessId);
+      const businessNumericId = Number(effectiveBusinessId);
       if (!Number.isFinite(businessNumericId)) {
         setHydrated(true);
         setCurrent(null);
@@ -72,12 +74,13 @@ function CashBalancePage() {
     return () => {
       cancelled = true;
     };
-  }, [scopedBusinessId, isAll]);
+  }, [effectiveBusinessId, isAll, setActiveId]);
 
   const onSave = async () => {
-    if (isAll || !scopedBusinessId) return toast.error("Select a specific business first");
+    if (!effectiveBusinessId) return toast.error("Select a specific business first");
     if (!USE_BACKEND) return toast.success("Cash balance saved");
-    const businessNumericId = Number(scopedBusinessId);
+    if (isAll) setActiveId(effectiveBusinessId);
+    const businessNumericId = Number(effectiveBusinessId);
     if (!Number.isFinite(businessNumericId)) {
       return toast.error("Invalid business id for cash balance");
     }

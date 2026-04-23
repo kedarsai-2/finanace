@@ -40,12 +40,13 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
 
 function CashPage() {
   const navigate = useNavigate();
-  const { businesses, activeId, scopedBusinessId, isAll, hydrated: bHyd } = useBusinesses();
+  const { businesses, activeId, scopedBusinessId, isAll, setActiveId, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
-  const { accounts, hydrated } = useAccounts(scopedBusinessId, businessIds);
-  const { payments } = usePayments(scopedBusinessId);
-  const { transfers } = useTransfers(scopedBusinessId);
-  const { expenses } = useExpenses(scopedBusinessId);
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { accounts, hydrated } = useAccounts(effectiveBusinessId, businessIds);
+  const { payments } = usePayments(effectiveBusinessId);
+  const { transfers } = useTransfers(effectiveBusinessId);
+  const { expenses } = useExpenses(effectiveBusinessId);
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
@@ -94,10 +95,11 @@ function CashPage() {
         <Button
           className="gap-2"
           onClick={() => {
-            if (isAll || !scopedBusinessId) {
-              toast.error("Select a specific business to edit cash balance");
+            if (!effectiveBusinessId) {
+              toast.error("No business available for cash balance");
               return;
             }
+            if (isAll) setActiveId(effectiveBusinessId);
             navigate({ to: "/cash/balance" });
           }}
         >
@@ -108,10 +110,11 @@ function CashPage() {
       {cashAccounts.length === 0 ? (
         <EmptyCashState
           onSetBalance={() => {
-            if (isAll || !scopedBusinessId) {
-              toast.error("Select a specific business to set cash balance");
+            if (!effectiveBusinessId) {
+              toast.error("No business available for cash balance");
               return;
             }
+            if (isAll) setActiveId(effectiveBusinessId);
             navigate({ to: "/cash/balance" });
           }}
         />
