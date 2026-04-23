@@ -24,8 +24,13 @@ FROM eclipse-temurin:21-jre AS runtime
 WORKDIR /app
 
 # Run as non-root
-RUN useradd -r -u 1000 appuser
-USER 1000
+RUN set -eux; \
+    # Some base images may already have UID 1000 or useradd quirks; be idempotent.
+    if ! getent passwd 1000 >/dev/null; then \
+      useradd -r -u 1000 -m -d /home/appuser -s /usr/sbin/nologin appuser; \
+    fi; \
+    chown -R 1000:1000 /app
+USER 1000:1000
 
 COPY --from=build /workspace/target/*.jar /app/app.jar
 
