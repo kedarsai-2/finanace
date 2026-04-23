@@ -8,6 +8,9 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   vite: {
+    build: {
+      manifest: true,
+    },
     server: {
       port: 5173,
       strictPort: false,

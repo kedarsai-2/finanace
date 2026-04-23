@@ -1,0 +1,27 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist/client",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://finanace-454d.onrender.com/api/$1"
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
+
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist/client",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://finanace-454d.onrender.com/api/$1"
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
