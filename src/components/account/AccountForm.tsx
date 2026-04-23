@@ -25,15 +25,19 @@ import {
 interface Props {
   account?: Account;
   mode: "create" | "edit";
+  defaultType?: AccountType;
+  returnTo?: string;
 }
 
-export function AccountForm({ account, mode }: Props) {
+export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const navigate = useNavigate();
   const { activeId } = useBusinesses();
   const { upsert } = useAccounts(activeId, []);
 
   const [name, setName] = useState(account?.name ?? "");
-  const [type, setType] = useState<AccountType>(account?.type ?? "bank");
+  const [type, setType] = useState<AccountType>(
+    account?.type ?? defaultType ?? "bank",
+  );
   const [openingBalance, setOpeningBalance] = useState<number>(
     account?.openingBalance ?? 0,
   );
@@ -74,7 +78,7 @@ export function AccountForm({ account, mode }: Props) {
       };
       await upsert(payload);
       toast.success(mode === "create" ? "Account added" : "Account updated");
-      navigate({ to: "/accounts" });
+      navigate({ to: returnTo ?? "/accounts" });
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +176,11 @@ export function AccountForm({ account, mode }: Props) {
       </div>
 
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={() => navigate({ to: "/accounts" })}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => navigate({ to: returnTo ?? "/accounts" })}
+        >
           <X className="mr-2 h-4 w-4" /> Cancel
         </Button>
         <Button type="submit" disabled={submitting} className="gap-2">

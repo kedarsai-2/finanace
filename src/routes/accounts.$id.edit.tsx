@@ -1,11 +1,19 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, type SearchSchemaInput } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { AccountForm } from "@/components/account/AccountForm";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBusinesses } from "@/hooks/useBusinesses";
 
+const searchSchema = z.object({
+  source: z.string().catch("").default(""),
+});
+
 export const Route = createFileRoute("/accounts/$id/edit")({
+  validateSearch: (
+    search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
+  ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [{ title: "Edit Account — QOBOX" }],
   }),
@@ -39,6 +47,8 @@ export const Route = createFileRoute("/accounts/$id/edit")({
 
 function EditAccountPage() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const backTo = search.source === "cash" ? "/cash" : "/accounts";
   const { activeId } = useBusinesses();
   const { accounts, hydrated } = useAccounts(activeId, []);
   const account = accounts.find((a) => a.id === id);
@@ -60,7 +70,7 @@ function EditAccountPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
-        <Link to="/accounts">
+        <Link to={backTo}>
           <ArrowLeft className="h-4 w-4" /> Back to accounts
         </Link>
       </Button>
@@ -70,7 +80,7 @@ function EditAccountPage() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">{account.name}</h1>
       </header>
-      <AccountForm mode="edit" account={account} />
+      <AccountForm mode="edit" account={account} returnTo={backTo} />
     </div>
   );
 }

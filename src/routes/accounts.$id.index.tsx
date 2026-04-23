@@ -51,6 +51,7 @@ const searchSchema = z.object({
   from: z.string().catch("").default(""),
   to: z.string().catch("").default(""),
   kind: z.enum(KIND_FILTERS).catch("all").default("all"),
+  source: z.string().catch("").default(""),
 });
 
 export const Route = createFileRoute("/accounts/$id/")({
@@ -116,6 +117,7 @@ function AccountDetailsPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const backTo = search.source === "cash" ? "/cash" : "/accounts";
 
   const { activeId, businesses } = useBusinesses();
   const { accounts, hydrated } = useAccounts(activeId, []);
@@ -201,7 +203,7 @@ function AccountDetailsPage() {
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
-        <Link to="/accounts">
+        <Link to={backTo}>
           <ArrowLeft className="h-4 w-4" /> Back to accounts
         </Link>
       </Button>
@@ -241,7 +243,11 @@ function AccountDetailsPage() {
           </p>
           <div className="mt-2 flex justify-end gap-1">
             <Button asChild size="sm" variant="outline" className="gap-1">
-              <Link to="/accounts/$id/edit" params={{ id: account.id }}>
+              <Link
+                to="/accounts/$id/edit"
+                params={{ id: account.id }}
+                search={{ source: search.source }}
+              >
                 <Pencil className="h-3 w-3" /> Edit
               </Link>
             </Button>

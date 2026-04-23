@@ -39,6 +39,7 @@ import { Route as InvoicesNewRouteImport } from './routes/invoices.new'
 import { Route as ExpensesNewRouteImport } from './routes/expenses.new'
 import { Route as CreditNotesIdRouteImport } from './routes/credit-notes.$id'
 import { Route as CategoriesExpenseRouteImport } from './routes/categories.expense'
+import { Route as CashNewRouteImport } from './routes/cash.new'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as AccountsTransferRouteImport } from './routes/accounts.transfer'
 import { Route as AccountsNewRouteImport } from './routes/accounts.new'
@@ -208,6 +209,11 @@ const CategoriesExpenseRoute = CategoriesExpenseRouteImport.update({
   path: '/categories/expense',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CashNewRoute = CashNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CashRoute,
+} as any)
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -304,7 +310,7 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/cash': typeof CashRoute
+  '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/cash/new': typeof CashNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
   '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
@@ -354,7 +361,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/cash': typeof CashRoute
+  '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
@@ -368,6 +375,7 @@ export interface FileRoutesByTo {
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/cash/new': typeof CashNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
   '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
@@ -405,7 +413,7 @@ export interface FileRoutesById {
   '/accounts': typeof AccountsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
-  '/cash': typeof CashRoute
+  '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/invoices': typeof InvoicesRouteWithChildren
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/cash/new': typeof CashNewRoute
   '/categories/expense': typeof CategoriesExpenseRoute
   '/credit-notes/$id': typeof CreditNotesIdRoute
   '/expenses/new': typeof ExpensesNewRoute
@@ -471,6 +480,7 @@ export interface FileRouteTypes {
     | '/accounts/new'
     | '/accounts/transfer'
     | '/businesses/new'
+    | '/cash/new'
     | '/categories/expense'
     | '/credit-notes/$id'
     | '/expenses/new'
@@ -521,6 +531,7 @@ export interface FileRouteTypes {
     | '/accounts/new'
     | '/accounts/transfer'
     | '/businesses/new'
+    | '/cash/new'
     | '/categories/expense'
     | '/credit-notes/$id'
     | '/expenses/new'
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/accounts/new'
     | '/accounts/transfer'
     | '/businesses/new'
+    | '/cash/new'
     | '/categories/expense'
     | '/credit-notes/$id'
     | '/expenses/new'
@@ -608,7 +620,7 @@ export interface RootRouteChildren {
   AccountsRoute: typeof AccountsRouteWithChildren
   AuditRoute: typeof AuditRoute
   BusinessesRoute: typeof BusinessesRouteWithChildren
-  CashRoute: typeof CashRoute
+  CashRoute: typeof CashRouteWithChildren
   CreditNotesRoute: typeof CreditNotesRouteWithChildren
   ExpensesRoute: typeof ExpensesRouteWithChildren
   InvoicesRoute: typeof InvoicesRouteWithChildren
@@ -835,6 +847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesExpenseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cash/new': {
+      id: '/cash/new'
+      path: '/new'
+      fullPath: '/cash/new'
+      preLoaderRoute: typeof CashNewRouteImport
+      parentRoute: typeof CashRoute
+    }
     '/businesses/new': {
       id: '/businesses/new'
       path: '/new'
@@ -996,6 +1015,16 @@ const BusinessesRouteWithChildren = BusinessesRoute._addFileChildren(
   BusinessesRouteChildren,
 )
 
+interface CashRouteChildren {
+  CashNewRoute: typeof CashNewRoute
+}
+
+const CashRouteChildren: CashRouteChildren = {
+  CashNewRoute: CashNewRoute,
+}
+
+const CashRouteWithChildren = CashRoute._addFileChildren(CashRouteChildren)
+
 interface CreditNotesRouteChildren {
   CreditNotesIdRoute: typeof CreditNotesIdRoute
 }
@@ -1137,7 +1166,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsRoute: AccountsRouteWithChildren,
   AuditRoute: AuditRoute,
   BusinessesRoute: BusinessesRouteWithChildren,
-  CashRoute: CashRoute,
+  CashRoute: CashRouteWithChildren,
   CreditNotesRoute: CreditNotesRouteWithChildren,
   ExpensesRoute: ExpensesRouteWithChildren,
   InvoicesRoute: InvoicesRouteWithChildren,

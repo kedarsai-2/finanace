@@ -96,7 +96,7 @@ function CashPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Cash</h1>
         </div>
         <Button asChild className="gap-2">
-          <Link to="/accounts/new">
+          <Link to="/cash/new">
             <Plus className="h-4 w-4" /> Add cash account
           </Link>
         </Button>
@@ -150,6 +150,7 @@ function CashPage() {
                   key={a.id}
                   to="/accounts/$id"
                   params={{ id: a.id }}
+                  search={{ source: "cash" }}
                   className="group rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
                 >
                   <div className="mb-2 flex items-center justify-between">
@@ -255,7 +256,7 @@ function EmptyCashState() {
         Add a cash account to start tracking cash inflows and outflows.
       </p>
       <Button asChild className="gap-2">
-        <Link to="/accounts/new">
+        <Link to="/cash/new">
           <Plus className="h-4 w-4" /> Add cash account
         </Link>
       </Button>
