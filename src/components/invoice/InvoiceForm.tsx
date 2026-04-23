@@ -163,9 +163,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   }, [existing, hydrated, activeId, allInvoices, ensureLines]);
 
   const party = parties.find((p) => p.id === partyId);
-  const businessState = activeBusiness?.state;
-  const intraState =
-    !!businessState && !!party?.state && businessState === party.state;
 
   const dueDate = useMemo(() => addDays(date, terms || 0), [date, terms]);
 
@@ -175,9 +172,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         lines,
         overallDiscountKind,
         overallDiscountValue,
-        intraState,
       }),
-    [lines, overallDiscountKind, overallDiscountValue, intraState],
+    [lines, overallDiscountKind, overallDiscountValue],
   );
 
   // -------- Edit-lock -----------------------------------------------------
@@ -302,7 +298,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       partyId,
       partyName: party?.name ?? "",
       partyState: party?.state,
-      businessState,
+      businessState: activeBusiness?.state,
       lines,
       overallDiscountKind,
       overallDiscountValue,
@@ -685,29 +681,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </Button>
         </FormSection>
 
-        {/* 4. GST + Summary ------------------------------------------------ */}
-        <FormSection step={4} title="Summary" description={
-          intraState
-            ? "Same-state invoice — CGST + SGST applied."
-            : party
-            ? "Inter-state invoice — IGST applied."
-            : "GST split is computed once a party is selected."
-        }>
+        {/* 4. Summary ----------------------------------------------------- */}
+        <FormSection step={4} title="Summary" description="Review the invoice total before saving.">
           <div className="flex justify-end">
             <dl className="w-full max-w-sm space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <Row label="Subtotal" value={formatCurrency(totals.subtotal, currency)} />
-              <Row
-                label="Taxable value"
-                value={formatCurrency(totals.taxableValue, currency)}
-              />
-              {intraState ? (
-                <>
-                  <Row label="CGST" value={formatCurrency(totals.cgst, currency)} muted />
-                  <Row label="SGST" value={formatCurrency(totals.sgst, currency)} muted />
-                </>
-              ) : (
-                <Row label="IGST" value={formatCurrency(totals.igst, currency)} muted />
-              )}
               <div className="my-2 h-px bg-border" />
               <Row
                 label="Total"

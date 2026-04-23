@@ -141,9 +141,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   }, [existing, hydrated, activeId, allPurchases, ensureLines]);
 
   const party = parties.find((p) => p.id === partyId);
-  const businessState = activeBusiness?.state;
-  const intraState =
-    !!businessState && !!party?.state && businessState === party.state;
 
   const totals = useMemo(
     () =>
@@ -151,9 +148,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         lines,
         overallDiscountKind,
         overallDiscountValue,
-        intraState,
       }),
-    [lines, overallDiscountKind, overallDiscountValue, intraState],
+    [lines, overallDiscountKind, overallDiscountValue],
   );
 
   // -------- Edit-lock -----------------------------------------------------
@@ -220,7 +216,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       partyId,
       partyName: party?.name ?? "",
       partyState: party?.state,
-      businessState,
+      businessState: activeBusiness?.state,
       lines,
       overallDiscountKind,
       overallDiscountValue,
@@ -586,17 +582,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           </Button>
         </FormSection>
 
-        {/* 4. Summary (incl. Input GST) ------------------------------------ */}
+        {/* 4. Summary ----------------------------------------------------- */}
         <FormSection
           step={4}
           title="Summary"
-          description={
-            intraState
-              ? "Same-state purchase — Input CGST + SGST applied."
-              : party
-              ? "Inter-state purchase — Input IGST applied."
-              : "GST split is computed once a supplier is selected."
-          }
+          description="Review the bill total before saving."
         >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
             <div className="space-y-3">
@@ -642,18 +632,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   value={`− ${formatCurrency(totals.overallDiscountAmount, currency)}`}
                   muted
                 />
-              )}
-              <Row
-                label="Taxable value"
-                value={formatCurrency(totals.taxableValue, currency)}
-              />
-              {intraState ? (
-                <>
-                  <Row label="CGST (Input)" value={formatCurrency(totals.cgst, currency)} muted />
-                  <Row label="SGST (Input)" value={formatCurrency(totals.sgst, currency)} muted />
-                </>
-              ) : (
-                <Row label="IGST (Input)" value={formatCurrency(totals.igst, currency)} muted />
               )}
               <div className="my-2 h-px bg-border" />
               <Row

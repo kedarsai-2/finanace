@@ -26,7 +26,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsSalesRouteImport } from './routes/reports.sales'
 import { Route as ReportsPurchasesRouteImport } from './routes/reports.purchases'
 import { Route as ReportsPartiesRouteImport } from './routes/reports.parties'
-import { Route as ReportsGstRouteImport } from './routes/reports.gst'
 import { Route as ReportsExpensesRouteImport } from './routes/reports.expenses'
 import { Route as ReportsAccountsRouteImport } from './routes/reports.accounts'
 import { Route as PurchasesNewRouteImport } from './routes/purchases.new'
@@ -141,11 +140,6 @@ const ReportsPurchasesRoute = ReportsPurchasesRouteImport.update({
 const ReportsPartiesRoute = ReportsPartiesRouteImport.update({
   id: '/parties',
   path: '/parties',
-  getParentRoute: () => ReportsRoute,
-} as any)
-const ReportsGstRoute = ReportsGstRouteImport.update({
-  id: '/gst',
-  path: '/gst',
   getParentRoute: () => ReportsRoute,
 } as any)
 const ReportsExpensesRoute = ReportsExpensesRouteImport.update({
@@ -329,7 +323,6 @@ export interface FileRoutesByFullPath {
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
-  '/reports/gst': typeof ReportsGstRoute
   '/reports/parties': typeof ReportsPartiesRoute
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
@@ -379,7 +372,6 @@ export interface FileRoutesByTo {
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
-  '/reports/gst': typeof ReportsGstRoute
   '/reports/parties': typeof ReportsPartiesRoute
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
@@ -430,7 +422,6 @@ export interface FileRoutesById {
   '/purchases/new': typeof PurchasesNewRoute
   '/reports/accounts': typeof ReportsAccountsRoute
   '/reports/expenses': typeof ReportsExpensesRoute
-  '/reports/gst': typeof ReportsGstRoute
   '/reports/parties': typeof ReportsPartiesRoute
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
@@ -482,7 +473,6 @@ export interface FileRouteTypes {
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
-    | '/reports/gst'
     | '/reports/parties'
     | '/reports/purchases'
     | '/reports/sales'
@@ -532,7 +522,6 @@ export interface FileRouteTypes {
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
-    | '/reports/gst'
     | '/reports/parties'
     | '/reports/purchases'
     | '/reports/sales'
@@ -582,7 +571,6 @@ export interface FileRouteTypes {
     | '/purchases/new'
     | '/reports/accounts'
     | '/reports/expenses'
-    | '/reports/gst'
     | '/reports/parties'
     | '/reports/purchases'
     | '/reports/sales'
@@ -741,13 +729,6 @@ declare module '@tanstack/react-router' {
       path: '/parties'
       fullPath: '/reports/parties'
       preLoaderRoute: typeof ReportsPartiesRouteImport
-      parentRoute: typeof ReportsRoute
-    }
-    '/reports/gst': {
-      id: '/reports/gst'
-      path: '/gst'
-      fullPath: '/reports/gst'
-      preLoaderRoute: typeof ReportsGstRouteImport
       parentRoute: typeof ReportsRoute
     }
     '/reports/expenses': {
@@ -1115,7 +1096,6 @@ const PurchasesRouteWithChildren = PurchasesRoute._addFileChildren(
 interface ReportsRouteChildren {
   ReportsAccountsRoute: typeof ReportsAccountsRoute
   ReportsExpensesRoute: typeof ReportsExpensesRoute
-  ReportsGstRoute: typeof ReportsGstRoute
   ReportsPartiesRoute: typeof ReportsPartiesRoute
   ReportsPurchasesRoute: typeof ReportsPurchasesRoute
   ReportsSalesRoute: typeof ReportsSalesRoute
@@ -1124,7 +1104,6 @@ interface ReportsRouteChildren {
 const ReportsRouteChildren: ReportsRouteChildren = {
   ReportsAccountsRoute: ReportsAccountsRoute,
   ReportsExpensesRoute: ReportsExpensesRoute,
-  ReportsGstRoute: ReportsGstRoute,
   ReportsPartiesRoute: ReportsPartiesRoute,
   ReportsPurchasesRoute: ReportsPurchasesRoute,
   ReportsSalesRoute: ReportsSalesRoute,

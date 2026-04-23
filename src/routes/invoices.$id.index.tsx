@@ -133,10 +133,6 @@ function InvoiceDetailsPage() {
     );
   }
 
-  const intraState =
-    !!invoice.businessState &&
-    !!invoice.partyState &&
-    invoice.businessState === invoice.partyState;
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const payStatus = paymentStatusOf(invoice);
   const editable = canEditInvoice(invoice);
@@ -416,14 +412,9 @@ function InvoiceDetailsPage() {
             </div>
           </section>
 
-          {/* Tax + totals */}
+          {/* Totals */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-base font-semibold">Tax breakdown</h2>
-            <p className="text-xs text-muted-foreground">
-              {intraState
-                ? "Same-state invoice — CGST + SGST applied."
-                : "Inter-state invoice — IGST applied."}
-            </p>
+            <h2 className="text-base font-semibold">Totals</h2>
             <Separator className="my-4" />
             <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               <Row label="Subtotal" value={formatCurrency(invoice.subtotal, currency)} />
@@ -441,19 +432,6 @@ function InvoiceDetailsPage() {
                   muted
                 />
               )}
-              <Row
-                label="Taxable value"
-                value={formatCurrency(invoice.taxableValue, currency)}
-              />
-              {intraState ? (
-                <>
-                  <Row label="CGST" value={formatCurrency(invoice.cgst, currency)} muted />
-                  <Row label="SGST" value={formatCurrency(invoice.sgst, currency)} muted />
-                </>
-              ) : (
-                <Row label="IGST" value={formatCurrency(invoice.igst, currency)} muted />
-              )}
-              <Row label="Tax total" value={formatCurrency(invoice.taxTotal, currency)} />
             </dl>
             <Separator className="my-4" />
             <div className="flex items-baseline justify-between">

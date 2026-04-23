@@ -98,7 +98,8 @@ export function computeTotals(args: {
   lines: InvoiceLine[];
   overallDiscountKind: DiscountKind;
   overallDiscountValue: number;
-  intraState: boolean;
+  /** @deprecated GST removed. Kept for backward compatibility; ignored. */
+  intraState?: boolean;
 }): InvoiceTotals {
   let subtotal = 0;
   let itemDiscountTotal = 0;
@@ -113,26 +114,13 @@ export function computeTotals(args: {
     args.overallDiscountKind === "percent"
       ? (lineTaxable * (args.overallDiscountValue || 0)) / 100
       : Math.min(args.overallDiscountValue || 0, lineTaxable);
-  const overallFactor = lineTaxable > 0 ? (lineTaxable - overallDiscountAmount) / lineTaxable : 0;
-
-  let cgst = 0;
-  let sgst = 0;
-  let igst = 0;
-  let taxableValue = 0;
-  for (const l of args.lines) {
-    const m = lineMath(l);
-    const adjTaxable = m.taxable * overallFactor;
-    taxableValue += adjTaxable;
-    const tax = (adjTaxable * (l.taxPercent || 0)) / 100;
-    if (args.intraState) {
-      cgst += tax / 2;
-      sgst += tax / 2;
-    } else {
-      igst += tax;
-    }
-  }
-  const taxTotal = cgst + sgst + igst;
-  const total = taxableValue + taxTotal;
+  // GST removed: tax is always zero. Total = taxable value (post-discount).
+  const taxableValue = Math.max(0, lineTaxable - overallDiscountAmount);
+  const cgst = 0;
+  const sgst = 0;
+  const igst = 0;
+  const taxTotal = 0;
+  const total = taxableValue;
   return {
     subtotal,
     itemDiscountTotal,

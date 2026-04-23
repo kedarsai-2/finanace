@@ -89,10 +89,6 @@ function PurchaseDetailsPage() {
     );
   }
 
-  const intraState =
-    !!purchase.businessState &&
-    !!purchase.partyState &&
-    purchase.businessState === purchase.partyState;
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
 
@@ -317,14 +313,9 @@ function PurchaseDetailsPage() {
             </div>
           </section>
 
-          {/* Tax + totals */}
+          {/* Totals */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-base font-semibold">Tax breakdown</h2>
-            <p className="text-xs text-muted-foreground">
-              {intraState
-                ? "Same-state purchase — Input CGST + SGST applied."
-                : "Inter-state purchase — Input IGST applied."}
-            </p>
+            <h2 className="text-base font-semibold">Totals</h2>
             <Separator className="my-4" />
             <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               <Row label="Subtotal" value={formatCurrency(purchase.subtotal, currency)} />
@@ -342,19 +333,6 @@ function PurchaseDetailsPage() {
                   muted
                 />
               )}
-              <Row
-                label="Taxable value"
-                value={formatCurrency(purchase.taxableValue, currency)}
-              />
-              {intraState ? (
-                <>
-                  <Row label="CGST (Input)" value={formatCurrency(purchase.cgst, currency)} muted />
-                  <Row label="SGST (Input)" value={formatCurrency(purchase.sgst, currency)} muted />
-                </>
-              ) : (
-                <Row label="IGST (Input)" value={formatCurrency(purchase.igst, currency)} muted />
-              )}
-              <Row label="Tax total" value={formatCurrency(purchase.taxTotal, currency)} />
             </dl>
             <Separator className="my-4" />
             <div className="flex items-baseline justify-between">

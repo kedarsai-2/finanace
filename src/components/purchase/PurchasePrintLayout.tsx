@@ -15,10 +15,6 @@ interface Props {
  * Print-friendly purchase / bill layout. A4, slate palette, theme-independent.
  */
 export function PurchasePrintLayout({ purchase, business, party }: Props) {
-  const intraState =
-    !!purchase.businessState &&
-    !!purchase.partyState &&
-    purchase.businessState === purchase.partyState;
   const currency = business?.currency ?? "INR";
 
   return (
@@ -136,12 +132,6 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
           <p className="mt-1 text-sm font-medium">
             {purchase.partyState ?? "—"}
           </p>
-          <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            GST type
-          </p>
-          <p className="mt-1 text-sm font-medium">
-            {intraState ? "Intra-state (CGST + SGST)" : "Inter-state (IGST)"}
-          </p>
         </div>
       </section>
 
@@ -156,7 +146,6 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
               <th className="w-14 px-2 py-2 text-left font-semibold">Unit</th>
               <th className="w-24 px-2 py-2 text-right font-semibold">Price</th>
               <th className="w-20 px-2 py-2 text-right font-semibold">Disc.</th>
-              <th className="w-14 px-2 py-2 text-right font-semibold">Tax %</th>
               <th className="w-28 px-2 py-2 text-right font-semibold">Total</th>
             </tr>
           </thead>
@@ -178,9 +167,6 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
                         ? `${line.discountValue}%`
                         : formatCurrency(line.discountValue, currency)
                       : "—"}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums">
-                    {line.taxPercent}%
                   </td>
                   <td className="px-2 py-2 text-right font-semibold tabular-nums">
                     {formatCurrency(m.total, currency)}
@@ -210,18 +196,6 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
               value={`− ${formatCurrency(purchase.overallDiscountAmount, currency)}`}
               muted
             />
-          )}
-          <SummaryRow
-            label="Taxable value"
-            value={formatCurrency(purchase.taxableValue, currency)}
-          />
-          {intraState ? (
-            <>
-              <SummaryRow label="CGST (Input)" value={formatCurrency(purchase.cgst, currency)} muted />
-              <SummaryRow label="SGST (Input)" value={formatCurrency(purchase.sgst, currency)} muted />
-            </>
-          ) : (
-            <SummaryRow label="IGST (Input)" value={formatCurrency(purchase.igst, currency)} muted />
           )}
           <div className="my-1 border-t border-slate-300" />
           <div className="flex items-baseline justify-between gap-6 bg-slate-900 px-3 py-2 text-white">

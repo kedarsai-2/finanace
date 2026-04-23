@@ -12,7 +12,7 @@ export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
       { title: "Reports — QOBOX" },
-      { name: "description", content: "Sales, purchase, expense, party, account and GST reports." },
+      { name: "description", content: "Sales, purchase, expense, party and account reports." },
     ],
   }),
   component: ReportsRouteLayout,
