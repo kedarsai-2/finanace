@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ type CashBalanceSnapshot = {
 
 function CashBalancePage() {
   const navigate = useNavigate();
-  const { activeId } = useBusinesses();
+  const { scopedBusinessId, isAll } = useBusinesses();
 
   const [opening, setOpening] = useState<number>(0);
   const [current, setCurrent] = useState<number | null>(null);
@@ -37,17 +37,17 @@ function CashBalancePage() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (!activeId) {
-        setHydrated(true);
-        setCurrent(null);
-        return;
-      }
       if (!USE_BACKEND) {
         setHydrated(true);
         setCurrent(null);
         return;
       }
-      const businessNumericId = Number(activeId);
+      if (isAll || !scopedBusinessId) {
+        setHydrated(true);
+        setCurrent(null);
+        return;
+      }
+      const businessNumericId = Number(scopedBusinessId);
       if (!Number.isFinite(businessNumericId)) {
         setHydrated(true);
         setCurrent(null);
@@ -72,12 +72,12 @@ function CashBalancePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeId]);
+  }, [scopedBusinessId, isAll]);
 
   const onSave = async () => {
-    if (!activeId) return toast.error("Select a business first");
+    if (isAll || !scopedBusinessId) return toast.error("Select a specific business first");
     if (!USE_BACKEND) return toast.success("Cash balance saved");
-    const businessNumericId = Number(activeId);
+    const businessNumericId = Number(scopedBusinessId);
     if (!Number.isFinite(businessNumericId)) {
       return toast.error("Invalid business id for cash balance");
     }

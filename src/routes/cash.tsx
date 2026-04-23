@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Banknote, Pencil, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,12 +40,12 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
 
 function CashPage() {
   const navigate = useNavigate();
-  const { businesses, activeId, hydrated: bHyd } = useBusinesses();
+  const { businesses, activeId, scopedBusinessId, isAll, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
-  const { accounts, hydrated } = useAccounts(activeId, businessIds);
-  const { payments } = usePayments(activeId);
-  const { transfers } = useTransfers(activeId);
-  const { expenses } = useExpenses(activeId);
+  const { accounts, hydrated } = useAccounts(scopedBusinessId, businessIds);
+  const { payments } = usePayments(scopedBusinessId);
+  const { transfers } = useTransfers(scopedBusinessId);
+  const { expenses } = useExpenses(scopedBusinessId);
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
@@ -90,13 +91,30 @@ function CashPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Cash</h1>
         </div>
-        <Button className="gap-2" onClick={() => navigate({ to: "/cash/balance" })}>
+        <Button
+          className="gap-2"
+          onClick={() => {
+            if (isAll || !scopedBusinessId) {
+              toast.error("Select a specific business to edit cash balance");
+              return;
+            }
+            navigate({ to: "/cash/balance" });
+          }}
+        >
           <Pencil className="h-4 w-4" /> Edit cash balance
         </Button>
       </header>
 
       {cashAccounts.length === 0 ? (
-        <EmptyCashState onSetBalance={() => navigate({ to: "/cash/balance" })} />
+        <EmptyCashState
+          onSetBalance={() => {
+            if (isAll || !scopedBusinessId) {
+              toast.error("Select a specific business to set cash balance");
+              return;
+            }
+            navigate({ to: "/cash/balance" });
+          }}
+        />
       ) : (
         <>
           {/* Balance summary */}

@@ -65,11 +65,18 @@ export function useBusinesses() {
   }, []);
 
   useEffect(() => {
-    if (!USE_BACKEND || !token) {
+    if (!USE_BACKEND) {
       const list = read();
       setBusinesses(list);
       const stored = typeof window !== "undefined" ? localStorage.getItem(ACTIVE_KEY) : null;
       setActiveId(stored ?? list[0]?.id ?? null);
+      setHydrated(true);
+      return;
+    }
+    if (!token) {
+      // Backend mode without auth should never fallback to local seed data.
+      setBusinesses([]);
+      setActiveId(null);
       setHydrated(true);
       return;
     }
@@ -107,11 +114,9 @@ export function useBusinesses() {
         const stored = typeof window !== "undefined" ? localStorage.getItem(API_ACTIVE_KEY) : null;
         setActiveId(stored ?? mapped[0]?.id ?? null);
       } catch {
-        // Fallback to local storage seed if backend is unreachable.
-        const list = read();
-        setBusinesses(list);
-        const stored = typeof window !== "undefined" ? localStorage.getItem(ACTIVE_KEY) : null;
-        setActiveId(stored ?? list[0]?.id ?? null);
+        // Backend mode should fail closed (empty state), not show local seed data.
+        setBusinesses([]);
+        setActiveId(null);
       } finally {
         setHydrated(true);
       }

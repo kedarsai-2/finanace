@@ -124,8 +124,8 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
+    if (USE_BACKEND) {
+      setAccounts([]);
       setHydrated(true);
       return;
     }
@@ -143,14 +143,17 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
 
   useEffect(() => {
     if (!hydrated) return;
-    const token = getJwt();
-    if (USE_BACKEND && token) return;
+    if (USE_BACKEND) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
   }, [accounts, hydrated]);
 
   useEffect(() => {
+    if (!USE_BACKEND) return;
     const token = getJwt();
-    if (!USE_BACKEND || !token) return;
+    if (!token) {
+      setAccounts([]);
+      return;
+    }
     const biz = businessId ? parseInt(businessId, 10) : NaN;
     if (!businessId || isNaN(biz)) {
       setAccounts([]);
@@ -172,7 +175,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     return () => {
       cancelled = true;
     };
-  }, [businessId]);
+  }, [businessId, hydrated]);
 
   const accountsRef = useRef<Account[]>(accounts);
   useEffect(() => {
