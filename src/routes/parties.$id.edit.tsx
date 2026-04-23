@@ -4,7 +4,7 @@ import { PartyForm } from "@/components/party/PartyForm";
 export const Route = createFileRoute("/parties/$id/edit")({
   head: () => ({
     meta: [
-      { title: "Edit Party — Customers & Suppliers" },
+      { title: "Edit Party" },
       { name: "description", content: "Update party details, tax info, credit settings and opening balance." },
     ],
   }),
