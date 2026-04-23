@@ -1,4 +1,4 @@
-export type PaymentMode = "cash" | "bank" | "upi" | "cheque";
+export type PaymentMode = "cash" | "bank" | "cheque";
 export type PaymentDirection = "in" | "out";
 
 export interface Payment {
@@ -35,7 +35,6 @@ export interface PaymentAllocation {
 export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = {
   cash: "Cash",
   bank: "Bank",
-  upi: "UPI",
   cheque: "Cheque",
 };
 
