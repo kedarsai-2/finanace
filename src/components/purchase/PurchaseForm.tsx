@@ -228,6 +228,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       ...totals,
       paidAmount: existing?.paidAmount ?? 0,
       status,
+      proofDataUrl,
+      proofName,
       deleted: existing?.deleted,
       notes: notes.trim() || undefined,
       terms: termsText.trim() || undefined,
@@ -245,6 +247,10 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     const err = validate();
     if (err) {
       toast.error(err);
+      return;
+    }
+    if (status === "final" && !proofDataUrl) {
+      toast.error("Upload a bill / proof image before finalising");
       return;
     }
     setSubmitting(true);
@@ -672,6 +678,26 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               />
             </div>
           </div>
+        </FormSection>
+
+        {/* 6. Proof --------------------------------------------------------- */}
+        <FormSection
+          step={6}
+          title="Bill / Proof"
+          description="Upload a photo or scan of the supplier bill. Required to finalise the purchase."
+        >
+          <ProofUpload
+            id="pur-proof"
+            label="Bill image"
+            required
+            proofDataUrl={proofDataUrl}
+            proofName={proofName}
+            disabled={locked}
+            onChange={(p) => {
+              setProofDataUrl(p.proofDataUrl);
+              setProofName(p.proofName);
+            }}
+          />
         </FormSection>
 
         {/* Mobile actions */}
