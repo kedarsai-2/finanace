@@ -72,7 +72,7 @@ function PartiesRouteLayout() {
 
 function PartiesPage() {
   const navigate = useNavigate({ from: "/parties" });
-  const { q, type } = Route.useSearch();
+  const { q } = Route.useSearch();
   const { activeId, businesses } = useBusinesses();
   const { parties, hydrated, remove } = useParties(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
@@ -99,13 +99,12 @@ function PartiesPage() {
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
     return parties.filter((p) => {
-      if (type !== "all" && p.type !== type) return false;
       if (!term) return true;
       return (
         p.name.toLowerCase().includes(term) || p.mobile.includes(term)
       );
     });
-  }, [parties, q, type]);
+  }, [parties, q]);
 
   const totals = useMemo(() => {
     let receivable = 0;
@@ -119,8 +118,6 @@ function PartiesPage() {
 
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
-  const setType = (next: Filter) =>
-    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, type: next }) });
 
   const confirmDelete = () => {
     if (!deleting) return;
@@ -142,7 +139,7 @@ function PartiesPage() {
               <h1 className="mt-1 text-3xl font-bold tracking-tight">Parties</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {hydrated
-                  ? `${totals.count} ${totals.count === 1 ? "party" : "parties"} • Customers, suppliers & balances`
+                  ? `${totals.count} ${totals.count === 1 ? "party" : "parties"} • Track receivables & payables`
                   : "Loading…"}
               </p>
             </div>
@@ -185,22 +182,6 @@ function PartiesPage() {
                 placeholder="Search by name or mobile…"
                 className="h-11 pl-10"
               />
-            </div>
-            <div className="flex flex-wrap gap-1.5 rounded-xl border border-border bg-card p-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setType(f)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors",
-                    type === f
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {f === "all" ? "All" : TYPE_LABEL[f as PartyType] + "s"}
-                </button>
-              ))}
             </div>
           </div>
         </div>
