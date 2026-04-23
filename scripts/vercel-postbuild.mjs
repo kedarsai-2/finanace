@@ -31,9 +31,7 @@ for (const chunk of Object.values(manifest)) {
   (chunk?.css ?? []).forEach((f) => allCss.add(`/${f}`));
 }
 
-const cssLinks = [...allCss]
-  .map((href) => `  <link rel="stylesheet" href="${href}"/>`)
-  .join("\n");
+const cssLinks = [...allCss].map((href) => `  <link rel="stylesheet" href="${href}"/>`).join("\n");
 
 // ------------------------------------------------------------------
 // 2. TanStack Router hydrate() expects window.$_TSR to exist.
@@ -77,4 +75,3 @@ ${tsrBootstrap}
 
 await writeFile(resolve(projectRoot, "dist/client/index.html"), spaHtml);
 console.log("Generated dist/client/index.html (" + spaHtml.length + " bytes)");
-
