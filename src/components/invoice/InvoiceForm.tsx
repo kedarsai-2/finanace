@@ -298,7 +298,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       partyId,
       partyName: party?.name ?? "",
       partyState: party?.state,
-      businessState,
+      businessState: activeBusiness?.state,
       lines,
       overallDiscountKind,
       overallDiscountValue,
