@@ -68,6 +68,14 @@ function NewPaymentPage() {
   const { parties } = useParties(activeId);
   const { accounts, hydrated: accountsHydrated } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
+  const bankAccounts = useMemo(
+    () => safeAccounts.filter((a) => a.type === "bank"),
+    [safeAccounts],
+  );
+  const cashAccountId = useMemo(
+    () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
+    [safeAccounts],
+  );
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);
   const { purchases, upsert: upsertPurchase } = usePurchases(activeId);
   const { create: createPayment } = usePayments(activeId);
@@ -75,6 +83,7 @@ function NewPaymentPage() {
   const [direction, setDirection] = useState<PaymentDirection>("in");
   const [partyId, setPartyId] = useState<string>("");
   const [accountId, setAccountId] = useState<string>("");
+  const [mode, setMode] = useState<import("@/types/payment").PaymentMode>("cash");
   const [amount, setAmount] = useState<number>(0);
   const [date, setDate] = useState<Date>(new Date());
   const [reference, setReference] = useState("");
@@ -83,15 +92,22 @@ function NewPaymentPage() {
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const firstAccountId = safeAccounts[0]?.id ?? "";
+  const firstAccountId = bankAccounts[0]?.id ?? "";
   useEffect(() => {
     if (!accountsHydrated || accountId) return;
-    if (firstAccountId) setAccountId(firstAccountId);
+    if (mode !== "cash" && firstAccountId) setAccountId(firstAccountId);
   }, [accountsHydrated, firstAccountId, accountId]);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
-  const mode: import("@/types/payment").PaymentMode =
-    selectedAccount?.type ?? "bank";
+
+  useEffect(() => {
+    if (mode === "cash") {
+      setAccountId("");
+      return;
+    }
+    if (!accountId && firstAccountId) setAccountId(firstAccountId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // All parties are eligible — direction is now derived from doc allocations only.
   const filteredParties = parties;
@@ -205,7 +221,9 @@ function NewPaymentPage() {
 
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (!accountId) return "Select an account";
+    if (mode === "cash" && !cashAccountId)
+      return "Set cash balance first (Cash tab → Edit cash balance)";
+    if (mode !== "cash" && !accountId) return "Select a bank account";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (partyId && rows.length > 0 && unallocated > 0.01) {
       // Allow advance if user explicitly unchecks all rows.
@@ -242,8 +260,8 @@ function NewPaymentPage() {
         date: date.toISOString(),
         amount,
         mode,
-        accountId,
-        account: selectedAccount?.name,
+        accountId: mode === "cash" ? cashAccountId : accountId,
+        account: mode === "cash" ? "Cash" : selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
         allocations,
@@ -414,36 +432,54 @@ function NewPaymentPage() {
               </Popover>
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="account">Account *</Label>
-              {safeAccounts.length === 0 ? (
+              <Label htmlFor="mode">Payment mode</Label>
+              <Select
+                value={mode}
+                onValueChange={(v) => setMode(v as import("@/types/payment").PaymentMode)}
+              >
+                <SelectTrigger id="mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(
+                    Object.keys(PAYMENT_MODE_LABEL) as Array<
+                      import("@/types/payment").PaymentMode
+                    >
+                  ).map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {PAYMENT_MODE_LABEL[m]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="account">Bank account {mode === "cash" ? "" : "*"}</Label>
+              {mode === "cash" ? (
+                <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
+                  Uses Cash balance (no bank account)
+                </div>
+              ) : bankAccounts.length === 0 ? (
                 <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  No accounts yet.{" "}
+                  No bank accounts yet.{" "}
                   <Link to="/accounts/new" className="font-medium text-primary underline">
-                    Add an account
+                    Add a bank account
                   </Link>{" "}
                   first.
                 </p>
               ) : (
-                <Select
-                  value={accountId || undefined}
-                  onValueChange={(v) => setAccountId(v)}
-                >
+                <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v)}>
                   <SelectTrigger id="account">
-                    <SelectValue placeholder="Select account" />
+                    <SelectValue placeholder="Select bank account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {safeAccounts.map((a) => (
+                    {bankAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-              {selectedAccount && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Mode auto-set to {PAYMENT_MODE_LABEL[mode]}
-                </p>
               )}
             </div>
             <div>

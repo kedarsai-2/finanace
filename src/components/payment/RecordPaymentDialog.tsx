@@ -77,6 +77,14 @@ export function RecordPaymentDialog({
   const { create: createPayment } = usePayments(businessId);
   const { accounts, hydrated: accountsHydrated } = useAccounts(businessId);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
+  const bankAccounts = useMemo(
+    () => safeAccounts.filter((a) => a.type === "bank"),
+    [safeAccounts],
+  );
+  const cashAccountId = useMemo(
+    () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
+    [safeAccounts],
+  );
 
   // ---------- Open invoices for this party (oldest first) -----------------
   const openInvoices = useMemo(() => {
@@ -98,6 +106,7 @@ export function RecordPaymentDialog({
   // ---------- Form state --------------------------------------------------
   const [date, setDate] = useState<Date>(new Date());
   const [accountId, setAccountId] = useState<string>("");
+  const [mode, setMode] = useState<PaymentMode>("cash");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [amount, setAmount] = useState<number>(0);
@@ -108,14 +117,13 @@ export function RecordPaymentDialog({
   const [proofName, setProofName] = useState<string | undefined>(undefined);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
-  const mode: PaymentMode = selectedAccount?.type ?? "bank";
-  const firstAccountId = safeAccounts[0]?.id ?? "";
+  const firstAccountId = bankAccounts[0]?.id ?? "";
 
   // Reset whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setDate(new Date());
-    setAccountId(firstAccountId);
+    if (mode !== "cash") setAccountId(firstAccountId);
     setReference("");
     setNotes("");
     setAutoAllocate(true);
@@ -150,8 +158,17 @@ export function RecordPaymentDialog({
   // Default account after accounts hydrate (reset effect often runs before accounts load).
   useEffect(() => {
     if (!open || !accountsHydrated) return;
-    setAccountId((id) => (id ? id : firstAccountId));
+    if (mode !== "cash") setAccountId((id) => (id ? id : firstAccountId));
   }, [open, accountsHydrated, firstAccountId]);
+
+  useEffect(() => {
+    if (mode === "cash") {
+      setAccountId("");
+      return;
+    }
+    if (!accountId && firstAccountId) setAccountId(firstAccountId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // ---------- Auto-allocation --------------------------------------------
   // Allocate `amount` across selected rows in order (oldest first).
@@ -228,7 +245,9 @@ export function RecordPaymentDialog({
   // ---------- Submit ------------------------------------------------------
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (!accountId) return "Select an account";
+    if (mode === "cash" && !cashAccountId)
+      return "Set cash balance first (Cash tab → Edit cash balance)";
+    if (mode !== "cash" && !accountId) return "Select a bank account";
     if (mode !== "cash" && !proofDataUrl)
       return `Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} payment`;
     if (amount - totalOutstanding > 0.01)
@@ -264,8 +283,8 @@ export function RecordPaymentDialog({
         date: date.toISOString(),
         amount,
         mode,
-        accountId,
-        account: selectedAccount?.name,
+        accountId: mode === "cash" ? cashAccountId : accountId,
+        account: mode === "cash" ? "Cash" : selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
         proofDataUrl,
@@ -371,26 +390,42 @@ export function RecordPaymentDialog({
                   </PopoverContent>
                 </Popover>
               </div>
+              <div>
+                <Label htmlFor="mode">Payment mode</Label>
+                <Select value={mode} onValueChange={(v) => setMode(v as PaymentMode)}>
+                  <SelectTrigger id="mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PAYMENT_MODE_LABEL) as PaymentMode[]).map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {PAYMENT_MODE_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="sm:col-span-2">
-                <Label htmlFor="account">Account *</Label>
-                {safeAccounts.length === 0 ? (
+                <Label htmlFor="account">Bank account {mode === "cash" ? "" : "*"}</Label>
+                {mode === "cash" ? (
+                  <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
+                    Uses Cash balance (no bank account)
+                  </div>
+                ) : bankAccounts.length === 0 ? (
                   <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    No accounts yet.{" "}
+                    No bank accounts yet.{" "}
                     <a href="/accounts/new" className="font-medium text-primary underline">
-                      Add an account
+                      Add a bank account
                     </a>{" "}
                     first.
                   </p>
                 ) : (
-                  <Select
-                    value={accountId || undefined}
-                    onValueChange={(v) => setAccountId(v)}
-                  >
+                  <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v)}>
                     <SelectTrigger id="account">
-                      <SelectValue placeholder="Select account" />
+                      <SelectValue placeholder="Select bank account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {safeAccounts.map((a) => (
+                      {bankAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.name}{" "}
                           <span className="text-xs text-muted-foreground">
@@ -400,11 +435,6 @@ export function RecordPaymentDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-                {selectedAccount && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Mode auto-set to {PAYMENT_MODE_LABEL[mode]}
-                  </p>
                 )}
               </div>
               <div className="sm:col-span-2">
