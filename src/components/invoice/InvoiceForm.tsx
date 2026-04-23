@@ -54,7 +54,6 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useAccounts } from "@/hooks/useAccounts";
-import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
 import {
   computeTotals,
@@ -107,7 +106,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
   const { accounts } = useAccounts(activeId);
-  const { create: createPayment } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -328,29 +326,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     try {
       const inv = buildInvoice(status);
       await upsert(inv);
-      // Persist payment splits as Payment records (only for new payments
-      // captured in this form session — `payments` is reset after save).
-      for (const s of payments) {
-        try {
-          await createPayment({
-            businessId: inv.businessId,
-            partyId: inv.partyId,
-            direction: "in",
-            date: inv.date,
-            amount: s.amount,
-            mode: s.mode,
-            accountId: s.accountId,
-            reference: s.reference,
-            notes: s.notes,
-            proofDataUrl: s.proofDataUrl,
-            allocations: [
-              { docId: inv.id, docNumber: inv.number, amount: s.amount },
-            ],
-          });
-        } catch (e) {
-          console.error("Failed to record payment split", e);
-        }
-      }
       toast.success(
         status === "final"
           ? `Invoice ${inv.number} finalised`
