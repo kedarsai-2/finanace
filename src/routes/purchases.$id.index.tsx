@@ -89,10 +89,6 @@ function PurchaseDetailsPage() {
     );
   }
 
-  const intraState =
-    !!purchase.businessState &&
-    !!purchase.partyState &&
-    purchase.businessState === purchase.partyState;
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
 

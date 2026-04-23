@@ -133,10 +133,6 @@ function InvoiceDetailsPage() {
     );
   }
 
-  const intraState =
-    !!invoice.businessState &&
-    !!invoice.partyState &&
-    invoice.businessState === invoice.partyState;
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const payStatus = paymentStatusOf(invoice);
   const editable = canEditInvoice(invoice);

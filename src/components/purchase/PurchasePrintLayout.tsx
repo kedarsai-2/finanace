@@ -15,10 +15,6 @@ interface Props {
  * Print-friendly purchase / bill layout. A4, slate palette, theme-independent.
  */
 export function PurchasePrintLayout({ purchase, business, party }: Props) {
-  const intraState =
-    !!purchase.businessState &&
-    !!purchase.partyState &&
-    purchase.businessState === purchase.partyState;
   const currency = business?.currency ?? "INR";
 
   return (

@@ -20,10 +20,6 @@ interface Props {
  * users get a clean print preview.
  */
 export function InvoicePrintLayout({ invoice, business, party }: Props) {
-  const intraState =
-    !!invoice.businessState &&
-    !!invoice.partyState &&
-    invoice.businessState === invoice.partyState;
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
 
