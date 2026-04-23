@@ -1,6 +1,7 @@
 package com.finance.app.repository;
 
 import com.finance.app.domain.Account;
+import com.finance.app.domain.enumeration.AccountType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -37,4 +38,9 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     @Query("select account from Account account left join fetch account.business where account.id =:id")
     Optional<Account> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Query(
+        "select account from Account account where account.business.id = :businessId and account.type = :type and (account.deleted is null or account.deleted = false)"
+    )
+    Optional<Account> findActiveByBusinessIdAndType(@Param("businessId") Long businessId, @Param("type") AccountType type);
 }

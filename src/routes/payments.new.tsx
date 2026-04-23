@@ -69,10 +69,6 @@ function NewPaymentPage() {
   const { accounts, hydrated: accountsHydrated } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
-  const cashAccountId = useMemo(
-    () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
-    [safeAccounts],
-  );
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);
   const { purchases, upsert: upsertPurchase } = usePurchases(activeId);
   const { create: createPayment } = usePayments(activeId);
@@ -93,7 +89,7 @@ function NewPaymentPage() {
   useEffect(() => {
     if (!accountsHydrated || accountId) return;
     if (mode !== "cash" && firstAccountId) setAccountId(firstAccountId);
-  }, [accountsHydrated, firstAccountId, accountId]);
+  }, [accountsHydrated, firstAccountId, accountId, mode]);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
 
@@ -212,8 +208,6 @@ function NewPaymentPage() {
 
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (mode === "cash" && !cashAccountId)
-      return "Set cash balance first (Cash tab → Edit cash balance)";
     if (mode !== "cash" && !accountId) return "Select a bank account";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (partyId && rows.length > 0 && unallocated > 0.01) {
@@ -251,7 +245,7 @@ function NewPaymentPage() {
         date: date.toISOString(),
         amount,
         mode,
-        accountId: mode === "cash" ? cashAccountId : accountId,
+        accountId: mode === "cash" ? undefined : accountId,
         account: mode === "cash" ? "Cash" : selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,

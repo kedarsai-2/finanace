@@ -1,6 +1,7 @@
 package com.finance.app.service;
 
 import com.finance.app.domain.Payment;
+import com.finance.app.domain.enumeration.PaymentMode;
 import com.finance.app.repository.PaymentRepository;
 import com.finance.app.service.dto.PaymentDTO;
 import com.finance.app.service.mapper.PaymentMapper;
@@ -25,9 +26,12 @@ public class PaymentService {
 
     private final PaymentMapper paymentMapper;
 
-    public PaymentService(PaymentRepository paymentRepository, PaymentMapper paymentMapper) {
+    private final CashLedgerAccountService cashLedgerAccountService;
+
+    public PaymentService(PaymentRepository paymentRepository, PaymentMapper paymentMapper, CashLedgerAccountService cashLedgerAccountService) {
         this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
+        this.cashLedgerAccountService = cashLedgerAccountService;
     }
 
     /**
@@ -39,6 +43,9 @@ public class PaymentService {
     public PaymentDTO save(PaymentDTO paymentDTO) {
         LOG.debug("Request to save Payment : {}", paymentDTO);
         Payment payment = paymentMapper.toEntity(paymentDTO);
+        if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
+            payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
+        }
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
     }
@@ -52,6 +59,9 @@ public class PaymentService {
     public PaymentDTO update(PaymentDTO paymentDTO) {
         LOG.debug("Request to update Payment : {}", paymentDTO);
         Payment payment = paymentMapper.toEntity(paymentDTO);
+        if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
+            payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
+        }
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
     }
@@ -69,6 +79,13 @@ public class PaymentService {
             .findById(paymentDTO.getId())
             .map(existingPayment -> {
                 paymentMapper.partialUpdate(existingPayment, paymentDTO);
+                if (
+                    existingPayment.getMode() == PaymentMode.CASH &&
+                    existingPayment.getAccount() == null &&
+                    existingPayment.getBusiness() != null
+                ) {
+                    existingPayment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(existingPayment.getBusiness().getId()));
+                }
 
                 return existingPayment;
             })

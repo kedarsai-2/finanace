@@ -1,6 +1,7 @@
 package com.finance.app.service;
 
 import com.finance.app.domain.Expense;
+import com.finance.app.domain.enumeration.PaymentMode;
 import com.finance.app.repository.ExpenseRepository;
 import com.finance.app.service.dto.ExpenseDTO;
 import com.finance.app.service.mapper.ExpenseMapper;
@@ -25,9 +26,12 @@ public class ExpenseService {
 
     private final ExpenseMapper expenseMapper;
 
-    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper) {
+    private final CashLedgerAccountService cashLedgerAccountService;
+
+    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper, CashLedgerAccountService cashLedgerAccountService) {
         this.expenseRepository = expenseRepository;
         this.expenseMapper = expenseMapper;
+        this.cashLedgerAccountService = cashLedgerAccountService;
     }
 
     /**
@@ -39,6 +43,9 @@ public class ExpenseService {
     public ExpenseDTO save(ExpenseDTO expenseDTO) {
         LOG.debug("Request to save Expense : {}", expenseDTO);
         Expense expense = expenseMapper.toEntity(expenseDTO);
+        if (expense.getMode() == PaymentMode.CASH && expense.getAccount() == null && expense.getBusiness() != null) {
+            expense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(expense.getBusiness().getId()));
+        }
         expense = expenseRepository.save(expense);
         return expenseMapper.toDto(expense);
     }
@@ -52,6 +59,9 @@ public class ExpenseService {
     public ExpenseDTO update(ExpenseDTO expenseDTO) {
         LOG.debug("Request to update Expense : {}", expenseDTO);
         Expense expense = expenseMapper.toEntity(expenseDTO);
+        if (expense.getMode() == PaymentMode.CASH && expense.getAccount() == null && expense.getBusiness() != null) {
+            expense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(expense.getBusiness().getId()));
+        }
         expense = expenseRepository.save(expense);
         return expenseMapper.toDto(expense);
     }
@@ -69,6 +79,13 @@ public class ExpenseService {
             .findById(expenseDTO.getId())
             .map(existingExpense -> {
                 expenseMapper.partialUpdate(existingExpense, expenseDTO);
+                if (
+                    existingExpense.getMode() == PaymentMode.CASH &&
+                    existingExpense.getAccount() == null &&
+                    existingExpense.getBusiness() != null
+                ) {
+                    existingExpense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(existingExpense.getBusiness().getId()));
+                }
 
                 return existingExpense;
             })

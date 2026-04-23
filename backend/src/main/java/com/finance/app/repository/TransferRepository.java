@@ -1,6 +1,7 @@
 package com.finance.app.repository;
 
 import com.finance.app.domain.Transfer;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -41,4 +42,10 @@ public interface TransferRepository extends JpaRepository<Transfer, Long>, JpaSp
         "select transfer from Transfer transfer left join fetch transfer.business left join fetch transfer.fromAccount left join fetch transfer.toAccount where transfer.id =:id"
     )
     Optional<Transfer> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Query("select coalesce(sum(transfer.amount), 0) from Transfer transfer where transfer.toAccount.id = :accountId")
+    BigDecimal sumIncomingByAccountId(@Param("accountId") Long accountId);
+
+    @Query("select coalesce(sum(transfer.amount), 0) from Transfer transfer where transfer.fromAccount.id = :accountId")
+    BigDecimal sumOutgoingByAccountId(@Param("accountId") Long accountId);
 }

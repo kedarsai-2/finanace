@@ -78,10 +78,6 @@ export function RecordPaymentDialog({
   const { accounts, hydrated: accountsHydrated } = useAccounts(businessId);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
-  const cashAccountId = useMemo(
-    () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
-    [safeAccounts],
-  );
 
   // ---------- Open invoices for this party (oldest first) -----------------
   const openInvoices = useMemo(() => {
@@ -114,7 +110,7 @@ export function RecordPaymentDialog({
   useEffect(() => {
     if (!open) return;
     setDate(new Date());
-    if (mode !== "cash") setAccountId(firstAccountId);
+    setAccountId(firstAccountId);
     setReference("");
     setNotes("");
     setAutoAllocate(true);
@@ -148,7 +144,7 @@ export function RecordPaymentDialog({
   useEffect(() => {
     if (!open || !accountsHydrated) return;
     if (mode !== "cash") setAccountId((id) => (id ? id : firstAccountId));
-  }, [open, accountsHydrated, firstAccountId]);
+  }, [open, accountsHydrated, firstAccountId, mode]);
 
   useEffect(() => {
     if (mode === "cash") {
@@ -232,8 +228,6 @@ export function RecordPaymentDialog({
   // ---------- Submit ------------------------------------------------------
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (mode === "cash" && !cashAccountId)
-      return "Set cash balance first (Cash tab → Edit cash balance)";
     if (mode !== "cash" && !accountId) return "Select a bank account";
     if (mode !== "cash" && !proofDataUrl)
       return `Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} payment`;
@@ -270,7 +264,7 @@ export function RecordPaymentDialog({
         date: date.toISOString(),
         amount,
         mode,
-        accountId: mode === "cash" ? cashAccountId : accountId,
+        accountId: mode === "cash" ? undefined : accountId,
         account: mode === "cash" ? "Cash" : selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
-import { useAccounts } from "@/hooks/useAccounts";
+import { apiFetch } from "@/lib/api";
 
 export const Route = createFileRoute("/cash/balance")({
   head: () => ({
@@ -17,33 +17,63 @@ export const Route = createFileRoute("/cash/balance")({
   component: CashBalancePage,
 });
 
+type CashBalanceSnapshot = {
+  businessId: number;
+  cashAccountId: number;
+  openingBalance: number;
+  currentBalance: number;
+};
+
 function CashBalancePage() {
   const navigate = useNavigate();
   const { activeId } = useBusinesses();
-  const { accounts, hydrated, upsert } = useAccounts(activeId, activeId ? [activeId] : []);
-
-  const cash = useMemo(() => accounts.find((a) => a.type === "cash"), [accounts]);
 
   const [opening, setOpening] = useState<number>(0);
+  const [current, setCurrent] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!hydrated) return;
-    setOpening(cash?.openingBalance ?? 0);
-  }, [hydrated, cash?.openingBalance]);
+    let cancelled = false;
+    const run = async () => {
+      if (!activeId) {
+        setHydrated(true);
+        setCurrent(null);
+        return;
+      }
+      try {
+        const snap = await apiFetch<CashBalanceSnapshot>(
+          `/api/cash-balance?businessId=${encodeURIComponent(activeId)}`,
+        );
+        if (cancelled) return;
+        setOpening(Number(snap.openingBalance) || 0);
+        setCurrent(Number(snap.currentBalance) || 0);
+      } catch {
+        if (cancelled) return;
+        setCurrent(null);
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    };
+    setHydrated(false);
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId]);
 
   const onSave = async () => {
     if (!activeId) return toast.error("Select a business first");
     setSaving(true);
     try {
-      await upsert({
-        id: cash?.id ?? "",
-        businessId: activeId,
-        name: cash?.name ?? "Cash",
-        type: "cash",
-        openingBalance: Number(opening) || 0,
-        createdAt: cash?.createdAt ?? new Date().toISOString(),
+      const snap = await apiFetch<CashBalanceSnapshot>("/api/cash-balance", {
+        method: "PUT",
+        body: JSON.stringify({
+          businessId: Number(activeId),
+          openingBalance: Number(opening) || 0,
+        }),
       });
+      setCurrent(Number(snap.currentBalance) || 0);
       toast.success("Cash balance updated");
       navigate({ to: "/cash" });
     } finally {
@@ -74,6 +104,12 @@ function CashBalancePage() {
         <div className="rounded-xl border border-border bg-card p-6">Loading…</div>
       ) : (
         <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">Current cash balance</div>
+            <div className="text-right tabular-nums">
+              {current === null ? "—" : current.toFixed(2)}
+            </div>
+          </div>
           <div>
             <Label htmlFor="cash-opening">Starting cash balance</Label>
             <Input

@@ -1,6 +1,7 @@
 package com.finance.app.repository;
 
 import com.finance.app.domain.Expense;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -41,4 +42,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
         "select expense from Expense expense left join fetch expense.business left join fetch expense.party left join fetch expense.account where expense.id =:id"
     )
     Optional<Expense> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Query(
+        "select coalesce(sum(expense.amount), 0) from Expense expense where expense.account.id = :accountId and (expense.deleted is null or expense.deleted = false)"
+    )
+    BigDecimal sumAmountByAccountId(@Param("accountId") Long accountId);
 }
