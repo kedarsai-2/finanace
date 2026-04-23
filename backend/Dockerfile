@@ -13,6 +13,8 @@ WORKDIR /workspace
 
 # Cache deps first
 COPY pom.xml ./
+# Needed by properties-maven-plugin during initialize phase
+COPY sonar-project.properties ./
 RUN mvn -q -DskipTests dependency:go-offline
 
 # Build
