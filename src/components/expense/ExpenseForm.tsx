@@ -37,7 +37,7 @@ import type { Expense } from "@/types/expense";
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
 function modeFromAccountType(t: AccountType): PaymentMode {
-  return t === "bank" ? "bank" : t === "upi" ? "upi" : "cash";
+  return t === "bank" ? "bank" : "cash";
 }
 
 interface ExpenseFormProps {
@@ -313,7 +313,7 @@ export function ExpenseForm({
 
           <Section
             title="Proof"
-            description="Bill, receipt or transfer screenshot. Required for Bank, UPI and Cheque modes."
+            description="Bill, receipt or transfer screenshot. Required for Bank and Cheque modes."
           >
             <ProofUpload
               id="exp-proof"

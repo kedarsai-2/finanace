@@ -158,18 +158,6 @@ export function AccountForm({ account, mode }: Props) {
             </>
           )}
 
-          {type === "upi" && (
-            <div className="sm:col-span-2">
-              <Label htmlFor="upi">UPI ID</Label>
-              <Input
-                id="upi"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="name@bank"
-              />
-            </div>
-          )}
-
           <div className="sm:col-span-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea

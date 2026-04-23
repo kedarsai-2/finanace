@@ -1,9 +1,8 @@
-export type AccountType = "cash" | "bank" | "upi";
+export type AccountType = "cash" | "bank";
 
 export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {
   cash: "Cash",
   bank: "Bank",
-  upi: "UPI",
 };
 
 export interface Account {
@@ -15,7 +14,7 @@ export interface Account {
   /** Optional bank-only details. */
   accountNumber?: string;
   ifsc?: string;
-  /** UPI VPA, optional. */
+  /** Legacy field — UPI accounts have been removed. Kept for back-compat reads. */
   upiId?: string;
   notes?: string;
   /** Soft delete. */
@@ -63,5 +62,4 @@ export interface Transfer {
 export const DEFAULT_ACCOUNT_SEEDS: Array<Pick<Account, "name" | "type" | "openingBalance">> = [
   { name: "Cash", type: "cash", openingBalance: 0 },
   { name: "Bank", type: "bank", openingBalance: 0 },
-  { name: "UPI", type: "upi", openingBalance: 0 },
 ];
