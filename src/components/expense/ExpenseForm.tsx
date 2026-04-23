@@ -241,11 +241,11 @@ export function ExpenseForm({
         <>
           <Section
             title="Party (optional)"
-            description="Link this expense to a supplier for reporting. Does not affect party ledger."
+            description="Link this expense to a party for reporting. Does not affect party ledger."
           >
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-[240px] flex-1">
-                <Label htmlFor="exp-party">Supplier</Label>
+                <Label htmlFor="exp-party">Party</Label>
                 <Select
                   value={partyId || "__none"}
                   onValueChange={(v) => setPartyId(v === "__none" ? "" : v)}
