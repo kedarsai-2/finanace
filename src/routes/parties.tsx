@@ -266,9 +266,8 @@ function PartiesTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:grid">
+      <div className="hidden grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:grid">
         <span>Party name</span>
-        <span>Type</span>
         <span>Mobile</span>
         <span>Dates</span>
         <span className="text-right">Balance</span>
@@ -283,7 +282,7 @@ function PartiesTable({
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] md:items-center"
+              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] md:items-center"
             >
               <Link
                 to="/parties/$id"
@@ -311,15 +310,6 @@ function PartiesTable({
                   )}
                 </div>
               </Link>
-
-              <span
-                className={cn(
-                  "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium",
-                  TYPE_BADGE[p.type],
-                )}
-              >
-                {TYPE_LABEL[p.type]}
-              </span>
 
               <span className="font-mono text-sm text-muted-foreground">
                 {p.mobile || "—"}
