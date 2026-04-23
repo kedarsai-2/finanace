@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Banknote, Pencil, ArrowRight } from "lucide-react";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/cash")({
       },
     ],
   }),
-  component: CashPage,
+  component: CashRouteLayout,
 });
 
 const KIND_LABEL: Record<AccountTxnKind, string> = {
@@ -37,6 +37,12 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   "transfer-out": "Transfer out",
   expense: "Expense",
 };
+
+function CashRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/cash") return <Outlet />;
+  return <CashPage />;
+}
 
 function CashPage() {
   const navigate = useNavigate();
