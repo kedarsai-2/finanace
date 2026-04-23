@@ -793,6 +793,15 @@ function ItemPicker({
               value={value}
               onChange={(e) => onChangeName(e.target.value)}
               onFocus={() => !locked && setOpen(true)}
+              onPointerDown={(e) => {
+                if (locked) return;
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                if (locked) return;
+                e.stopPropagation();
+                setOpen(true);
+              }}
               readOnly={locked}
               placeholder="Search or type item…"
               className={cn("h-9", locked && "bg-muted/50 cursor-not-allowed")}
