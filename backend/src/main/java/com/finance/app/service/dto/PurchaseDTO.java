@@ -93,6 +93,11 @@ public class PurchaseDTO implements Serializable {
 
     private Instant finalizedAt;
 
+    private String proofDataUrl;
+
+    @Size(max = 255)
+    private String proofName;
+
     private Boolean deleted;
 
     private Instant createdAt;
@@ -285,6 +290,22 @@ public class PurchaseDTO implements Serializable {
 
     public void setFinalizedAt(Instant finalizedAt) {
         this.finalizedAt = finalizedAt;
+    }
+
+    public String getProofDataUrl() {
+        return proofDataUrl;
+    }
+
+    public void setProofDataUrl(String proofDataUrl) {
+        this.proofDataUrl = proofDataUrl;
+    }
+
+    public String getProofName() {
+        return proofName;
+    }
+
+    public void setProofName(String proofName) {
+        this.proofName = proofName;
     }
 
     public Boolean getDeleted() {

@@ -59,6 +59,14 @@ public class Payment implements Serializable {
     @Column(name = "notes", length = 2000)
     private String notes;
 
+    @Lob
+    @Column(name = "proof_data_url")
+    private String proofDataUrl;
+
+    @Size(max = 255)
+    @Column(name = "proof_name", length = 255)
+    private String proofName;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
@@ -184,6 +192,32 @@ public class Payment implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getProofDataUrl() {
+        return this.proofDataUrl;
+    }
+
+    public Payment proofDataUrl(String proofDataUrl) {
+        this.setProofDataUrl(proofDataUrl);
+        return this;
+    }
+
+    public void setProofDataUrl(String proofDataUrl) {
+        this.proofDataUrl = proofDataUrl;
+    }
+
+    public String getProofName() {
+        return this.proofName;
+    }
+
+    public Payment proofName(String proofName) {
+        this.setProofName(proofName);
+        return this;
+    }
+
+    public void setProofName(String proofName) {
+        this.proofName = proofName;
     }
 
     public Instant getCreatedAt() {

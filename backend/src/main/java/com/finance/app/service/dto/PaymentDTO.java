@@ -35,6 +35,11 @@ public class PaymentDTO implements Serializable {
     @Size(max = 2000)
     private String notes;
 
+    private String proofDataUrl;
+
+    @Size(max = 255)
+    private String proofName;
+
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -99,6 +104,22 @@ public class PaymentDTO implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getProofDataUrl() {
+        return proofDataUrl;
+    }
+
+    public void setProofDataUrl(String proofDataUrl) {
+        this.proofDataUrl = proofDataUrl;
+    }
+
+    public String getProofName() {
+        return proofName;
+    }
+
+    public void setProofName(String proofName) {
+        this.proofName = proofName;
     }
 
     public Instant getCreatedAt() {
@@ -173,6 +194,7 @@ public class PaymentDTO implements Serializable {
             ", mode='" + getMode() + "'" +
             ", reference='" + getReference() + "'" +
             ", notes='" + getNotes() + "'" +
+            ", proofName='" + getProofName() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
             ", business=" + getBusiness() +
