@@ -3,7 +3,6 @@ import { GST_REGEX, PAN_REGEX, PINCODE_REGEX, MOBILE_REGEX } from "@/types/busin
 
 export const partyFormSchema = z.object({
   name: z.string().trim().min(1, "Party name is required").max(120),
-  type: z.enum(["customer", "supplier", "both"]),
   mobile: z
     .string()
     .trim()

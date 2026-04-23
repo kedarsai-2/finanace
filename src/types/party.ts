@@ -1,3 +1,7 @@
+/**
+ * @deprecated Party type (customer/supplier/both) is no longer used.
+ * All parties are treated uniformly. Kept only for backend DTO compatibility.
+ */
 export type PartyType = "customer" | "supplier" | "both";
 export type BalanceSide = "receivable" | "payable";
 
@@ -32,7 +36,8 @@ export interface Party {
   id: string;
   businessId: string;
   name: string;
-  type: PartyType;
+  /** @deprecated No longer surfaced in UI. Always defaults to "both". */
+  type?: PartyType;
   mobile: string;
   email?: string;
   address?: Address;
