@@ -42,6 +42,8 @@ const TYPE_HINT: Record<ItemFormValues["type"], string> = {
 };
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
+  number: "Number",
+  bhk: "BHK",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
   litre: "Litres (litre)",
