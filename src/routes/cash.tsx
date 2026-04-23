@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { Banknote, Pencil, ArrowRight } from "lucide-react";
@@ -38,6 +38,7 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
 };
 
 function CashPage() {
+  const navigate = useNavigate();
   const { businesses, activeId, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const { accounts, hydrated } = useAccounts(activeId, businessIds);
@@ -89,15 +90,13 @@ function CashPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Cash</h1>
         </div>
-        <Button asChild className="gap-2">
-          <Link to="/cash/balance">
-            <Pencil className="h-4 w-4" /> Edit cash balance
-          </Link>
+        <Button className="gap-2" onClick={() => navigate({ to: "/cash/balance" })}>
+          <Pencil className="h-4 w-4" /> Edit cash balance
         </Button>
       </header>
 
       {cashAccounts.length === 0 ? (
-        <EmptyCashState />
+        <EmptyCashState onSetBalance={() => navigate({ to: "/cash/balance" })} />
       ) : (
         <>
           {/* Balance summary */}
@@ -228,7 +227,7 @@ function CashPage() {
   );
 }
 
-function EmptyCashState() {
+function EmptyCashState({ onSetBalance }: { onSetBalance: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -238,10 +237,8 @@ function EmptyCashState() {
       <p className="mb-4 text-sm text-muted-foreground">
         Add a cash account to start tracking cash inflows and outflows.
       </p>
-      <Button asChild className="gap-2">
-        <Link to="/cash/balance">
-          <Pencil className="h-4 w-4" /> Set cash balance
-        </Link>
+      <Button className="gap-2" onClick={onSetBalance}>
+        <Pencil className="h-4 w-4" /> Set cash balance
       </Button>
     </div>
   );

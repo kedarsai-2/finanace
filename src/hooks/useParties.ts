@@ -194,13 +194,13 @@ export function useParties(businessId?: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!USE_BACKEND || !token) {
+    if (!USE_BACKEND) {
       setParties(readJson<Party[]>(STORAGE_KEY, seed));
       setLedger(readJson<LedgerEntry[]>(LEDGER_KEY, []));
       setHydrated(true);
       return;
     }
-    // Backend mode: start from empty to avoid seed data flicker.
+    // Backend mode: never show seed data.
     setParties([]);
     setLedger([]); // ledger is local-only today
     setHydrated(true);
@@ -224,9 +224,18 @@ export function useParties(businessId?: string | null) {
     (async () => {
       try {
         // Production requirement: show ALL parties irrespective of selected business.
-        const list = await apiFetch<PartyDTO[]>(`/api/parties?size=500&sort=id,desc`);
+        // Fetch in pages to avoid server-side default caps (e.g. 20/200/500).
+        const pageSize = 200;
+        const all: PartyDTO[] = [];
+        for (let page = 0; page < 100; page++) {
+          const chunk = await apiFetch<PartyDTO[]>(
+            `/api/parties?page=${page}&size=${pageSize}&sort=id,desc`,
+          );
+          all.push(...chunk);
+          if (chunk.length < pageSize) break;
+        }
         if (cancelled) return;
-        setParties(list.map(dtoToParty));
+        setParties(all.map(dtoToParty));
       } catch {
         if (cancelled) return;
         setParties([]);
@@ -235,7 +244,7 @@ export function useParties(businessId?: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token]);
+  }, [token]);
 
   const partiesRef = useRef<Party[]>(parties);
   useEffect(() => {

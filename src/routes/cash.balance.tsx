@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { apiFetch } from "@/lib/api";
+import { USE_BACKEND } from "@/lib/flags";
 
 export const Route = createFileRoute("/cash/balance")({
   head: () => ({
@@ -41,9 +42,20 @@ function CashBalancePage() {
         setCurrent(null);
         return;
       }
+      if (!USE_BACKEND) {
+        setHydrated(true);
+        setCurrent(null);
+        return;
+      }
+      const businessNumericId = Number(activeId);
+      if (!Number.isFinite(businessNumericId)) {
+        setHydrated(true);
+        setCurrent(null);
+        return;
+      }
       try {
         const snap = await apiFetch<CashBalanceSnapshot>(
-          `/api/cash-balance?businessId=${encodeURIComponent(activeId)}`,
+          `/api/cash-balance?businessId=${encodeURIComponent(String(businessNumericId))}`,
         );
         if (cancelled) return;
         setOpening(Number(snap.openingBalance) || 0);
@@ -64,18 +76,25 @@ function CashBalancePage() {
 
   const onSave = async () => {
     if (!activeId) return toast.error("Select a business first");
+    if (!USE_BACKEND) return toast.success("Cash balance saved");
+    const businessNumericId = Number(activeId);
+    if (!Number.isFinite(businessNumericId)) {
+      return toast.error("Invalid business id for cash balance");
+    }
     setSaving(true);
     try {
       const snap = await apiFetch<CashBalanceSnapshot>("/api/cash-balance", {
         method: "PUT",
         body: JSON.stringify({
-          businessId: Number(activeId),
+          businessId: businessNumericId,
           openingBalance: Number(opening) || 0,
         }),
       });
       setCurrent(Number(snap.currentBalance) || 0);
       toast.success("Cash balance updated");
       navigate({ to: "/cash" });
+    } catch {
+      toast.error("Failed to update cash balance");
     } finally {
       setSaving(false);
     }
