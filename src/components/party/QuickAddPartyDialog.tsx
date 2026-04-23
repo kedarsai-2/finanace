@@ -13,24 +13,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties } from "@/hooks/useParties";
 import { GST_REGEX, MOBILE_REGEX } from "@/types/business";
-import type { Party, PartyType } from "@/types/party";
+import type { Party } from "@/types/party";
 
 interface QuickAddPartyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Default party type for the form. Useful when called from a Purchase screen (default supplier). */
-  defaultType?: PartyType;
   /** Called after the party is created. The newly created party is provided so the parent can auto-select it. */
   onCreated?: (party: Party) => void;
 }
@@ -38,7 +28,6 @@ interface QuickAddPartyDialogProps {
 interface FormState {
   name: string;
   mobile: string;
-  type: PartyType;
   gstNumber: string;
 }
 
@@ -51,25 +40,23 @@ interface FormErrors {
 const EMPTY: FormState = {
   name: "",
   mobile: "",
-  type: "customer",
   gstNumber: "",
 };
 
 export function QuickAddPartyDialog({
   open,
   onOpenChange,
-  defaultType = "customer",
   onCreated,
 }: QuickAddPartyDialogProps) {
   const { activeId } = useBusinesses();
   const { upsert } = useParties(activeId);
 
-  const [form, setForm] = useState<FormState>({ ...EMPTY, type: defaultType });
+  const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
-    setForm({ ...EMPTY, type: defaultType });
+    setForm(EMPTY);
     setErrors({});
   };
 
@@ -107,7 +94,6 @@ export function QuickAddPartyDialog({
           id: "",
           businessId: activeId,
           name: form.name.trim(),
-          type: form.type,
           mobile: form.mobile.trim(),
           gstNumber: form.gstNumber.trim().toUpperCase() || undefined,
           balance: 0,
@@ -157,35 +143,17 @@ export function QuickAddPartyDialog({
             />
           </Field>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Mobile" error={errors.mobile}>
-              <Input
-                inputMode="numeric"
-                maxLength={10}
-                value={form.mobile}
-                onChange={(e) =>
-                  setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })
-                }
-                placeholder="10-digit number"
-              />
-            </Field>
-
-            <Field label="Party type">
-              <Select
-                value={form.type}
-                onValueChange={(v) => setForm({ ...form, type: v as PartyType })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
-                  <SelectItem value="supplier">Supplier</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
+          <Field label="Mobile" error={errors.mobile}>
+            <Input
+              inputMode="numeric"
+              maxLength={10}
+              value={form.mobile}
+              onChange={(e) =>
+                setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })
+              }
+              placeholder="10-digit number"
+            />
+          </Field>
 
           <Field label="GST number" error={errors.gstNumber}>
             <Input
