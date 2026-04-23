@@ -30,12 +30,6 @@ interface Props {
   partyId?: string;
 }
 
-const TYPE_HINT: Record<PartyFormValues["type"], string> = {
-  customer: "Used in sales invoices.",
-  supplier: "Used in purchase bills.",
-  both: "Available in invoices and purchases.",
-};
-
 export function PartyForm({ mode, partyId }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
@@ -53,7 +47,6 @@ export function PartyForm({ mode, partyId }: Props) {
     const opening = existing?.openingBalance ?? 0;
     return {
       name: existing?.name ?? "",
-      type: existing?.type ?? "customer",
       mobile: existing?.mobile ?? "",
       email: existing?.email ?? "",
       address: {
@@ -117,7 +110,6 @@ export function PartyForm({ mode, partyId }: Props) {
           id: existing?.id ?? "",
           businessId: existing?.businessId ?? activeId,
           name: values.name.trim(),
-          type: values.type,
           mobile: emptyToUndef(values.mobile) ?? "",
           email: emptyToUndef(values.email),
           address,
@@ -196,30 +188,6 @@ export function PartyForm({ mode, partyId }: Props) {
                 className={cn(errors.name && "border-destructive")}
               />
               {errMsg(errors.name?.message)}
-            </div>
-            <div>
-              <Label htmlFor="type">Party type *</Label>
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="customer">Customer</SelectItem>
-                        <SelectItem value="supplier">Supplier</SelectItem>
-                        <SelectItem value="both">Both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {TYPE_HINT[field.value]}
-                    </p>
-                  </>
-                )}
-              />
             </div>
             <div>
               <Label htmlFor="mobile">Mobile number</Label>
