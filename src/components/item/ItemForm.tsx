@@ -41,7 +41,12 @@ const TYPE_HINT: Record<ItemFormValues["type"], string> = {
   service: "Time- or task-based; no stock tracking.",
 };
 
+/** Items can only be of type "service" in this workspace. */
+const FORCED_TYPE: ItemFormValues["type"] = "service";
+
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
+  number: "Number",
+  bhk: "BHK",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
   litre: "Litres (litre)",
@@ -72,7 +77,7 @@ export function ItemForm({ mode, itemId }: Props) {
       : 18;
     return {
       name: existing?.name ?? "",
-      type: existing?.type ?? "product",
+      type: FORCED_TYPE,
       sku: existing?.sku ?? "",
       sellingPrice: existing?.sellingPrice ?? 0,
       purchasePrice: existing?.purchasePrice,
@@ -214,26 +219,15 @@ export function ItemForm({ mode, itemId }: Props) {
             </div>
             <div>
               <Label htmlFor="type">Type *</Label>
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="product">Product</SelectItem>
-                        <SelectItem value="service">Service</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {TYPE_HINT[field.value]}
-                    </p>
-                  </>
-                )}
+              <Input
+                id="type"
+                value="Service"
+                readOnly
+                className="cursor-not-allowed bg-muted/50 text-muted-foreground"
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {TYPE_HINT.service}
+              </p>
             </div>
             <div>
               <Label htmlFor="sku">SKU</Label>
