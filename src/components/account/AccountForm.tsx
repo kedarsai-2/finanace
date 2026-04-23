@@ -39,7 +39,7 @@ export function AccountForm({ account, mode }: Props) {
   );
   const [accountNumber, setAccountNumber] = useState(account?.accountNumber ?? "");
   const [ifsc, setIfsc] = useState(account?.ifsc ?? "");
-  const [upiId, setUpiId] = useState(account?.upiId ?? "");
+  // upiId retained for back-compat reads on legacy accounts; not editable.
   const [notes, setNotes] = useState(account?.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -68,7 +68,7 @@ export function AccountForm({ account, mode }: Props) {
         openingBalance: Number(openingBalance) || 0,
         accountNumber: accountNumber.trim() || undefined,
         ifsc: ifsc.trim() || undefined,
-        upiId: upiId.trim() || undefined,
+        upiId: account?.upiId,
         notes: notes.trim() || undefined,
         createdAt: account?.createdAt ?? new Date().toISOString(),
       };
