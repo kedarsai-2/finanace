@@ -25,15 +25,11 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
-import { ACCOUNT_TYPE_LABEL, type AccountType } from "@/types/account";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { type PaymentMode } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
-
-function modeFromAccountType(t: AccountType): PaymentMode {
-  return t === "bank" ? "bank" : "cash";
-}
 
 interface QuickAddExpenseDialogProps {
   open: boolean;
@@ -49,6 +45,10 @@ export function QuickAddExpenseDialog({
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
+  const bankAccounts = useMemo(
+    () => safeAccounts.filter((a) => a.type === "bank"),
+    [safeAccounts],
+  );
   const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
@@ -59,8 +59,8 @@ export function QuickAddExpenseDialog({
 
   const [amount, setAmount] = useState<number>(0);
   const [accountId, setAccountId] = useState<string>(
-    (lastAccount && safeAccounts.find((a) => a.id === lastAccount)?.id) ||
-      safeAccounts[0]?.id ||
+    (lastAccount && bankAccounts.find((a) => a.id === lastAccount)?.id) ||
+      bankAccounts[0]?.id ||
       "",
   );
   const [category, setCategory] = useState<string>(
@@ -70,24 +70,22 @@ export function QuickAddExpenseDialog({
 
   const handleSave = async () => {
     if (!activeId) return toast.error("Select a business first");
-    if (!accountId) return toast.error("Account required");
     if (!(amount > 0)) return toast.error("Amount must be > 0");
     setSubmitting(true);
     try {
-      const acc = safeAccounts.find((a) => a.id === accountId);
       const exp: Expense = {
         id: "",
         businessId: activeId,
-        accountId,
+        accountId: accountId || undefined,
         date: new Date().toISOString(),
         amount,
         category,
-        mode: acc ? modeFromAccountType(acc.type) : "cash",
+        mode: (accountId ? "bank" : "cash") as PaymentMode,
         createdAt: new Date().toISOString(),
       };
       await add(exp);
       if (typeof window !== "undefined") {
-        localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
+        if (accountId) localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
       }
       toast.success("Expense recorded");
       onCreated?.(exp);
@@ -142,7 +140,8 @@ export function QuickAddExpenseDialog({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                {safeAccounts.map((a) => (
+                <SelectItem value="">Cash</SelectItem>
+                {bankAccounts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                   </SelectItem>

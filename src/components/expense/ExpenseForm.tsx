@@ -30,15 +30,11 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties } from "@/hooks/useParties";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
 import { ProofUpload } from "@/components/proof/ProofUpload";
-import { ACCOUNT_TYPE_LABEL, type AccountType } from "@/types/account";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
-
-function modeFromAccountType(t: AccountType): PaymentMode {
-  return t === "bank" ? "bank" : "cash";
-}
 
 interface ExpenseFormProps {
   initial?: Expense;
@@ -58,6 +54,10 @@ export function ExpenseForm({
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
+  const bankAccounts = useMemo(
+    () => safeAccounts.filter((a) => a.type === "bank"),
+    [safeAccounts],
+  );
   const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { add, upsert } = useExpenses(activeId);
@@ -88,20 +88,25 @@ export function ExpenseForm({
   // Autofill last-used account on create
   useEffect(() => {
     if (initial || accountId) return;
+    if (mode === "cash") return;
     const last =
       typeof window !== "undefined"
         ? localStorage.getItem(LAST_ACCOUNT_KEY)
         : null;
     const candidate =
-      (last && safeAccounts.find((a) => a.id === last)?.id) || safeAccounts[0]?.id;
+      (last && bankAccounts.find((a) => a.id === last)?.id) || bankAccounts[0]?.id;
     if (candidate) setAccountId(candidate);
-  }, [safeAccounts, accountId, initial]);
+  }, [bankAccounts, accountId, initial, mode]);
 
-  // Sync mode → account type on account change
+  // If user switches to cash mode, clear account selection (cash doesn't need a bank account).
   useEffect(() => {
-    const a = safeAccounts.find((x) => x.id === accountId);
-    if (a) setMode(modeFromAccountType(a.type));
-  }, [accountId, safeAccounts]);
+    if (mode === "cash") {
+      setAccountId("");
+    } else if (!accountId && bankAccounts[0]?.id) {
+      setAccountId(bankAccounts[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // Default category when categories load
   useEffect(() => {
@@ -111,7 +116,7 @@ export function ExpenseForm({
   const onSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeId) return toast.error("Select a business first");
-    if (!accountId) return toast.error("Account is required");
+    if (mode !== "cash" && !accountId) return toast.error("Bank account is required");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!category) return toast.error("Pick a category");
     if (mode !== "cash" && !proofDataUrl)
@@ -125,7 +130,7 @@ export function ExpenseForm({
       const exp: Expense = {
         id: initial?.id ?? `exp_${Date.now().toString(36)}`,
         businessId: activeId,
-        accountId,
+        accountId: mode === "cash" ? undefined : accountId,
         date: date.toISOString(),
         amount,
         category,
@@ -141,7 +146,7 @@ export function ExpenseForm({
       if (initial) upsert(exp);
       else add(exp);
       if (typeof window !== "undefined") {
-        localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
+        if (mode !== "cash" && accountId) localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
       }
       toast.success(initial ? "Expense updated" : "Expense recorded");
       onSaved?.(exp);
@@ -216,18 +221,24 @@ export function ExpenseForm({
             <Label htmlFor="exp-acc">
               Account <span className="text-destructive">*</span>
             </Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger id="exp-acc">
-                <SelectValue placeholder="Select account" />
-              </SelectTrigger>
-              <SelectContent>
-                {safeAccounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {mode === "cash" ? (
+              <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
+                Not required for Cash expenses
+              </div>
+            ) : (
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger id="exp-acc">
+                  <SelectValue placeholder="Select bank account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="sm:col-span-3">
             <Label htmlFor="exp-mode">Payment mode</Label>

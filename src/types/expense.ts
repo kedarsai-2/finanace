@@ -25,7 +25,8 @@ export interface ExpenseCategoryRecord {
 export interface Expense {
   id: string;
   businessId: string;
-  accountId: string;
+  /** Bank account used for bank/cheque expenses. Not applicable for cash expenses. */
+  accountId?: string;
   date: string;
   amount: number;
   category: ExpenseCategory;
