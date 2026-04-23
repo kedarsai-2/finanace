@@ -783,7 +783,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       <QuickAddPartyDialog
         open={quickPartyOpen}
         onOpenChange={setQuickPartyOpen}
-        defaultType="customer"
         onCreated={(p) => setPartyId(p.id)}
       />
       <QuickAddItemDialog

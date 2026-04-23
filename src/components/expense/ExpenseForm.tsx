@@ -322,7 +322,6 @@ export function ExpenseForm({
       <QuickAddPartyDialog
         open={showQuickParty}
         onOpenChange={setShowQuickParty}
-        defaultType="supplier"
         onCreated={(p) => setPartyId(p.id)}
       />
     </form>

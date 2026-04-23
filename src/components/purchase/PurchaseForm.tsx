@@ -715,7 +715,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       <QuickAddPartyDialog
         open={quickPartyOpen}
         onOpenChange={setQuickPartyOpen}
-        defaultType="supplier"
         onCreated={(p) => setPartyId(p.id)}
       />
       <QuickAddItemDialog
