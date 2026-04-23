@@ -61,10 +61,7 @@ export function ExpenseForm({
   const { parties } = useParties(activeId);
   const { add, upsert } = useExpenses(activeId);
 
-  const supplierParties = useMemo(
-    () => parties.filter((p) => p.type === "supplier" || p.type === "both"),
-    [parties],
-  );
+  const supplierParties = parties;
 
   const [date, setDate] = useState<Date>(
     initial ? new Date(initial.date) : new Date(),

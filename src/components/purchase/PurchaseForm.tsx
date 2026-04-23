@@ -94,11 +94,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
-  // Suppliers are parties typed 'supplier' OR 'both'.
-  const suppliers = useMemo(
-    () => parties.filter((p) => p.type === "supplier" || p.type === "both"),
-    [parties],
-  );
+  // Show all parties (party-type concept removed).
+  const suppliers = parties;
 
   const existing = useMemo(
     () => (purchaseId ? allPurchases.find((p) => p.id === purchaseId) : undefined),

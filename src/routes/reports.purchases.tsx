@@ -30,7 +30,7 @@ function PurchaseReport() {
   const { purchases } = usePurchases(activeId);
   const { parties } = useParties(activeId);
 
-  const suppliers = parties.filter((p) => p.type === "supplier" || p.type === "both");
+  const suppliers = parties;
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");

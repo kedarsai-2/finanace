@@ -81,7 +81,8 @@ function dtoToParty(dto: PartyDTO): Party {
 }
 
 function partyToDto(p: Party): PartyDTO {
-  const type = p.type === "customer" ? "CUSTOMER" : p.type === "supplier" ? "SUPPLIER" : "BOTH";
+  // Party types are no longer surfaced in UI; persist as BOTH for backend compat.
+  const type = "BOTH" as const;
   const businessId = parseInt(p.businessId, 10);
   return {
     id: /^\d+$/.test(p.id) ? parseInt(p.id, 10) : undefined,
