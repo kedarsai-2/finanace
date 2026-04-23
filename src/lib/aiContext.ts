@@ -191,7 +191,6 @@ export function buildPartyHistorySnapshot(args: {
 
   return {
     partyName: party.name,
-    type: party.type,
     invoices: invoiceData.slice(-15),
     averageDaysToPay,
     totalBilled,

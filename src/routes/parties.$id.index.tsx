@@ -24,7 +24,6 @@ import { usePayments } from "@/hooks/usePayments";
 import { usePurchases } from "@/hooks/usePurchases";
 import { PartyLedger } from "@/components/party/PartyLedger";
 import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
-import type { PartyType } from "@/types/party";
 import type { Invoice } from "@/types/invoice";
 import type { Purchase } from "@/types/purchase";
 import type { Payment } from "@/types/payment";
@@ -53,18 +52,6 @@ export const Route = createFileRoute("/parties/$id/")({
     </div>
   ),
 });
-
-const TYPE_LABEL: Record<PartyType, string> = {
-  customer: "Customer",
-  supplier: "Supplier",
-  both: "Both",
-};
-
-const TYPE_BADGE: Record<PartyType, string> = {
-  customer: "bg-primary/10 text-primary",
-  supplier: "bg-warning/15 text-warning-foreground/80",
-  both: "bg-accent text-accent-foreground",
-};
 
 function initials(name: string) {
   return name
@@ -138,14 +125,6 @@ function PartyDetailsPage() {
                   <h1 className="text-2xl font-bold tracking-tight">
                     {party.name}
                   </h1>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      TYPE_BADGE[party.type],
-                    )}
-                  >
-                    {TYPE_LABEL[party.type]}
-                  </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   {party.mobile && (
