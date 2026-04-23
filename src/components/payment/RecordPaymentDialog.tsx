@@ -229,6 +229,8 @@ export function RecordPaymentDialog({
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (!accountId) return "Select an account";
+    if (mode !== "cash" && !proofDataUrl)
+      return `Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} payment`;
     if (amount - totalOutstanding > 0.01)
       return `Amount exceeds outstanding ${formatCurrency(totalOutstanding, currency)}`;
     if (!rows.some((r) => r.selected && r.amount > 0))
@@ -266,6 +268,7 @@ export function RecordPaymentDialog({
         account: selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
+        proofDataUrl,
         allocations,
       };
       const created = await createPayment(payment);
@@ -421,6 +424,19 @@ export function RecordPaymentDialog({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <ProofUpload
+                  id="pay-proof"
+                  label="Proof"
+                  required={mode !== "cash"}
+                  proofDataUrl={proofDataUrl}
+                  proofName={proofName}
+                  onChange={(p) => {
+                    setProofDataUrl(p.proofDataUrl);
+                    setProofName(p.proofName);
+                  }}
                 />
               </div>
             </div>
