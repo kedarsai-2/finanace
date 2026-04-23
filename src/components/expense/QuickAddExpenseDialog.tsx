@@ -45,17 +45,11 @@ export function QuickAddExpenseDialog({
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const bankAccounts = useMemo(
-    () => safeAccounts.filter((a) => a.type === "bank"),
-    [safeAccounts],
-  );
+  const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
-  const lastAccount =
-    typeof window !== "undefined"
-      ? localStorage.getItem(LAST_ACCOUNT_KEY)
-      : null;
+  const lastAccount = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
 
   const [amount, setAmount] = useState<number>(0);
   const [accountId, setAccountId] = useState<string>(
@@ -63,9 +57,7 @@ export function QuickAddExpenseDialog({
       bankAccounts[0]?.id ||
       "",
   );
-  const [category, setCategory] = useState<string>(
-    categories[0]?.name ?? "Other",
-  );
+  const [category, setCategory] = useState<string>(categories[0]?.name ?? "Other");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSave = async () => {
@@ -106,9 +98,7 @@ export function QuickAddExpenseDialog({
             </div>
             <div>
               <DialogTitle>Quick add expense</DialogTitle>
-              <DialogDescription>
-                Log an expense fast — date is today.
-              </DialogDescription>
+              <DialogDescription>Log an expense fast — date is today.</DialogDescription>
             </div>
           </div>
         </DialogHeader>

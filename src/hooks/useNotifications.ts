@@ -88,9 +88,7 @@ export function deriveNotifications(
 }
 
 export function useNotificationSettings() {
-  const [settings, setSettings] = useState<NotificationSettings>(
-    DEFAULT_NOTIFICATION_SETTINGS,
-  );
+  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {

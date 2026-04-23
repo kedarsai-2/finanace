@@ -1,29 +1,13 @@
 import { useMemo, useState } from "react";
-import {
-  format,
-  startOfMonth,
-  startOfYear,
-  subDays,
-} from "date-fns";
-import {
-  CalendarIcon,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Receipt,
-  X,
-} from "lucide-react";
+import { format, startOfMonth, startOfYear, subDays } from "date-fns";
+import { CalendarIcon, Download, FileSpreadsheet, FileText, Receipt, X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,8 +109,7 @@ export function PartyLedger({
   // Compute running balance chronologically over ALL entries (not filtered)
   // so the running figure stays meaningful when filters are applied.
   const allChronological = useMemo(
-    () =>
-      [...entries].sort((a, b) => (a.date < b.date ? -1 : 1)),
+    () => [...entries].sort((a, b) => (a.date < b.date ? -1 : 1)),
     [entries],
   );
 
@@ -251,55 +234,55 @@ export function PartyLedger({
             }}
           />
 
-        <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
-          {TYPE_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setType(f.value)}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                type === f.value
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setType(f.value)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  type === f.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-muted-foreground"
+              onClick={clearFilters}
             >
-              {f.label}
-            </button>
-          ))}
-        </div>
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          )}
 
-        {hasFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 text-muted-foreground"
-            onClick={clearFilters}
-          >
-            <X className="h-3.5 w-3.5" />
-            Clear
-          </Button>
-        )}
-
-        <div className="ml-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportPDF} disabled={display.length === 0}>
-                <FileText className="mr-2 h-4 w-4" />
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportExcel} disabled={display.length === 0}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Export as Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportPDF} disabled={display.length === 0}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel} disabled={display.length === 0}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -341,16 +324,11 @@ export function PartyLedger({
                   </span>
                   <span className="font-mono text-xs">
                     {e.refLink ? (
-                      <a
-                        href={e.refLink}
-                        className="text-primary hover:underline"
-                      >
+                      <a href={e.refLink} className="text-primary hover:underline">
                         {e.refNo ?? "—"}
                       </a>
                     ) : (
-                      <span className="text-muted-foreground">
-                        {e.refNo ?? "—"}
-                      </span>
+                      <span className="text-muted-foreground">{e.refNo ?? "—"}</span>
                     )}
                   </span>
                   <span className="font-medium text-foreground">{e.note}</span>
@@ -358,9 +336,7 @@ export function PartyLedger({
                     {isDebit ? formatCurrency(e.amount, currency) : "—"}
                   </span>
                   <span className="text-right font-mono tabular-nums">
-                    {!isDebit && e.amount !== 0
-                      ? formatCurrency(e.amount, currency)
-                      : "—"}
+                    {!isDebit && e.amount !== 0 ? formatCurrency(e.amount, currency) : "—"}
                   </span>
                   <span
                     className={cn(
@@ -397,10 +373,7 @@ function DateButton({
         <Button
           variant="outline"
           size="sm"
-          className={cn(
-            "h-8 gap-1.5 font-normal",
-            !date && "text-muted-foreground",
-          )}
+          className={cn("h-8 gap-1.5 font-normal", !date && "text-muted-foreground")}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
           {date ? format(date, "dd MMM yyyy") : label}

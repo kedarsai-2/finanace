@@ -14,8 +14,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 export function NotificationBell() {
   const { activeId } = useBusinesses();
   const { invoices } = useInvoices(activeId);
-  const { notifications, unreadCount, markRead, markAllRead, dismiss } =
-    useNotifications(invoices);
+  const { notifications, unreadCount, markRead, markAllRead, dismiss } = useNotifications(invoices);
 
   return (
     <Popover>
@@ -105,9 +104,7 @@ export function NotificationBell() {
                         </span>
                       </div>
                       <p className="mt-0.5 text-sm font-medium leading-snug">{n.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {n.message}
-                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.message}</p>
                       <div className="mt-1.5 flex items-center gap-2">
                         <Link
                           to="/invoices/$id"

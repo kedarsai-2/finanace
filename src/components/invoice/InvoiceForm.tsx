@@ -24,11 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -119,8 +115,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [date, setDate] = useState<Date>(new Date());
   const [terms, setTerms] = useState<number>(30);
   const [lines, setLines] = useState<InvoiceLine[]>([emptyLine()]);
-  const [overallDiscountKind, setOverallDiscountKind] =
-    useState<DiscountKind>("percent");
+  const [overallDiscountKind, setOverallDiscountKind] = useState<DiscountKind>("percent");
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
@@ -136,8 +131,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
   const updateSplit = (id: string, patch: Partial<PaymentSplit>) =>
     setPayments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const removeSplit = (id: string) =>
-    setPayments((prev) => prev.filter((s) => s.id !== id));
+  const removeSplit = (id: string) => setPayments((prev) => prev.filter((s) => s.id !== id));
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
@@ -175,8 +169,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   );
 
   // -------- Edit-lock -----------------------------------------------------
-  const locked =
-    mode === "edit" && existing ? !canEditInvoice(existing) : false;
+  const locked = mode === "edit" && existing ? !canEditInvoice(existing) : false;
   const lockedReason =
     existing?.status === "cancelled"
       ? "Cancelled invoices cannot be edited."
@@ -188,9 +181,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const addLine = () => setLines((prev) => [...prev, emptyLine()]);
   const removeLine = (id: string) =>
-    setLines((prev) =>
-      prev.length === 1 ? prev : prev.filter((l) => l.id !== id),
-    );
+    setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.id !== id)));
 
   const applyItemToLine = (lineId: string, item: Item) =>
     updateLine(lineId, {
@@ -260,8 +251,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
-      if (l.discountValue < 0)
-        return `Discount cannot be negative for ${l.name}`;
+      if (l.discountValue < 0) return `Discount cannot be negative for ${l.name}`;
       if (l.discountKind === "percent" && l.discountValue > 100)
         return `Discount % cannot exceed 100 for ${l.name}`;
     }
@@ -307,7 +297,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       notes: notes.trim() || undefined,
       terms: termsText.trim() || undefined,
       finalizedAt: isFinal
-        ? existing?.finalizedAt ?? new Date().toISOString()
+        ? (existing?.finalizedAt ?? new Date().toISOString())
         : existing?.finalizedAt,
     };
   };
@@ -327,9 +317,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       const inv = buildInvoice(status);
       await upsert(inv);
       toast.success(
-        status === "final"
-          ? `Invoice ${inv.number} finalised`
-          : `Draft ${inv.number} saved`,
+        status === "final" ? `Invoice ${inv.number} finalised` : `Draft ${inv.number} saved`,
       );
       navigate({
         to: "/invoices",
@@ -404,8 +392,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {locked && (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground/80">
-            <strong className="font-semibold">This invoice is locked.</strong>{" "}
-            {lockedReason}
+            <strong className="font-semibold">This invoice is locked.</strong> {lockedReason}
           </div>
         )}
 
@@ -428,10 +415,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                     <SearchIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-[--radix-popover-trigger-width] p-0"
-                  align="start"
-                >
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search parties…" />
                     <CommandList>
@@ -498,10 +482,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <Label>Invoice date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-10 w-full justify-between font-normal"
-                  >
+                  <Button variant="outline" className="h-10 w-full justify-between font-normal">
                     {format(date, "dd MMM yyyy")}
                     <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
@@ -534,11 +515,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             </div>
             <div>
               <Label>Due date</Label>
-              <Input
-                value={format(dueDate, "dd MMM yyyy")}
-                disabled
-                className="bg-muted/40"
-              />
+              <Input value={format(dueDate, "dd MMM yyyy")} disabled className="bg-muted/40" />
             </div>
           </div>
         </FormSection>
@@ -578,9 +555,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <tbody className="divide-y divide-border">
                 {lines.map((line) => {
                   const m = lineMath(line);
-                  const catalog = line.itemId
-                    ? items.find((x) => x.id === line.itemId)
-                    : undefined;
+                  const catalog = line.itemId ? items.find((x) => x.id === line.itemId) : undefined;
                   const drift =
                     catalog &&
                     (catalog.sellingPrice !== line.rate ||
@@ -662,11 +637,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             <dl className="w-full max-w-sm space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <Row label="Subtotal" value={formatCurrency(totals.subtotal, currency)} />
               <div className="my-2 h-px bg-border" />
-              <Row
-                label="Total"
-                value={formatCurrency(totals.total, currency)}
-                emphasis
-              />
+              <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
             </dl>
           </div>
         </FormSection>
@@ -690,7 +661,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         </FormSection>
 
         {/* 6. Notes & terms -------------------------------------------------- */}
-        <FormSection step={6} title="Notes & Terms" description="Optional, shown on the printable invoice.">
+        <FormSection
+          step={6}
+          title="Notes & Terms"
+          description="Optional, shown on the printable invoice."
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="notes">Notes</Label>
@@ -862,14 +837,10 @@ function ItemPicker({
                       <div>
                         <p className="font-medium">{it.name}</p>
                         {it.sku && (
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {it.sku}
-                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">{it.sku}</p>
                         )}
                       </div>
-                      <span className="tabular-nums text-muted-foreground">
-                        {it.sellingPrice}
-                      </span>
+                      <span className="tabular-nums text-muted-foreground">{it.sellingPrice}</span>
                     </div>
                   </CommandItem>
                 ))}
@@ -946,7 +917,8 @@ function PaymentSplitsEditor({
     <div className="space-y-3">
       {splits.length === 0 && (
         <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          No payments captured yet. Click <span className="font-medium">Add payment</span> to record Cash, Bank, UPI or Cheque receipts.
+          No payments captured yet. Click <span className="font-medium">Add payment</span> to record
+          Cash, Bank, UPI or Cheque receipts.
         </p>
       )}
       {splits.map((s) => {
@@ -969,7 +941,9 @@ function PaymentSplitsEditor({
                   }
                   disabled={disabled}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_MODES.map((m) => (
                       <SelectItem key={m} value={m}>
@@ -987,17 +961,21 @@ function PaymentSplitsEditor({
                   disabled={disabled || (s.mode === "cash" && accountOptions.length === 0)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={
-                      accountOptions.length === 0
-                        ? `No ${PAYMENT_MODE_LABEL[s.mode]} accounts configured`
-                        : "Select account…"
-                    } />
+                    <SelectValue
+                      placeholder={
+                        accountOptions.length === 0
+                          ? `No ${PAYMENT_MODE_LABEL[s.mode]} accounts configured`
+                          : "Select account…"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {accountOptions.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name}
-                        {a.accountNumber ? ` · ${a.accountNumber.slice(-4).padStart(a.accountNumber.length, "•")}` : ""}
+                        {a.accountNumber
+                          ? ` · ${a.accountNumber.slice(-4).padStart(a.accountNumber.length, "•")}`
+                          : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1034,16 +1012,12 @@ function PaymentSplitsEditor({
                 <Input
                   value={s.reference ?? ""}
                   onChange={(e) => onChange(s.id, { reference: e.target.value })}
-                  placeholder={
-                    s.mode === "cheque" ? "Cheque #" : "Reference"
-                  }
+                  placeholder={s.mode === "cheque" ? "Cheque #" : "Reference"}
                   disabled={disabled}
                 />
               </div>
               <div>
-                <Label>
-                  Proof {requiresProof ? "*" : "(optional)"}
-                </Label>
+                <Label>Proof {requiresProof ? "*" : "(optional)"}</Label>
                 {s.proofDataUrl ? (
                   <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
                     <img
@@ -1100,9 +1074,15 @@ function PaymentSplitsEditor({
         </Button>
         {splits.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            Captured: <span className="font-semibold text-foreground tabular-nums">{paid.toFixed(2)} {currency}</span>
+            Captured:{" "}
+            <span className="font-semibold text-foreground tabular-nums">
+              {paid.toFixed(2)} {currency}
+            </span>
             {" · "}
-            Remaining: <span className="font-semibold text-foreground tabular-nums">{remaining.toFixed(2)} {currency}</span>
+            Remaining:{" "}
+            <span className="font-semibold text-foreground tabular-nums">
+              {remaining.toFixed(2)} {currency}
+            </span>
           </p>
         )}
       </div>

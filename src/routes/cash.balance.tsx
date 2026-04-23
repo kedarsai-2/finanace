@@ -22,10 +22,7 @@ function CashBalancePage() {
   const { activeId } = useBusinesses();
   const { accounts, hydrated, upsert } = useAccounts(activeId, activeId ? [activeId] : []);
 
-  const cash = useMemo(
-    () => accounts.find((a) => a.type === "cash"),
-    [accounts],
-  );
+  const cash = useMemo(() => accounts.find((a) => a.type === "cash"), [accounts]);
 
   const [opening, setOpening] = useState<number>(0);
   const [saving, setSaving] = useState(false);
@@ -68,7 +65,8 @@ function CashBalancePage() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">Cash balance</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set your starting cash amount. Future cash payments and cash expenses will adjust this balance automatically.
+          Set your starting cash amount. Future cash payments and cash expenses will adjust this
+          balance automatically.
         </p>
       </header>
 
@@ -97,4 +95,3 @@ function CashBalancePage() {
     </div>
   );
 }
-

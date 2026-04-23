@@ -34,8 +34,7 @@ export const Route = createFileRoute("/parties/$id/")({
       { title: "Party Details — Ledger & Balance" },
       {
         name: "description",
-        content:
-          "View party details, outstanding balance and full ledger history in one place.",
+        content: "View party details, outstanding balance and full ledger history in one place.",
       },
     ],
   }),
@@ -75,10 +74,7 @@ function PartyDetailsPage() {
   const { allInvoices } = useInvoices(activeId);
 
   const entries = useMemo(
-    () =>
-      ledger
-        .filter((e) => e.partyId === id)
-        .sort((a, b) => (a.date < b.date ? 1 : -1)),
+    () => ledger.filter((e) => e.partyId === id).sort((a, b) => (a.date < b.date ? 1 : -1)),
     [ledger, id],
   );
 
@@ -122,9 +118,7 @@ function PartyDetailsPage() {
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">
-                    {party.name}
-                  </h1>
+                  <h1 className="text-2xl font-bold tracking-tight">{party.name}</h1>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   {party.mobile && (
@@ -233,9 +227,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 flex items-center gap-1.5 text-2xl font-bold tabular-nums",
@@ -343,9 +335,7 @@ function PartyTimeline({
             key={`${r.kind}-${r.id}`}
             className="grid grid-cols-[110px_120px_1fr_140px] items-center gap-3 px-5 py-3 text-sm"
           >
-            <span className="text-muted-foreground">
-              {format(new Date(r.date), "dd MMM yyyy")}
-            </span>
+            <span className="text-muted-foreground">{format(new Date(r.date), "dd MMM yyyy")}</span>
             <span>
               <span
                 className={cn(
@@ -356,10 +346,7 @@ function PartyTimeline({
                 {r.kind}
               </span>
             </span>
-            <a
-              href={r.link}
-              className="font-mono text-xs text-primary hover:underline"
-            >
+            <a href={r.link} className="font-mono text-xs text-primary hover:underline">
               {r.ref}
             </a>
             <span
@@ -377,4 +364,3 @@ function PartyTimeline({
     </div>
   );
 }
-

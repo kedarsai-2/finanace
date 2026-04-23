@@ -60,11 +60,14 @@ export function LogoUpload({ value, onChange }: Props) {
 
       <div className="flex-1 space-y-2">
         <p className="text-sm font-medium">Business logo</p>
-        <p className="text-xs text-muted-foreground">
-          Drag & drop or upload. PNG / JPG up to 2MB.
-        </p>
+        <p className="text-xs text-muted-foreground">Drag & drop or upload. PNG / JPG up to 2MB.</p>
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => inputRef.current?.click()}
+          >
             <Upload className="h-4 w-4" />
             {value ? "Replace" : "Upload"}
           </Button>

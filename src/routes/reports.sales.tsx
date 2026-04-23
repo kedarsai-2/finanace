@@ -95,11 +95,15 @@ function SalesReport() {
           <div className="min-w-[180px]">
             <Label>Party</Label>
             <Select value={partyId} onValueChange={setPartyId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All parties</SelectItem>
                 {parties.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -107,7 +111,9 @@ function SalesReport() {
           <div className="min-w-[160px]">
             <Label>Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
@@ -117,7 +123,16 @@ function SalesReport() {
             </Select>
           </div>
           {(from || to || partyId !== "all" || status !== "all") && (
-            <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); setPartyId("all"); setStatus("all"); }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFrom("");
+                setTo("");
+                setPartyId("all");
+                setStatus("all");
+              }}
+            >
               Reset
             </Button>
           )}
@@ -126,7 +141,9 @@ function SalesReport() {
     >
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         {rows.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted-foreground">No invoices match the filters</div>
+          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+            No invoices match the filters
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -147,24 +164,41 @@ function SalesReport() {
                 return (
                   <tr key={r.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 font-mono text-xs">
-                      <Link to="/invoices/$id" params={{ id: r.id }} className="text-primary hover:underline">
+                      <Link
+                        to="/invoices/$id"
+                        params={{ id: r.id }}
+                        className="text-primary hover:underline"
+                      >
                         {r.number}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{format(new Date(r.date), "dd MMM yyyy")}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {format(new Date(r.date), "dd MMM yyyy")}
+                    </td>
                     <td className="px-4 py-3">{r.partyName}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatCurrency(r.total, currency)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-success">{formatCurrency(r.paidAmount, currency)}</td>
-                    <td className={cn("px-4 py-3 text-right tabular-nums", bal > 0 && "text-destructive")}>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {formatCurrency(r.total, currency)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-success">
+                      {formatCurrency(r.paidAmount, currency)}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-right tabular-nums",
+                        bal > 0 && "text-destructive",
+                      )}
+                    >
                       {formatCurrency(bal, currency)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-                        st === "paid" && "bg-success/15 text-success",
-                        st === "partial" && "bg-warning/15 text-warning-foreground/80",
-                        st === "unpaid" && "bg-destructive/10 text-destructive",
-                      )}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                          st === "paid" && "bg-success/15 text-success",
+                          st === "partial" && "bg-warning/15 text-warning-foreground/80",
+                          st === "unpaid" && "bg-destructive/10 text-destructive",
+                        )}
+                      >
                         {st}
                       </span>
                     </td>
@@ -174,10 +208,18 @@ function SalesReport() {
             </tbody>
             <tfoot>
               <tr className="border-t border-border bg-muted/20 text-sm font-semibold">
-                <td colSpan={3} className="px-4 py-3">Total ({rows.length})</td>
-                <td className="px-4 py-3 text-right tabular-nums">{formatCurrency(totals.total, currency)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-success">{formatCurrency(totals.paid, currency)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-destructive">{formatCurrency(totals.balance, currency)}</td>
+                <td colSpan={3} className="px-4 py-3">
+                  Total ({rows.length})
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  {formatCurrency(totals.total, currency)}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-success">
+                  {formatCurrency(totals.paid, currency)}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-destructive">
+                  {formatCurrency(totals.balance, currency)}
+                </td>
                 <td />
               </tr>
             </tfoot>

@@ -1,26 +1,14 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  CalendarIcon,
-  Plus,
-  Receipt,
-  Search,
-  Tags,
-  Trash2,
-  Zap,
-} from "lucide-react";
+import { CalendarIcon, Plus, Receipt, Search, Tags, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -54,8 +42,7 @@ export const Route = createFileRoute("/expenses")({
       { title: "Expenses — Track outflows" },
       {
         name: "description",
-        content:
-          "Search, filter and manage all business expenses by category, account and date.",
+        content: "Search, filter and manage all business expenses by category, account and date.",
       },
     ],
   }),
@@ -83,10 +70,7 @@ function ExpensesPage() {
     () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
     [safeAccounts],
   );
-  const partyById = useMemo(
-    () => Object.fromEntries(parties.map((p) => [p.id, p])),
-    [parties],
-  );
+  const partyById = useMemo(() => Object.fromEntries(parties.map((p) => [p.id, p])), [parties]);
 
   const [q, setQ] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -105,10 +89,9 @@ function ExpensesPage() {
         if (to && t > to.setHours(23, 59, 59, 999)) return false;
         if (q) {
           const needle = q.toLowerCase();
-          const partyName = e.partyId
-            ? partyById[e.partyId]?.name.toLowerCase() ?? ""
-            : "";
-          const hay = `${e.notes ?? ""} ${e.reference ?? ""} ${partyName} ${e.category}`.toLowerCase();
+          const partyName = e.partyId ? (partyById[e.partyId]?.name.toLowerCase() ?? "") : "";
+          const hay =
+            `${e.notes ?? ""} ${e.reference ?? ""} ${partyName} ${e.category}`.toLowerCase();
           if (!hay.includes(needle)) return false;
         }
         return true;
@@ -136,9 +119,7 @@ function ExpensesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-1 text-xs text-muted-foreground">
             {filtered.length} entries • Total{" "}
-            <span className="font-semibold text-foreground">
-              {formatCurrency(total, currency)}
-            </span>
+            <span className="font-semibold text-foreground">{formatCurrency(total, currency)}</span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -147,11 +128,7 @@ function ExpensesPage() {
               <Tags className="h-4 w-4" /> Categories
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => setShowQuick(true)}
-          >
+          <Button variant="outline" className="gap-2" onClick={() => setShowQuick(true)}>
             <Zap className="h-4 w-4" /> Quick add
           </Button>
           <Button asChild className="gap-2">
@@ -259,24 +236,18 @@ function ExpensesPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    <Link
-                      to="/expenses/$id"
-                      params={{ id: e.id }}
-                      className="hover:underline"
-                    >
+                    <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
                       {e.category}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {e.partyId ? partyById[e.partyId]?.name ?? "—" : "—"}
+                    {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {accountById[e.accountId]?.name ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    <span className="line-clamp-1 max-w-[28ch]">
-                      {e.notes ?? "—"}
-                    </span>
+                    <span className="line-clamp-1 max-w-[28ch]">{e.notes ?? "—"}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-destructive">
                     {formatCurrency(e.amount, currency)}
@@ -297,8 +268,8 @@ function ExpensesPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete expense?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This soft-deletes the entry and refunds the amount
-                            to {accountById[e.accountId]?.name ?? "the account"}.
+                            This soft-deletes the entry and refunds the amount to{" "}
+                            {accountById[e.accountId]?.name ?? "the account"}.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -341,10 +312,7 @@ function DateField({
       <Label className="sr-only">{label}</Label>
       <Popover>
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="h-10 w-full justify-between font-normal"
-          >
+          <Button variant="outline" className="h-10 w-full justify-between font-normal">
             <span className={cn(!value && "text-muted-foreground")}>
               {value ? format(value, "dd MMM") : label}
             </span>

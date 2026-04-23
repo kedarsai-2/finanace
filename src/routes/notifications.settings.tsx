@@ -81,9 +81,7 @@ function NotificationSettingsPage() {
               max={30}
               disabled={!draft.reminderEnabled}
               value={draft.reminderDaysBefore}
-              onChange={(e) =>
-                setDraft({ ...draft, reminderDaysBefore: Number(e.target.value) })
-              }
+              onChange={(e) => setDraft({ ...draft, reminderDaysBefore: Number(e.target.value) })}
             />
             <p className="text-xs text-muted-foreground">Default: 2 · Max: 30</p>
           </div>
@@ -107,9 +105,7 @@ function NotificationSettingsPage() {
             <Label className="text-sm">Frequency</Label>
             <Select
               value={draft.overdueFrequency}
-              onValueChange={(v) =>
-                setDraft({ ...draft, overdueFrequency: v as "daily" })
-              }
+              onValueChange={(v) => setDraft({ ...draft, overdueFrequency: v as "daily" })}
               disabled={!draft.overdueEnabled}
             >
               <SelectTrigger>

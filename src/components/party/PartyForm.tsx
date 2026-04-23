@@ -117,7 +117,8 @@ export function PartyForm({ mode, partyId }: Props) {
           state: address.state,
           gstNumber: emptyToUndef(values.gstNumber)?.toUpperCase(),
           panNumber: emptyToUndef(values.panNumber)?.toUpperCase(),
-          creditLimit: values.creditLimit && values.creditLimit > 0 ? values.creditLimit : undefined,
+          creditLimit:
+            values.creditLimit && values.creditLimit > 0 ? values.creditLimit : undefined,
           paymentTermsDays:
             values.paymentTermsDays && values.paymentTermsDays > 0
               ? values.paymentTermsDays
@@ -264,7 +265,11 @@ export function PartyForm({ mode, partyId }: Props) {
           </div>
         </FormSection>
 
-        <FormSection step={3} title="Tax Details" description="Optional. Required only for GST invoicing.">
+        <FormSection
+          step={3}
+          title="Tax Details"
+          description="Optional. Required only for GST invoicing."
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="gstNumber">GST number</Label>
@@ -305,8 +310,7 @@ export function PartyForm({ mode, partyId }: Props) {
                 placeholder="0"
                 aria-invalid={!!errors.creditLimit}
                 {...register("creditLimit", {
-                  setValueAs: (v) =>
-                    v === "" || v === null ? undefined : Number(v),
+                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
                 })}
                 className={cn(errors.creditLimit && "border-destructive")}
               />
@@ -322,8 +326,7 @@ export function PartyForm({ mode, partyId }: Props) {
                 placeholder="e.g. 30"
                 aria-invalid={!!errors.paymentTermsDays}
                 {...register("paymentTermsDays", {
-                  setValueAs: (v) =>
-                    v === "" || v === null ? undefined : Number(v),
+                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
                 })}
                 className={cn(errors.paymentTermsDays && "border-destructive")}
               />

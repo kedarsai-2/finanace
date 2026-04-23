@@ -9,14 +9,93 @@ const STORAGE_KEY = "bm.parties";
 const LEDGER_KEY = "bm.partyLedger";
 
 const seed: Party[] = [
-  { id: "p1", businessId: "b1", name: "Acme Industries", type: "customer", mobile: "9845011111", balance: 24500, openingBalance: 24500, city: "Bengaluru", state: "Karnataka" },
-  { id: "p2", businessId: "b1", name: "Lotus Stationery", type: "supplier", mobile: "9845022222", balance: -8120, openingBalance: -8120, city: "Mysuru", state: "Karnataka" },
-  { id: "p3", businessId: "b1", name: "Bright Foods Co.", type: "both", mobile: "9845033333", balance: 0, city: "Hubli", state: "Karnataka" },
-  { id: "p4", businessId: "b1", name: "Sundaram Traders", type: "customer", mobile: "9845044444", balance: 132400, openingBalance: 132400, city: "Bengaluru", state: "Karnataka" },
-  { id: "p5", businessId: "b1", name: "Kavya Logistics", type: "supplier", mobile: "9845055555", balance: -45000, openingBalance: -45000, city: "Chennai", state: "Tamil Nadu" },
-  { id: "p6", businessId: "b1", name: "Rao & Sons", type: "customer", mobile: "9845066666", balance: 7800, openingBalance: 7800, city: "Bengaluru", state: "Karnataka" },
-  { id: "p7", businessId: "b2", name: "Marigold Exports", type: "customer", mobile: "9928012345", balance: 56000, openingBalance: 56000, city: "Jaipur", state: "Rajasthan" },
-  { id: "p8", businessId: "b2", name: "Indigo Mills", type: "supplier", mobile: "9928098765", balance: -23400, openingBalance: -23400, city: "Surat", state: "Gujarat" },
+  {
+    id: "p1",
+    businessId: "b1",
+    name: "Acme Industries",
+    type: "customer",
+    mobile: "9845011111",
+    balance: 24500,
+    openingBalance: 24500,
+    city: "Bengaluru",
+    state: "Karnataka",
+  },
+  {
+    id: "p2",
+    businessId: "b1",
+    name: "Lotus Stationery",
+    type: "supplier",
+    mobile: "9845022222",
+    balance: -8120,
+    openingBalance: -8120,
+    city: "Mysuru",
+    state: "Karnataka",
+  },
+  {
+    id: "p3",
+    businessId: "b1",
+    name: "Bright Foods Co.",
+    type: "both",
+    mobile: "9845033333",
+    balance: 0,
+    city: "Hubli",
+    state: "Karnataka",
+  },
+  {
+    id: "p4",
+    businessId: "b1",
+    name: "Sundaram Traders",
+    type: "customer",
+    mobile: "9845044444",
+    balance: 132400,
+    openingBalance: 132400,
+    city: "Bengaluru",
+    state: "Karnataka",
+  },
+  {
+    id: "p5",
+    businessId: "b1",
+    name: "Kavya Logistics",
+    type: "supplier",
+    mobile: "9845055555",
+    balance: -45000,
+    openingBalance: -45000,
+    city: "Chennai",
+    state: "Tamil Nadu",
+  },
+  {
+    id: "p6",
+    businessId: "b1",
+    name: "Rao & Sons",
+    type: "customer",
+    mobile: "9845066666",
+    balance: 7800,
+    openingBalance: 7800,
+    city: "Bengaluru",
+    state: "Karnataka",
+  },
+  {
+    id: "p7",
+    businessId: "b2",
+    name: "Marigold Exports",
+    type: "customer",
+    mobile: "9928012345",
+    balance: 56000,
+    openingBalance: 56000,
+    city: "Jaipur",
+    state: "Rajasthan",
+  },
+  {
+    id: "p8",
+    businessId: "b2",
+    name: "Indigo Mills",
+    type: "supplier",
+    mobile: "9928098765",
+    balance: -23400,
+    openingBalance: -23400,
+    city: "Surat",
+    state: "Gujarat",
+  },
 ];
 
 function readJson<T>(key: string, fallback: T): T {
@@ -50,8 +129,7 @@ type PartyDTO = {
 };
 
 function dtoToParty(dto: PartyDTO): Party {
-  const type =
-    dto.type === "CUSTOMER" ? "customer" : dto.type === "SUPPLIER" ? "supplier" : "both";
+  const type = dto.type === "CUSTOMER" ? "customer" : dto.type === "SUPPLIER" ? "supplier" : "both";
   const bizId = dto.business?.id;
   const address = {
     line1: dto.addressLine1 ?? undefined,
@@ -107,9 +185,7 @@ function partyToDto(p: Party): PartyDTO {
 
 export function useParties(businessId?: string | null) {
   const [token, setToken] = useState<string | null>(() => getJwt());
-  const [parties, setParties] = useState<Party[]>(() =>
-    USE_BACKEND ? [] : seed,
-  );
+  const [parties, setParties] = useState<Party[]>(() => (USE_BACKEND ? [] : seed));
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -224,13 +300,10 @@ export function useParties(businessId?: string | null) {
         // For create, omit id to avoid error.idexists.
         if (!isUpdate) delete dto.id;
 
-        const saved = await apiFetch<PartyDTO>(
-          isUpdate ? `/api/parties/${p.id}` : "/api/parties",
-          {
-            method: isUpdate ? "PUT" : "POST",
-            body: JSON.stringify(dto),
-          },
-        );
+        const saved = await apiFetch<PartyDTO>(isUpdate ? `/api/parties/${p.id}` : "/api/parties", {
+          method: isUpdate ? "PUT" : "POST",
+          body: JSON.stringify(dto),
+        });
         const mapped = dtoToParty(saved);
         setParties((prev) => {
           const exists = prev.some((x) => x.id === mapped.id);
@@ -246,9 +319,7 @@ export function useParties(businessId?: string | null) {
       : { ...p, createdAt: p.createdAt ?? new Date().toISOString() };
     setParties((prev) => {
       const exists = prev.some((x) => x.id === stamped.id);
-      return exists
-        ? prev.map((x) => (x.id === stamped.id ? stamped : x))
-        : [...prev, stamped];
+      return exists ? prev.map((x) => (x.id === stamped.id ? stamped : x)) : [...prev, stamped];
     });
     logAudit({
       module: "party",
@@ -286,7 +357,16 @@ export function useParties(businessId?: string | null) {
     return businessId ? parties.filter((p) => p.businessId === businessId) : parties;
   }, [parties, businessId, token]);
 
-  return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
+  return {
+    parties: scoped,
+    allParties: parties,
+    ledger,
+    hydrated,
+    remove,
+    upsert,
+    upsertLedgerEntry,
+    removeLedgerEntry,
+  };
 }
 
 export function formatCurrency(amount: number, currency = "INR") {

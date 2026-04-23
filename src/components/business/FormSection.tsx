@@ -16,9 +16,7 @@ export function FormSection({ step, title, description, children }: Props) {
         </div>
         <div>
           <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-          {description && (
-            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
         </div>
       </header>
       <div className="space-y-4">{children}</div>

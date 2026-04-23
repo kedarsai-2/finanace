@@ -42,9 +42,7 @@ function CreditNoteDetailPage() {
   const business = businesses.find((b) => b.id === cn?.businessId);
   const { parties } = useParties(cn?.businessId);
   const party = parties.find((p) => p.id === cn?.partyId);
-  const source = cn?.sourceInvoiceId
-    ? allInvoices.find((i) => i.id === cn.sourceInvoiceId)
-    : null;
+  const source = cn?.sourceInvoiceId ? allInvoices.find((i) => i.id === cn.sourceInvoiceId) : null;
 
   useEffect(() => {
     if (!cn) return;
@@ -148,9 +146,7 @@ function CreditNoteDetailPage() {
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Credit Note
               </p>
-              <p className="mt-1 font-mono text-2xl font-bold tracking-tight">
-                {cn.number}
-              </p>
+              <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{cn.number}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Issued {format(new Date(cn.date), "dd MMM yyyy")}
               </p>

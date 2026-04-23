@@ -28,8 +28,7 @@ export const Route = createFileRoute("/categories/expense")({
       { title: "Expense Categories" },
       {
         name: "description",
-        content:
-          "Manage the categories used when recording business expenses.",
+        content: "Manage the categories used when recording business expenses.",
       },
     ],
   }),
@@ -55,11 +54,7 @@ function ExpenseCategoriesPage() {
     if (!activeId) return toast.error("Select a business first");
     const trimmed = newName.trim();
     if (!trimmed) return;
-    if (
-      categories.some(
-        (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
-      )
-    ) {
+    if (categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
       return toast.error("That category already exists");
     }
     const cat: ExpenseCategoryRecord = {
@@ -101,12 +96,9 @@ function ExpenseCategoriesPage() {
           <Tags className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Expense Categories
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Expense Categories</h1>
           <p className="text-xs text-muted-foreground">
-            Used in the expense form dropdown. Categories in use can't be
-            deleted.
+            Used in the expense form dropdown. Categories in use can't be deleted.
           </p>
         </div>
       </div>
@@ -139,10 +131,7 @@ function ExpenseCategoriesPage() {
               const usage = usageByName.get(c.name) ?? 0;
               const isEditing = editingId === c.id;
               return (
-                <li
-                  key={c.id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30"
-                >
+                <li key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30">
                   {isEditing ? (
                     <Input
                       autoFocus
@@ -209,12 +198,10 @@ function ExpenseCategoriesPage() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete "{c.name}"?
-                              </AlertDialogTitle>
+                              <AlertDialogTitle>Delete "{c.name}"?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This soft-deletes the category. It will no
-                                longer appear in the expense form.
+                                This soft-deletes the category. It will no longer appear in the
+                                expense form.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

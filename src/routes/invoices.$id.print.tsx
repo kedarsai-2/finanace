@@ -12,7 +12,10 @@ export const Route = createFileRoute("/invoices/$id/print")({
   head: () => ({
     meta: [
       { title: "Invoice — Print preview" },
-      { name: "description", content: "Print-ready invoice layout. Use Print → Save as PDF to download." },
+      {
+        name: "description",
+        content: "Print-ready invoice layout. Use Print → Save as PDF to download.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),

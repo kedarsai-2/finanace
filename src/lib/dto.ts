@@ -17,4 +17,3 @@ export function businessRefFromId(id: string | number): BusinessRef | null {
   if (!Number.isFinite(n)) return null;
   return { id: n };
 }
-

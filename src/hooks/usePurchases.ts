@@ -67,7 +67,9 @@ type PurchaseLineDTO = {
 function toBackendDiscountKind(k: PurchaseLine["discountKind"]): BackendDiscountKind {
   return k === "amount" ? "AMOUNT" : "PERCENT";
 }
-function fromBackendDiscountKind(k: BackendDiscountKind | null | undefined): PurchaseLine["discountKind"] {
+function fromBackendDiscountKind(
+  k: BackendDiscountKind | null | undefined,
+): PurchaseLine["discountKind"] {
   return k === "AMOUNT" ? "amount" : "percent";
 }
 
@@ -76,7 +78,9 @@ function toBackendPurchaseStatus(s: Purchase["status"]): BackendPurchaseStatus {
   if (s === "cancelled") return "CANCELLED";
   return "DRAFT";
 }
-function fromBackendPurchaseStatus(s: BackendPurchaseStatus | null | undefined): Purchase["status"] {
+function fromBackendPurchaseStatus(
+  s: BackendPurchaseStatus | null | undefined,
+): Purchase["status"] {
   if (s === "FINAL") return "final";
   if (s === "CANCELLED") return "cancelled";
   return "draft";
@@ -227,23 +231,45 @@ function seedPurchase(args: {
 
 const seed: Purchase[] = [
   seedPurchase({
-    id: "pur1", businessId: "b1", number: "PUR-0001",
-    date: "2025-03-08T00:00:00.000Z", dueDate: "2025-04-07T00:00:00.000Z",
-    partyId: "p2", partyName: "Lotus Stationery", partyState: "Karnataka", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "A4 Sheets (500)", qty: 20, unit: "pack", rate: 320, taxPercent: 12 }],
-    status: "final", finalizedAt: "2025-03-08T00:00:00.000Z",
+    id: "pur1",
+    businessId: "b1",
+    number: "PUR-0001",
+    date: "2025-03-08T00:00:00.000Z",
+    dueDate: "2025-04-07T00:00:00.000Z",
+    partyId: "p2",
+    partyName: "Lotus Stationery",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: "A4 Sheets (500)", qty: 20, unit: "pack", rate: 320, taxPercent: 12 },
+    ],
+    status: "final",
+    finalizedAt: "2025-03-08T00:00:00.000Z",
   }),
   seedPurchase({
-    id: "pur2", businessId: "b1", number: "PUR-0002",
+    id: "pur2",
+    businessId: "b1",
+    number: "PUR-0002",
     date: "2025-03-22T00:00:00.000Z",
-    partyId: "p5", partyName: "Kavya Logistics", partyState: "Tamil Nadu", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "Freight charges", qty: 1, unit: "lot", rate: 18000, taxPercent: 18 }],
-    status: "final", finalizedAt: "2025-03-22T00:00:00.000Z",
+    partyId: "p5",
+    partyName: "Kavya Logistics",
+    partyState: "Tamil Nadu",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: "Freight charges", qty: 1, unit: "lot", rate: 18000, taxPercent: 18 },
+    ],
+    status: "final",
+    finalizedAt: "2025-03-22T00:00:00.000Z",
   }),
   seedPurchase({
-    id: "pur3", businessId: "b1", number: "PUR-0003",
+    id: "pur3",
+    businessId: "b1",
+    number: "PUR-0003",
     date: "2025-04-05T00:00:00.000Z",
-    partyId: "p2", partyName: "Lotus Stationery", partyState: "Karnataka", businessState: "Karnataka",
+    partyId: "p2",
+    partyName: "Lotus Stationery",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
     lines: [{ id: "l1", name: "Box files", qty: 50, unit: "pcs", rate: 95, taxPercent: 18 }],
     status: "draft",
   }),
@@ -278,7 +304,6 @@ export function usePurchases(businessId?: string | null) {
     if (!hydrated) return;
     if (!USE_BACKEND) localStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
   }, [purchases, hydrated]);
-
 
   /**
    * Mirror the purchase into the supplier's party ledger.
@@ -342,52 +367,67 @@ export function usePurchases(businessId?: string | null) {
     );
   }, []);
 
-  const upsert = useCallback(async (p: Purchase) => {
-    if (!USE_BACKEND) {
-      const before = purchasesRef.current.find((x) => x.id === p.id);
+  const upsert = useCallback(
+    async (p: Purchase) => {
+      if (!USE_BACKEND) {
+        const before = purchasesRef.current.find((x) => x.id === p.id);
+        setPurchases((prev) => {
+          const exists = prev.some((x) => x.id === p.id);
+          return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+        });
+        syncLedger(p);
+        logAudit({
+          module: "purchase",
+          action: before ? "edit" : "create",
+          recordId: p.id,
+          reference: p.number,
+          refLink: `/purchases/${p.id}`,
+          businessId: p.businessId,
+          before: before ? snapshot(before) : null,
+          after: snapshot(p),
+        });
+        return;
+      }
+
+      const dto = purchaseToDto(p);
+      const isUpdate = toNumId(p.id) != null;
+      const saved = isUpdate
+        ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, {
+            method: "PUT",
+            body: JSON.stringify(dto),
+          })
+        : await apiFetch<PurchaseDTO>(`/api/purchases`, {
+            method: "POST",
+            body: JSON.stringify({ ...dto, id: undefined }),
+          });
+
+      const savedId = toStrId(saved.id);
+
+      const existingLines = await apiFetch<PurchaseLineDTO[]>(
+        `/api/purchases/${savedId}/lines`,
+      ).catch(() => []);
+      await Promise.all(
+        existingLines.map((l) =>
+          apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" }),
+        ),
+      );
+      for (let i = 0; i < p.lines.length; i++) {
+        const line = p.lines[i];
+        const lineDto = lineToDto(savedId, line, i);
+        await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
+          method: "POST",
+          body: JSON.stringify({ ...lineDto, id: undefined }),
+        });
+      }
+
+      const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
       setPurchases((prev) => {
-        const exists = prev.some((x) => x.id === p.id);
-        return exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+        const exists = prev.some((x) => x.id === savedId);
+        return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
       });
-      syncLedger(p);
-      logAudit({
-        module: "purchase",
-        action: before ? "edit" : "create",
-        recordId: p.id,
-        reference: p.number,
-        refLink: `/purchases/${p.id}`,
-        businessId: p.businessId,
-        before: before ? snapshot(before) : null,
-        after: snapshot(p),
-      });
-      return;
-    }
-
-    const dto = purchaseToDto(p);
-    const isUpdate = toNumId(p.id) != null;
-    const saved = isUpdate
-      ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, { method: "PUT", body: JSON.stringify(dto) })
-      : await apiFetch<PurchaseDTO>(`/api/purchases`, { method: "POST", body: JSON.stringify({ ...dto, id: undefined }) });
-
-    const savedId = toStrId(saved.id);
-
-    const existingLines = await apiFetch<PurchaseLineDTO[]>(`/api/purchases/${savedId}/lines`).catch(() => []);
-    await Promise.all(existingLines.map((l) => apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" })));
-    for (let i = 0; i < p.lines.length; i++) {
-      const line = p.lines[i];
-      const lineDto = lineToDto(savedId, line, i);
-      await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
-        method: "POST",
-        body: JSON.stringify({ ...lineDto, id: undefined }),
-      });
-    }
-
-    const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
-    setPurchases((prev) => {
-      const exists = prev.some((x) => x.id === savedId);
-      return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
-    });
-  }, [syncLedger]);
+    },
+    [syncLedger],
+  );
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
   const remove = useCallback(
@@ -435,7 +475,9 @@ export function usePurchases(businessId?: string | null) {
           body: JSON.stringify(patch),
         });
         setPurchases((prev) =>
-          prev.map((x) => (x.id === id ? { ...x, status: fromBackendPurchaseStatus(saved.status) } : x)),
+          prev.map((x) =>
+            x.id === id ? { ...x, status: fromBackendPurchaseStatus(saved.status) } : x,
+          ),
         );
       } else {
         setPurchases((prev) =>
@@ -476,10 +518,7 @@ export function usePurchases(businessId?: string | null) {
   const returns = useMemo(
     () =>
       purchases.filter(
-        (x) =>
-          !x.deleted &&
-          x.kind === "return" &&
-          (!businessId || x.businessId === businessId),
+        (x) => !x.deleted && x.kind === "return" && (!businessId || x.businessId === businessId),
       ),
     [purchases, businessId],
   );

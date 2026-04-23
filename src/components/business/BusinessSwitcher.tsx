@@ -4,11 +4,7 @@ import { Check, ChevronsUpDown, Plus, Building2, Search, Layers } from "lucide-r
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -51,10 +47,7 @@ export function BusinessSwitcher() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const active = useMemo(
-    () => businesses.find((b) => b.id === activeId),
-    [businesses, activeId],
-  );
+  const active = useMemo(() => businesses.find((b) => b.id === activeId), [businesses, activeId]);
   const isAll = activeId === "__all__";
 
   const filtered = useMemo(() => {
@@ -111,7 +104,7 @@ export function BusinessSwitcher() {
                 {hydrated
                   ? isAll
                     ? "All Companies"
-                    : active?.name ?? "Select a business"
+                    : (active?.name ?? "Select a business")
                   : "Loading…"}
               </p>
             </div>
@@ -152,7 +145,9 @@ export function BusinessSwitcher() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium leading-tight">All Companies</p>
-              <p className="truncate text-xs text-muted-foreground">Combined view across all businesses</p>
+              <p className="truncate text-xs text-muted-foreground">
+                Combined view across all businesses
+              </p>
             </div>
             {isAll && <Check className="h-4 w-4 shrink-0 text-primary" />}
           </button>
@@ -183,9 +178,7 @@ export function BusinessSwitcher() {
                       {b.gstNumber ? " • GST" : ""}
                     </p>
                   </div>
-                  {isActive && (
-                    <Check className="h-4 w-4 shrink-0 text-primary" />
-                  )}
+                  {isActive && <Check className="h-4 w-4 shrink-0 text-primary" />}
                 </button>
               );
             })

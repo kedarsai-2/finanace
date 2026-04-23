@@ -21,8 +21,7 @@ export const Route = createFileRoute("/cash")({
       { title: "Cash — Live balance & recent transactions" },
       {
         name: "description",
-        content:
-          "View cash account balance and recent cash transactions in one place.",
+        content: "View cash account balance and recent cash transactions in one place.",
       },
     ],
   }),
@@ -49,10 +48,7 @@ function CashPage() {
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
-  const cashAccounts = useMemo(
-    () => accounts.filter((a) => a.type === "cash"),
-    [accounts],
-  );
+  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
 
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
@@ -81,9 +77,7 @@ function CashPage() {
   }, [cashAccounts, payments, transfers, expenses, accountsById]);
 
   if (!bHyd || !hydrated) {
-    return (
-      <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>
-    );
+    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
   }
 
   return (
@@ -120,9 +114,7 @@ function CashPage() {
                   <p
                     className={cn(
                       "text-2xl font-semibold tabular-nums",
-                      totalBalance < 0
-                        ? "text-destructive"
-                        : "text-foreground",
+                      totalBalance < 0 ? "text-destructive" : "text-foreground",
                     )}
                   >
                     {totalBalance < 0 ? "-" : ""}
@@ -157,9 +149,7 @@ function CashPage() {
                     <p className="font-semibold">{a.name}</p>
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Balance
-                  </p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Balance</p>
                   <p
                     className={cn(
                       "mt-1 text-xl font-semibold tabular-nums",
@@ -207,24 +197,17 @@ function CashPage() {
                         {format(new Date(r.date), "dd MMM yyyy")}
                       </td>
                       <td className="px-4 py-3">{KIND_LABEL[r.kind]}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {r.accountName}
-                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {r.refLink ? (
-                          <a
-                            href={r.refLink}
-                            className="text-primary hover:underline"
-                          >
+                          <a href={r.refLink} className="text-primary hover:underline">
                             {r.refNo}
                           </a>
                         ) : (
                           r.refNo
                         )}
                         {r.note && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {r.note}
-                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-destructive/80">

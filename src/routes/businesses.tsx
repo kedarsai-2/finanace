@@ -66,8 +66,6 @@ function BusinessesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      
-
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -115,9 +113,7 @@ function BusinessesPage() {
                 business={b}
                 active={b.id === activeId}
                 onSelect={() => handleSelect(b)}
-                onEdit={() =>
-                  navigate({ to: "/businesses/$id/edit", params: { id: b.id } })
-                }
+                onEdit={() => navigate({ to: "/businesses/$id/edit", params: { id: b.id } })}
                 onDelete={() => setDeleting(b)}
               />
             ))}
@@ -147,10 +143,7 @@ function BusinessesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={!!pendingSwitch}
-        onOpenChange={(v) => !v && setPendingSwitch(null)}
-      >
+      <AlertDialog open={!!pendingSwitch} onOpenChange={(v) => !v && setPendingSwitch(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>

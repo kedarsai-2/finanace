@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  GST_REGEX,
-  PAN_REGEX,
-  PINCODE_REGEX,
-  MOBILE_REGEX,
-} from "@/types/business";
+import { GST_REGEX, PAN_REGEX, PINCODE_REGEX, MOBILE_REGEX } from "@/types/business";
 
 const optStr = z.string().trim().max(200).optional().or(z.literal(""));
 
@@ -34,10 +29,7 @@ export const businessFormSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(""))
-    .refine(
-      (v) => !v || z.string().email().safeParse(v).success,
-      "Invalid email address",
-    ),
+    .refine((v) => !v || z.string().email().safeParse(v).success, "Invalid email address"),
   billingAddress: addressSchema,
   shippingSameAsBilling: z.boolean(),
   shippingAddress: addressSchema,
@@ -55,10 +47,7 @@ export const businessFormSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(""))
-    .refine(
-      (v) => !v || PAN_REGEX.test(v.toUpperCase()),
-      "Invalid PAN format (e.g. ABCDE1234F)",
-    ),
+    .refine((v) => !v || PAN_REGEX.test(v.toUpperCase()), "Invalid PAN format (e.g. ABCDE1234F)"),
   logoUrl: z.string().optional(),
   currency: z.string().min(1, "Currency is required"),
   fyStartMonth: z.number().min(1).max(12),

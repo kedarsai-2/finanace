@@ -62,9 +62,7 @@ export function BusinessCard({ business, active, onSelect, onEdit, onDelete }: P
         )}
 
         <div className="min-w-0 flex-1 pr-16">
-          <h3 className="truncate text-base font-semibold leading-tight">
-            {business.name}
-          </h3>
+          <h3 className="truncate text-base font-semibold leading-tight">{business.name}</h3>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5" />
             <span className="truncate">
@@ -78,9 +76,7 @@ export function BusinessCard({ business, active, onSelect, onEdit, onDelete }: P
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-            hasGst
-              ? "bg-success/10 text-success"
-              : "bg-warning/15 text-warning-foreground/80",
+            hasGst ? "bg-success/10 text-success" : "bg-warning/15 text-warning-foreground/80",
           )}
         >
           {hasGst ? (

@@ -14,10 +14,7 @@ export const partyFormSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(""))
-    .refine(
-      (v) => !v || z.string().email().safeParse(v).success,
-      "Invalid email address",
-    ),
+    .refine((v) => !v || z.string().email().safeParse(v).success, "Invalid email address"),
   address: z.object({
     line1: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().max(80).optional().or(z.literal("")),
@@ -43,10 +40,7 @@ export const partyFormSchema = z.object({
     .trim()
     .optional()
     .or(z.literal(""))
-    .refine(
-      (v) => !v || PAN_REGEX.test(v.toUpperCase()),
-      "Invalid PAN format (e.g. ABCDE1234F)",
-    ),
+    .refine((v) => !v || PAN_REGEX.test(v.toUpperCase()), "Invalid PAN format (e.g. ABCDE1234F)"),
   creditLimit: z.number().min(0, "Cannot be negative").optional(),
   paymentTermsDays: z.number().int().min(0).max(365).optional(),
   openingAmount: z.number().min(0, "Cannot be negative"),

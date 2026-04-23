@@ -1,11 +1,5 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
-import {
-  TrendingUp,
-  ShoppingCart,
-  Receipt,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { TrendingUp, ShoppingCart, Receipt, Users, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports")({
@@ -91,7 +85,12 @@ function ReportsHub() {
               to={r.to}
               className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
-              <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", TONE[r.tone])}>
+              <div
+                className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-xl",
+                  TONE[r.tone],
+                )}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="mt-4 text-base font-semibold">{r.label}</h3>

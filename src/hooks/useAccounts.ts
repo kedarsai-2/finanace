@@ -130,11 +130,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
       return;
     }
     const initial = read();
-    const ids = allBusinessIds.length
-      ? allBusinessIds
-      : businessId
-        ? [businessId]
-        : [];
+    const ids = allBusinessIds.length ? allBusinessIds : businessId ? [businessId] : [];
     const migrated = migrateDefaults(initial, ids);
     const normalized = normalizeLocalIds(migrated);
     setAccounts(normalized.accounts);
@@ -178,7 +174,6 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     };
   }, [businessId]);
 
-
   const accountsRef = useRef<Account[]>(accounts);
   useEffect(() => {
     accountsRef.current = accounts;
@@ -208,16 +203,12 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     }
     const local: Account = {
       ...a,
-      id:
-        a.id ||
-        `acc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      id: a.id || `acc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     };
     const before = accountsRef.current.find((x) => x.id === local.id);
     setAccounts((prev) => {
       const exists = prev.some((x) => x.id === local.id);
-      return exists
-        ? prev.map((x) => (x.id === local.id ? local : x))
-        : [...prev, local];
+      return exists ? prev.map((x) => (x.id === local.id ? local : x)) : [...prev, local];
     });
     logAudit({
       module: "account",
@@ -260,10 +251,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   }, []);
 
   const scoped = useMemo(
-    () =>
-      accounts.filter(
-        (a) => !a.deleted && (!businessId || a.businessId === businessId),
-      ),
+    () => accounts.filter((a) => !a.deleted && (!businessId || a.businessId === businessId)),
     [accounts, businessId],
   );
 

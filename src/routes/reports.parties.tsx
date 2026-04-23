@@ -125,10 +125,16 @@ function PartyReport() {
         <div className="min-w-[240px]">
           <Label>Party</Label>
           <Select value={partyId} onValueChange={setPartyId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All parties</SelectItem>
-              {parties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {parties.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -138,11 +144,15 @@ function PartyReport() {
       <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Receivable</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-success">{formatCurrency(summary.receivable, currency)}</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-success">
+            {formatCurrency(summary.receivable, currency)}
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Payable</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-destructive">{formatCurrency(summary.payable, currency)}</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-destructive">
+            {formatCurrency(summary.payable, currency)}
+          </p>
         </div>
       </section>
 
@@ -161,8 +171,12 @@ function PartyReport() {
             {aging.map((a) => (
               <tr key={a.bucket}>
                 <td className="px-4 py-3">{a.bucket}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-success">{formatCurrency(a.receivable, currency)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-destructive">{formatCurrency(a.payable, currency)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-success">
+                  {formatCurrency(a.receivable, currency)}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-destructive">
+                  {formatCurrency(a.payable, currency)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -173,7 +187,9 @@ function PartyReport() {
       <section className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="border-b border-border px-4 py-3 text-sm font-semibold">Ledger</div>
         {ledgerRows.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-muted-foreground">No ledger entries</div>
+          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+            No ledger entries
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -191,21 +207,34 @@ function PartyReport() {
                 const party = parties.find((p) => p.id === e.partyId);
                 return (
                   <tr key={e.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 text-muted-foreground">{format(new Date(e.date), "dd MMM yyyy")}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {format(new Date(e.date), "dd MMM yyyy")}
+                    </td>
                     <td className="px-4 py-3">{party?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-xs">
                       {e.refLink ? (
-                        <a href={e.refLink} className="text-primary hover:underline">{e.note}</a>
-                      ) : e.note}
+                        <a href={e.refLink} className="text-primary hover:underline">
+                          {e.note}
+                        </a>
+                      ) : (
+                        e.note
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">{e.amount > 0 ? formatCurrency(e.amount, currency) : "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{e.amount < 0 ? formatCurrency(e.amount, currency) : "—"}</td>
-                    <td className={cn(
-                      "px-4 py-3 text-right font-medium tabular-nums",
-                      e.running > 0 && "text-success",
-                      e.running < 0 && "text-destructive",
-                    )}>
-                      {e.running < 0 ? "-" : ""}{formatCurrency(e.running, currency)}
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {e.amount > 0 ? formatCurrency(e.amount, currency) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {e.amount < 0 ? formatCurrency(e.amount, currency) : "—"}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-right font-medium tabular-nums",
+                        e.running > 0 && "text-success",
+                        e.running < 0 && "text-destructive",
+                      )}
+                    >
+                      {e.running < 0 ? "-" : ""}
+                      {formatCurrency(e.running, currency)}
                     </td>
                   </tr>
                 );

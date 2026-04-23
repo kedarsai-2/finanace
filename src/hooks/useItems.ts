@@ -67,13 +67,83 @@ function itemToDto(it: Item): ItemDTO {
 }
 
 const seed: Item[] = [
-  { id: "i1", businessId: "b1", name: "Steel Bracket 4\"", sku: "SB-004", type: "product", sellingPrice: 240, taxPercent: 18, unit: "PCS", active: true },
-  { id: "i2", businessId: "b1", name: "Wood Panel 8x4", sku: "WP-0804", type: "product", sellingPrice: 1850, taxPercent: 12, unit: "PCS", active: true },
-  { id: "i3", businessId: "b1", name: "On-site Installation", sku: "SVC-INST", type: "service", sellingPrice: 1500, taxPercent: 18, unit: "HRS", active: true },
-  { id: "i4", businessId: "b1", name: "Annual Maintenance Plan", sku: "SVC-AMC", type: "service", sellingPrice: 12000, taxPercent: 18, unit: "YR", active: true },
-  { id: "i5", businessId: "b1", name: "Acrylic Sheet 3mm", sku: "AS-003", type: "product", sellingPrice: 680, taxPercent: 18, unit: "SQF", active: false },
-  { id: "i6", businessId: "b2", name: "Cotton Fabric Roll", sku: "CF-ROLL", type: "product", sellingPrice: 4200, taxPercent: 5, unit: "ROLL", active: true },
-  { id: "i7", businessId: "b2", name: "Custom Tailoring", sku: "SVC-TAIL", type: "service", sellingPrice: 800, taxPercent: 18, unit: "PCS", active: true },
+  {
+    id: "i1",
+    businessId: "b1",
+    name: 'Steel Bracket 4"',
+    sku: "SB-004",
+    type: "product",
+    sellingPrice: 240,
+    taxPercent: 18,
+    unit: "PCS",
+    active: true,
+  },
+  {
+    id: "i2",
+    businessId: "b1",
+    name: "Wood Panel 8x4",
+    sku: "WP-0804",
+    type: "product",
+    sellingPrice: 1850,
+    taxPercent: 12,
+    unit: "PCS",
+    active: true,
+  },
+  {
+    id: "i3",
+    businessId: "b1",
+    name: "On-site Installation",
+    sku: "SVC-INST",
+    type: "service",
+    sellingPrice: 1500,
+    taxPercent: 18,
+    unit: "HRS",
+    active: true,
+  },
+  {
+    id: "i4",
+    businessId: "b1",
+    name: "Annual Maintenance Plan",
+    sku: "SVC-AMC",
+    type: "service",
+    sellingPrice: 12000,
+    taxPercent: 18,
+    unit: "YR",
+    active: true,
+  },
+  {
+    id: "i5",
+    businessId: "b1",
+    name: "Acrylic Sheet 3mm",
+    sku: "AS-003",
+    type: "product",
+    sellingPrice: 680,
+    taxPercent: 18,
+    unit: "SQF",
+    active: false,
+  },
+  {
+    id: "i6",
+    businessId: "b2",
+    name: "Cotton Fabric Roll",
+    sku: "CF-ROLL",
+    type: "product",
+    sellingPrice: 4200,
+    taxPercent: 5,
+    unit: "ROLL",
+    active: true,
+  },
+  {
+    id: "i7",
+    businessId: "b2",
+    name: "Custom Tailoring",
+    sku: "SVC-TAIL",
+    type: "service",
+    sellingPrice: 800,
+    taxPercent: 18,
+    unit: "PCS",
+    active: true,
+  },
 ];
 
 function read(): Item[] {
@@ -145,10 +215,10 @@ export function useItems(businessId?: string | null) {
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
         if (!isUpdate) delete dto.id;
-        const saved = await apiFetch<ItemDTO>(
-          isUpdate ? `/api/items/${it.id}` : "/api/items",
-          { method: isUpdate ? "PUT" : "POST", body: JSON.stringify(dto) },
-        );
+        const saved = await apiFetch<ItemDTO>(isUpdate ? `/api/items/${it.id}` : "/api/items", {
+          method: isUpdate ? "PUT" : "POST",
+          body: JSON.stringify(dto),
+        });
         const mapped = dtoToItem(saved);
         setItems((prev) => {
           const exists = prev.some((x) => x.id === mapped.id);

@@ -36,4 +36,3 @@ export function subscribeAuth(callback: () => void) {
     window.removeEventListener("storage", onAny);
   };
 }
-

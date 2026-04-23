@@ -43,11 +43,7 @@ const EMPTY: FormState = {
   gstNumber: "",
 };
 
-export function QuickAddPartyDialog({
-  open,
-  onOpenChange,
-  onCreated,
-}: QuickAddPartyDialogProps) {
+export function QuickAddPartyDialog({ open, onOpenChange, onCreated }: QuickAddPartyDialogProps) {
   const { activeId } = useBusinesses();
   const { upsert } = useParties(activeId);
 
@@ -120,9 +116,7 @@ export function QuickAddPartyDialog({
             </div>
             <div>
               <DialogTitle>Quick add party</DialogTitle>
-              <DialogDescription>
-                Create a new party and use it instantly.
-              </DialogDescription>
+              <DialogDescription>Create a new party and use it instantly.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -148,9 +142,7 @@ export function QuickAddPartyDialog({
               inputMode="numeric"
               maxLength={10}
               value={form.mobile}
-              onChange={(e) =>
-                setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })
-              }
+              onChange={(e) => setForm({ ...form, mobile: e.target.value.replace(/\D/g, "") })}
               placeholder="10-digit number"
             />
           </Field>
@@ -158,9 +150,7 @@ export function QuickAddPartyDialog({
           <Field label="GST number" error={errors.gstNumber}>
             <Input
               value={form.gstNumber}
-              onChange={(e) =>
-                setForm({ ...form, gstNumber: e.target.value.toUpperCase() })
-              }
+              onChange={(e) => setForm({ ...form, gstNumber: e.target.value.toUpperCase() })}
               placeholder="Optional"
               className="font-mono uppercase"
             />

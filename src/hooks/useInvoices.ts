@@ -67,7 +67,9 @@ type InvoiceLineDTO = {
 function toBackendDiscountKind(k: InvoiceLine["discountKind"]): BackendDiscountKind {
   return k === "amount" ? "AMOUNT" : "PERCENT";
 }
-function fromBackendDiscountKind(k: BackendDiscountKind | null | undefined): InvoiceLine["discountKind"] {
+function fromBackendDiscountKind(
+  k: BackendDiscountKind | null | undefined,
+): InvoiceLine["discountKind"] {
   return k === "AMOUNT" ? "amount" : "percent";
 }
 
@@ -232,39 +234,83 @@ function seedInvoice(args: {
 
 const seed: Invoice[] = [
   seedInvoice({
-    id: "inv1", businessId: "b1", number: "INV-0001",
-    date: "2025-03-04T00:00:00.000Z", dueDate: "2025-04-03T00:00:00.000Z",
-    partyId: "p1", partyName: "Acme Industries", partyState: "Karnataka", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "Steel Bracket 4\"", qty: 50, unit: "pcs", rate: 240, taxPercent: 18 }],
-    paidAmount: 14160, status: "final", finalizedAt: "2025-03-04T00:00:00.000Z",
+    id: "inv1",
+    businessId: "b1",
+    number: "INV-0001",
+    date: "2025-03-04T00:00:00.000Z",
+    dueDate: "2025-04-03T00:00:00.000Z",
+    partyId: "p1",
+    partyName: "Acme Industries",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: 'Steel Bracket 4"', qty: 50, unit: "pcs", rate: 240, taxPercent: 18 },
+    ],
+    paidAmount: 14160,
+    status: "final",
+    finalizedAt: "2025-03-04T00:00:00.000Z",
   }),
   seedInvoice({
-    id: "inv2", businessId: "b1", number: "INV-0002",
-    date: "2025-03-12T00:00:00.000Z", dueDate: "2025-04-11T00:00:00.000Z",
-    partyId: "p4", partyName: "Sundaram Traders", partyState: "Karnataka", businessState: "Karnataka",
+    id: "inv2",
+    businessId: "b1",
+    number: "INV-0002",
+    date: "2025-03-12T00:00:00.000Z",
+    dueDate: "2025-04-11T00:00:00.000Z",
+    partyId: "p4",
+    partyName: "Sundaram Traders",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
     lines: [{ id: "l1", name: "Wood Panel 8x4", qty: 30, unit: "pcs", rate: 1850, taxPercent: 12 }],
-    paidAmount: 30000, status: "final", finalizedAt: "2025-03-12T00:00:00.000Z",
+    paidAmount: 30000,
+    status: "final",
+    finalizedAt: "2025-03-12T00:00:00.000Z",
   }),
   seedInvoice({
-    id: "inv3", businessId: "b1", number: "INV-0003",
+    id: "inv3",
+    businessId: "b1",
+    number: "INV-0003",
     date: "2025-03-20T00:00:00.000Z",
-    partyId: "p6", partyName: "Rao & Sons", partyState: "Karnataka", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "On-site Installation", qty: 4, unit: "hour", rate: 1500, taxPercent: 18 }],
-    paidAmount: 0, status: "draft",
+    partyId: "p6",
+    partyName: "Rao & Sons",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: "On-site Installation", qty: 4, unit: "hour", rate: 1500, taxPercent: 18 },
+    ],
+    paidAmount: 0,
+    status: "draft",
   }),
   seedInvoice({
-    id: "inv4", businessId: "b1", number: "INV-0004",
-    date: "2025-04-02T00:00:00.000Z", dueDate: "2025-05-02T00:00:00.000Z",
-    partyId: "p1", partyName: "Acme Industries", partyState: "Karnataka", businessState: "Karnataka",
-    lines: [{ id: "l1", name: "Steel Bracket 4\"", qty: 100, unit: "pcs", rate: 240, taxPercent: 18 }],
-    paidAmount: 0, status: "cancelled",
+    id: "inv4",
+    businessId: "b1",
+    number: "INV-0004",
+    date: "2025-04-02T00:00:00.000Z",
+    dueDate: "2025-05-02T00:00:00.000Z",
+    partyId: "p1",
+    partyName: "Acme Industries",
+    partyState: "Karnataka",
+    businessState: "Karnataka",
+    lines: [
+      { id: "l1", name: 'Steel Bracket 4"', qty: 100, unit: "pcs", rate: 240, taxPercent: 18 },
+    ],
+    paidAmount: 0,
+    status: "cancelled",
   }),
   seedInvoice({
-    id: "inv5", businessId: "b2", number: "INV-0001",
+    id: "inv5",
+    businessId: "b2",
+    number: "INV-0001",
     date: "2025-03-18T00:00:00.000Z",
-    partyId: "p7", partyName: "Marigold Exports", partyState: "Rajasthan", businessState: "Rajasthan",
-    lines: [{ id: "l1", name: "Cotton Fabric Roll", qty: 12, unit: "pcs", rate: 4200, taxPercent: 5 }],
-    paidAmount: 25000, status: "final", finalizedAt: "2025-03-18T00:00:00.000Z",
+    partyId: "p7",
+    partyName: "Marigold Exports",
+    partyState: "Rajasthan",
+    businessState: "Rajasthan",
+    lines: [
+      { id: "l1", name: "Cotton Fabric Roll", qty: 12, unit: "pcs", rate: 4200, taxPercent: 5 },
+    ],
+    paidAmount: 25000,
+    status: "final",
+    finalizedAt: "2025-03-18T00:00:00.000Z",
   }),
 ];
 
@@ -333,7 +379,9 @@ export function useInvoices(businessId?: string | null) {
       setInvoices([]);
       return;
     }
-    const list = await apiFetch<InvoiceDTO[]>(`/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`);
+    const list = await apiFetch<InvoiceDTO[]>(
+      `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
+    );
     setInvoices(list.map(dtoToInvoice));
   }, [businessId]);
 
@@ -360,120 +408,148 @@ export function useInvoices(businessId?: string | null) {
     );
   }, []);
 
-  const upsert = useCallback(async (inv: Invoice) => {
-    if (!USE_BACKEND) {
-      const before = invoicesRef.current.find((x) => x.id === inv.id);
+  const upsert = useCallback(
+    async (inv: Invoice) => {
+      if (!USE_BACKEND) {
+        const before = invoicesRef.current.find((x) => x.id === inv.id);
+        setInvoices((prev) => {
+          const exists = prev.some((x) => x.id === inv.id);
+          return exists ? prev.map((x) => (x.id === inv.id ? inv : x)) : [...prev, inv];
+        });
+        syncLedger(inv);
+        logAudit({
+          module: inv.kind === "credit-note" ? "invoice" : "invoice",
+          action: before ? "edit" : "create",
+          recordId: inv.id,
+          reference: inv.number,
+          refLink: inv.kind === "credit-note" ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
+          businessId: inv.businessId,
+          before: before ? snapshot(before) : null,
+          after: snapshot(inv),
+        });
+        return;
+      }
+
+      const dto = invoiceToDto(inv);
+      const isUpdate = toNumId(inv.id) != null;
+      const saved = isUpdate
+        ? await apiFetch<InvoiceDTO>(`/api/invoices/${toNumId(inv.id)}`, {
+            method: "PUT",
+            body: JSON.stringify(dto),
+          })
+        : await apiFetch<InvoiceDTO>(`/api/invoices`, {
+            method: "POST",
+            body: JSON.stringify({ ...dto, id: undefined }),
+          });
+
+      const savedId = toStrId(saved.id);
+
+      // Replace lines (simple + consistent).
+      const existingLines = await apiFetch<InvoiceLineDTO[]>(
+        `/api/invoices/${savedId}/lines`,
+      ).catch(() => []);
+      await Promise.all(
+        existingLines.map((l) =>
+          apiFetch<void>(`/api/invoice-lines/${l.id}`, { method: "DELETE" }),
+        ),
+      );
+      for (let i = 0; i < inv.lines.length; i++) {
+        const line = inv.lines[i];
+        const lineDto = lineToDto(savedId, line, i);
+        await apiFetch<InvoiceLineDTO>(`/api/invoice-lines`, {
+          method: "POST",
+          body: JSON.stringify({ ...lineDto, id: undefined }),
+        });
+      }
+
+      const after: Invoice = {
+        ...dtoToInvoice(saved),
+        lines: inv.lines.map((l) => ({ ...l, id: l.id })),
+      };
       setInvoices((prev) => {
-        const exists = prev.some((x) => x.id === inv.id);
-        return exists ? prev.map((x) => (x.id === inv.id ? inv : x)) : [...prev, inv];
+        const exists = prev.some((x) => x.id === savedId);
+        return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
       });
-      syncLedger(inv);
-      logAudit({
-        module: inv.kind === "credit-note" ? "invoice" : "invoice",
-        action: before ? "edit" : "create",
-        recordId: inv.id,
-        reference: inv.number,
-        refLink: inv.kind === "credit-note" ? `/credit-notes/${inv.id}` : `/invoices/${inv.id}`,
-        businessId: inv.businessId,
-        before: before ? snapshot(before) : null,
-        after: snapshot(inv),
-      });
-      return;
-    }
-
-    const dto = invoiceToDto(inv);
-    const isUpdate = toNumId(inv.id) != null;
-    const saved = isUpdate
-      ? await apiFetch<InvoiceDTO>(`/api/invoices/${toNumId(inv.id)}`, { method: "PUT", body: JSON.stringify(dto) })
-      : await apiFetch<InvoiceDTO>(`/api/invoices`, { method: "POST", body: JSON.stringify({ ...dto, id: undefined }) });
-
-    const savedId = toStrId(saved.id);
-
-    // Replace lines (simple + consistent).
-    const existingLines = await apiFetch<InvoiceLineDTO[]>(`/api/invoices/${savedId}/lines`).catch(() => []);
-    await Promise.all(existingLines.map((l) => apiFetch<void>(`/api/invoice-lines/${l.id}`, { method: "DELETE" })));
-    for (let i = 0; i < inv.lines.length; i++) {
-      const line = inv.lines[i];
-      const lineDto = lineToDto(savedId, line, i);
-      await apiFetch<InvoiceLineDTO>(`/api/invoice-lines`, {
-        method: "POST",
-        body: JSON.stringify({ ...lineDto, id: undefined }),
-      });
-    }
-
-    const after: Invoice = { ...dtoToInvoice(saved), lines: inv.lines.map((l) => ({ ...l, id: l.id })) };
-    setInvoices((prev) => {
-      const exists = prev.some((x) => x.id === savedId);
-      return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
-    });
-  }, [syncLedger]);
+    },
+    [syncLedger],
+  );
 
   /** Soft delete — hidden everywhere but the row is kept for audit. */
-  const remove = useCallback(async (id: string) => {
-    if (!USE_BACKEND) {
-      const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) =>
-        prev.map((x) => {
-          if (x.id !== id) return x;
-          const next = { ...x, deleted: true };
-          syncLedger(next);
-          return next;
-        }),
-      );
-      if (before) {
-        logAudit({
-          module: "invoice",
-          action: "delete",
-          recordId: id,
-          reference: before.number,
-          businessId: before.businessId,
-          before: snapshot(before),
-        });
+  const remove = useCallback(
+    async (id: string) => {
+      if (!USE_BACKEND) {
+        const before = invoicesRef.current.find((x) => x.id === id);
+        setInvoices((prev) =>
+          prev.map((x) => {
+            if (x.id !== id) return x;
+            const next = { ...x, deleted: true };
+            syncLedger(next);
+            return next;
+          }),
+        );
+        if (before) {
+          logAudit({
+            module: "invoice",
+            action: "delete",
+            recordId: id,
+            reference: before.number,
+            businessId: before.businessId,
+            before: snapshot(before),
+          });
+        }
+        return;
       }
-      return;
-    }
-    const idNum = toNumId(id);
-    if (idNum == null) return;
-    await apiFetch<void>(`/api/invoices/${idNum}`, { method: "DELETE" });
-    setInvoices((prev) => prev.filter((x) => x.id !== id));
-  }, [syncLedger]);
+      const idNum = toNumId(id);
+      if (idNum == null) return;
+      await apiFetch<void>(`/api/invoices/${idNum}`, { method: "DELETE" });
+      setInvoices((prev) => prev.filter((x) => x.id !== id));
+    },
+    [syncLedger],
+  );
 
-  const cancel = useCallback(async (id: string) => {
-    if (!USE_BACKEND) {
-      const before = invoicesRef.current.find((x) => x.id === id);
-      setInvoices((prev) =>
-        prev.map((x) => {
-          if (x.id !== id) return x;
-          const next = { ...x, status: "cancelled" as const };
-          syncLedger(next);
-          return next;
-        }),
-      );
-      if (before) {
-        logAudit({
-          module: "invoice",
-          action: "cancel",
-          recordId: id,
-          reference: before.number,
-          refLink: `/invoices/${id}`,
-          businessId: before.businessId,
-          before: snapshot(before),
-        });
+  const cancel = useCallback(
+    async (id: string) => {
+      if (!USE_BACKEND) {
+        const before = invoicesRef.current.find((x) => x.id === id);
+        setInvoices((prev) =>
+          prev.map((x) => {
+            if (x.id !== id) return x;
+            const next = { ...x, status: "cancelled" as const };
+            syncLedger(next);
+            return next;
+          }),
+        );
+        if (before) {
+          logAudit({
+            module: "invoice",
+            action: "cancel",
+            recordId: id,
+            reference: before.number,
+            refLink: `/invoices/${id}`,
+            businessId: before.businessId,
+            before: snapshot(before),
+          });
+        }
+        return;
       }
-      return;
-    }
-    const idNum = toNumId(id);
-    if (idNum == null) return;
-    const existing = invoicesRef.current.find((x) => x.id === id);
-    if (!existing) return;
-    const patch: Partial<InvoiceDTO> = { id: idNum, status: "CANCELLED" };
-    const saved = await apiFetch<InvoiceDTO>(`/api/invoices/${idNum}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/merge-patch+json" },
-      body: JSON.stringify(patch),
-    });
-    setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: fromBackendInvoiceStatus(saved.status) } : x)));
-  }, [syncLedger]);
+      const idNum = toNumId(id);
+      if (idNum == null) return;
+      const existing = invoicesRef.current.find((x) => x.id === id);
+      if (!existing) return;
+      const patch: Partial<InvoiceDTO> = { id: idNum, status: "CANCELLED" };
+      const saved = await apiFetch<InvoiceDTO>(`/api/invoices/${idNum}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/merge-patch+json" },
+        body: JSON.stringify(patch),
+      });
+      setInvoices((prev) =>
+        prev.map((x) =>
+          x.id === id ? { ...x, status: fromBackendInvoiceStatus(saved.status) } : x,
+        ),
+      );
+    },
+    [syncLedger],
+  );
 
   const scoped = useMemo(
     () =>
@@ -490,9 +566,7 @@ export function useInvoices(businessId?: string | null) {
     () =>
       invoices.filter(
         (x) =>
-          !x.deleted &&
-          x.kind === "credit-note" &&
-          (!businessId || x.businessId === businessId),
+          !x.deleted && x.kind === "credit-note" && (!businessId || x.businessId === businessId),
       ),
     [invoices, businessId],
   );

@@ -20,11 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -51,11 +47,7 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { usePurchases } from "@/hooks/usePurchases";
 import { cn } from "@/lib/utils";
-import {
-  computeTotals,
-  lineMath,
-  type DiscountKind,
-} from "@/types/invoice";
+import { computeTotals, lineMath, type DiscountKind } from "@/types/invoice";
 import {
   nextPurchaseNumber,
   canEditPurchase,
@@ -109,8 +101,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [date, setDate] = useState<Date>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [lines, setLines] = useState<PurchaseLine[]>([emptyLine()]);
-  const [overallDiscountKind, setOverallDiscountKind] =
-    useState<DiscountKind>("percent");
+  const [overallDiscountKind, setOverallDiscountKind] = useState<DiscountKind>("percent");
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
@@ -158,8 +149,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   );
 
   // -------- Edit-lock -----------------------------------------------------
-  const locked =
-    mode === "edit" && existing ? !canEditPurchase(existing) : false;
+  const locked = mode === "edit" && existing ? !canEditPurchase(existing) : false;
   const lockedReason =
     existing?.status === "cancelled"
       ? "Cancelled purchases cannot be edited."
@@ -171,9 +161,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
 
   const addLine = () => setLines((prev) => [...prev, emptyLine()]);
   const removeLine = (id: string) =>
-    setLines((prev) =>
-      prev.length === 1 ? prev : prev.filter((l) => l.id !== id),
-    );
+    setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.id !== id)));
 
   const applyItemToLine = (lineId: string, item: Item) =>
     updateLine(lineId, {
@@ -234,7 +222,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       notes: notes.trim() || undefined,
       terms: termsText.trim() || undefined,
       finalizedAt: isFinal
-        ? existing?.finalizedAt ?? new Date().toISOString()
+        ? (existing?.finalizedAt ?? new Date().toISOString())
         : existing?.finalizedAt,
     };
   };
@@ -258,9 +246,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       const p = buildPurchase(status);
       await upsert(p);
       toast.success(
-        status === "final"
-          ? `Purchase ${p.number} finalised`
-          : `Draft ${p.number} saved`,
+        status === "final" ? `Purchase ${p.number} finalised` : `Draft ${p.number} saved`,
       );
       navigate(LIST_SEARCH);
     } finally {
@@ -327,8 +313,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {locked && (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground/80">
-            <strong className="font-semibold">This purchase is locked.</strong>{" "}
-            {lockedReason}
+            <strong className="font-semibold">This purchase is locked.</strong> {lockedReason}
           </div>
         )}
 
@@ -351,10 +336,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                     <SearchIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-[--radix-popover-trigger-width] p-0"
-                  align="start"
-                >
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search suppliers…" />
                     <CommandList>
@@ -421,10 +403,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               <Label>Purchase date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-10 w-full justify-between font-normal"
-                  >
+                  <Button variant="outline" className="h-10 w-full justify-between font-normal">
                     {format(date, "dd MMM yyyy")}
                     <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
@@ -482,7 +461,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         </FormSection>
 
         {/* 3. Items -------------------------------------------------------- */}
-        <FormSection step={3} title="Items" description="Each row becomes a line on the purchase bill.">
+        <FormSection
+          step={3}
+          title="Items"
+          description="Each row becomes a line on the purchase bill."
+        >
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -491,7 +474,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   <th className="px-3 py-2 text-left">Unit</th>
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-right">Unit price</th>
-                  <th className="px-3 py-2 text-left" colSpan={2}>Discount</th>
+                  <th className="px-3 py-2 text-left" colSpan={2}>
+                    Discount
+                  </th>
                   <th className="px-3 py-2 text-right">Total Price</th>
                   <th className="px-3 py-2"></th>
                 </tr>
@@ -594,11 +579,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         </FormSection>
 
         {/* 4. Summary ----------------------------------------------------- */}
-        <FormSection
-          step={4}
-          title="Summary"
-          description="Review the bill total before saving."
-        >
+        <FormSection step={4} title="Summary" description="Review the bill total before saving.">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
             <div className="space-y-3">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
@@ -645,17 +626,17 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                 />
               )}
               <div className="my-2 h-px bg-border" />
-              <Row
-                label="Total"
-                value={formatCurrency(totals.total, currency)}
-                emphasis
-              />
+              <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
             </dl>
           </div>
         </FormSection>
 
         {/* 5. Notes & terms ------------------------------------------------- */}
-        <FormSection step={5} title="Notes & Terms" description="Optional, shown on the printable bill.">
+        <FormSection
+          step={5}
+          title="Notes & Terms"
+          description="Optional, shown on the printable bill."
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="notes">Notes</Label>
@@ -845,9 +826,7 @@ function ItemPicker({
                       <div>
                         <p className="font-medium">{it.name}</p>
                         {it.sku && (
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {it.sku}
-                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">{it.sku}</p>
                         )}
                       </div>
                       <span className="tabular-nums text-muted-foreground">

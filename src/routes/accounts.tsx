@@ -1,14 +1,6 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
-import {
-  Plus,
-  Wallet,
-  Building2,
-  Banknote,
-  Pencil,
-  Trash2,
-  ArrowLeftRight,
-} from "lucide-react";
+import { Plus, Wallet, Building2, Banknote, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,11 +23,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
-import {
-  ACCOUNT_TYPE_LABEL,
-  type Account,
-  type AccountType,
-} from "@/types/account";
+import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
 import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/accounts")({
@@ -82,10 +70,7 @@ function AccountsPage() {
   );
 
   // Only bank accounts are managed on this page; cash lives on /cash.
-  const bankAccounts = useMemo(
-    () => accounts.filter((a) => a.type === "bank"),
-    [accounts],
-  );
+  const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
 
   const cards = useMemo(() => {
     return bankAccounts.map((a) => {
@@ -161,7 +146,8 @@ function EmptyState() {
       </div>
       <h2 className="mb-1 text-lg font-semibold">No bank accounts added</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Add a bank account to track money flowing in and out. Cash is managed under the dedicated Cash tab.
+        Add a bank account to track money flowing in and out. Cash is managed under the dedicated
+        Cash tab.
       </p>
       <Button asChild className="gap-2">
         <Link to="/accounts/new">
@@ -188,11 +174,7 @@ function AccountCard({
   const Icon = TYPE_ICON[account.type];
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
-      <Link
-        to="/accounts/$id"
-        params={{ id: account.id }}
-        className="block p-5"
-      >
+      <Link to="/accounts/$id" params={{ id: account.id }} className="block p-5">
         <div className="mb-3 flex items-center gap-3">
           <div
             className={cn(
@@ -250,8 +232,8 @@ function AccountCard({
             <AlertDialogHeader>
               <AlertDialogTitle>Delete {account.name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                The account will be hidden. Existing transactions on it remain
-                in records but no longer affect any live balance.
+                The account will be hidden. Existing transactions on it remain in records but no
+                longer affect any live balance.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

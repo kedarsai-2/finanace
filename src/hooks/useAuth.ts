@@ -28,4 +28,3 @@ export function useAuth() {
 
   return { token, isAuthed, login, logout };
 }
-

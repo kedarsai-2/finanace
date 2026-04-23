@@ -31,8 +31,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         minHeight: "297mm",
         padding: "16mm",
         boxSizing: "border-box",
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
       {/* ---------- Letterhead ---------- */}
@@ -53,9 +52,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
             <h1 className="text-2xl font-bold leading-tight">
               {business?.name ?? "Your Business"}
             </h1>
-            {business?.ownerName && (
-              <p className="text-sm text-slate-600">{business.ownerName}</p>
-            )}
+            {business?.ownerName && <p className="text-sm text-slate-600">{business.ownerName}</p>}
             <div className="mt-1 text-xs leading-relaxed text-slate-600">
               {[business?.billingAddress?.line1, business?.billingAddress?.line2]
                 .filter(Boolean)
@@ -81,9 +78,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Tax Invoice
           </p>
-          <p className="mt-1 font-mono text-2xl font-bold tracking-tight">
-            {invoice.number}
-          </p>
+          <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{invoice.number}</p>
           <dl className="mt-3 space-y-1 text-xs text-slate-600">
             <div className="flex justify-end gap-4">
               <dt>Date</dt>
@@ -101,9 +96,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
             )}
             <div className="flex justify-end gap-4">
               <dt>Status</dt>
-              <dd className="font-medium uppercase text-slate-900">
-                {invoice.status}
-              </dd>
+              <dd className="font-medium uppercase text-slate-900">{invoice.status}</dd>
             </div>
           </dl>
         </div>
@@ -125,9 +118,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
                   .join(", ")}
               </div>
               {party.mobile && <div className="mt-1">📞 {party.mobile}</div>}
-              {party.gstNumber && (
-                <div className="mt-1 font-mono">GSTIN: {party.gstNumber}</div>
-              )}
+              {party.gstNumber && <div className="mt-1 font-mono">GSTIN: {party.gstNumber}</div>}
             </div>
           )}
         </div>
@@ -135,9 +126,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Place of supply
           </p>
-          <p className="mt-1 text-sm font-medium">
-            {invoice.partyState ?? "—"}
-          </p>
+          <p className="mt-1 text-sm font-medium">{invoice.partyState ?? "—"}</p>
         </div>
       </section>
 
@@ -190,9 +179,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Amount in words
           </p>
-          <p className="mt-1 font-medium capitalize">
-            {amountInWords(invoice.total, currency)}
-          </p>
+          <p className="mt-1 font-medium capitalize">{amountInWords(invoice.total, currency)}</p>
         </div>
         <dl className="space-y-1.5 text-xs">
           <SummaryRow label="Subtotal" value={formatCurrency(invoice.subtotal, currency)} />
@@ -219,16 +206,8 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           </div>
           {invoice.paidAmount > 0 && (
             <>
-              <SummaryRow
-                label="Paid"
-                value={formatCurrency(invoice.paidAmount, currency)}
-                muted
-              />
-              <SummaryRow
-                label="Balance due"
-                value={formatCurrency(balance, currency)}
-                emphasis
-              />
+              <SummaryRow label="Paid" value={formatCurrency(invoice.paidAmount, currency)} muted />
+              <SummaryRow label="Balance due" value={formatCurrency(balance, currency)} emphasis />
             </>
           )}
         </dl>
@@ -340,9 +319,7 @@ function below1000(n: number): string {
   if (n < 100) return below100(n);
   const h = Math.floor(n / 100);
   const r = n % 100;
-  return r === 0
-    ? `${ONES[h]} hundred`
-    : `${ONES[h]} hundred ${below100(r)}`;
+  return r === 0 ? `${ONES[h]} hundred` : `${ONES[h]} hundred ${below100(r)}`;
 }
 
 /** Indian numbering: lakh / crore. */

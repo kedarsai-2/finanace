@@ -9,26 +9,13 @@ import {
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  ShoppingCart,
-  Ban,
-  CalendarIcon,
-  X,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Ban, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,9 +46,8 @@ const searchSchema = z.object({
 type SearchValues = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/purchases")({
-  validateSearch: (
-    search: Partial<SearchValues> & SearchSchemaInput,
-  ): SearchValues => searchSchema.parse(search),
+  validateSearch: (search: Partial<SearchValues> & SearchSchemaInput): SearchValues =>
+    searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Purchases — Bills & Payables" },
@@ -114,10 +100,7 @@ function PurchasesPage() {
         if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
         if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
         if (!term) return true;
-        return (
-          p.number.toLowerCase().includes(term) ||
-          p.partyName.toLowerCase().includes(term)
-        );
+        return p.number.toLowerCase().includes(term) || p.partyName.toLowerCase().includes(term);
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [purchases, q, status, fromDate, toDate]);
@@ -180,10 +163,7 @@ function PurchasesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total purchases" value={String(totals.count)} />
-            <SummaryCard
-              label="Total Purchase"
-              value={formatCurrency(totals.total, currency)}
-            />
+            <SummaryCard label="Total Purchase" value={formatCurrency(totals.total, currency)} />
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
@@ -264,9 +244,7 @@ function PurchasesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep purchase</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel}>
-              Cancel purchase
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmCancel}>Cancel purchase</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -277,9 +255,7 @@ function PurchasesPage() {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
@@ -373,9 +349,7 @@ function DatePill({
           type="button"
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
-            value
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+            value ? "text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />

@@ -68,10 +68,7 @@ function NewPaymentPage() {
   const { parties } = useParties(activeId);
   const { accounts, hydrated: accountsHydrated } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const bankAccounts = useMemo(
-    () => safeAccounts.filter((a) => a.type === "bank"),
-    [safeAccounts],
-  );
+  const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const cashAccountId = useMemo(
     () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
     [safeAccounts],
@@ -119,9 +116,7 @@ function NewPaymentPage() {
       return invoices
         .filter(
           (i): i is Invoice =>
-            i.partyId === partyId &&
-            i.status !== "cancelled" &&
-            i.total - i.paidAmount > 0.01,
+            i.partyId === partyId && i.status !== "cancelled" && i.total - i.paidAmount > 0.01,
         )
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((i) => ({
@@ -134,9 +129,7 @@ function NewPaymentPage() {
     return purchases
       .filter(
         (p): p is Purchase =>
-          p.partyId === partyId &&
-          p.status !== "cancelled" &&
-          p.total - p.paidAmount > 0.01,
+          p.partyId === partyId && p.status !== "cancelled" && p.total - p.paidAmount > 0.01,
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((p) => ({
@@ -187,9 +180,7 @@ function NewPaymentPage() {
     });
   }, [amount, autoAllocate]);
 
-  const allocatedTotal = rows
-    .filter((r) => r.selected)
-    .reduce((s, r) => s + r.amount, 0);
+  const allocatedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
   const unallocated = Math.max(0, amount - allocatedTotal);
   const overAllocated = allocatedTotal - amount > 0.01;
 
@@ -371,11 +362,13 @@ function NewPaymentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">No party (general / advance)</SelectItem>
-                  {filteredParties.filter((p) => !!p.id).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {filteredParties
+                    .filter((p) => !!p.id)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -442,9 +435,7 @@ function NewPaymentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {(
-                    Object.keys(PAYMENT_MODE_LABEL) as Array<
-                      import("@/types/payment").PaymentMode
-                    >
+                    Object.keys(PAYMENT_MODE_LABEL) as Array<import("@/types/payment").PaymentMode>
                   ).map((m) => (
                     <SelectItem key={m} value={m}>
                       {PAYMENT_MODE_LABEL[m]}
@@ -522,9 +513,7 @@ function NewPaymentPage() {
                 size="sm"
                 onClick={() => {
                   setAutoAllocate(true);
-                  setRows((prev) =>
-                    prev.map((r) => ({ ...r, manuallyEdited: false })),
-                  );
+                  setRows((prev) => prev.map((r) => ({ ...r, manuallyEdited: false })));
                 }}
               >
                 Reset
@@ -611,12 +600,18 @@ function NewPaymentPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } })}
+            onClick={() =>
+              navigate({ to: "/payments", search: { dir: "all", from: "", to: "", account: "" } })
+            }
           >
             Cancel
           </Button>
           <Button type="submit" disabled={submitting} className="gap-2">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
             Save payment
           </Button>
         </div>

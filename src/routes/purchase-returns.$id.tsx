@@ -149,9 +149,7 @@ function PurchaseReturnDetailPage() {
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 Purchase Return
               </p>
-              <p className="mt-1 font-mono text-2xl font-bold tracking-tight">
-                {ret.number}
-              </p>
+              <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{ret.number}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Dated {format(new Date(ret.date), "dd MMM yyyy")}
               </p>

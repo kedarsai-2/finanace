@@ -9,26 +9,13 @@ import {
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  FileText,
-  Ban,
-  CalendarIcon,
-  X,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileText, Ban, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,8 +117,7 @@ function InvoicesPage() {
         if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
         if (!term) return true;
         return (
-          inv.number.toLowerCase().includes(term) ||
-          inv.partyName.toLowerCase().includes(term)
+          inv.number.toLowerCase().includes(term) || inv.partyName.toLowerCase().includes(term)
         );
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -197,7 +183,11 @@ function InvoicesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <SummaryCard label="Total Sale" value={formatCurrency(totals.total, currency)} />
-            <SummaryCard label="Total received" value={formatCurrency(totals.paid, currency)} tone="success" />
+            <SummaryCard
+              label="Total received"
+              value={formatCurrency(totals.paid, currency)}
+              tone="success"
+            />
             <SummaryCard
               label="Outstanding"
               value={formatCurrency(totals.outstanding, currency)}
@@ -270,8 +260,8 @@ function InvoicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.number}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide the invoice from your list. Past payments and
-              ledger entries are kept for audit.
+              This will hide the invoice from your list. Past payments and ledger entries are kept
+              for audit.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -291,15 +281,12 @@ function InvoicesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel {cancelling?.number}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cancelled invoices remain visible but are excluded from
-              receivables and totals.
+              Cancelled invoices remain visible but are excluded from receivables and totals.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep invoice</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel}>
-              Cancel invoice
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmCancel}>Cancel invoice</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -318,9 +305,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 text-2xl font-bold tabular-nums",
@@ -423,9 +408,7 @@ function DatePill({
           type="button"
           className={cn(
             "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
-            value
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+            value ? "text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />

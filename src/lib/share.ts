@@ -13,9 +13,7 @@ export interface ShareInvoiceArgs {
 
 /** Build the canonical message body used in WhatsApp + clipboard fallback. */
 export function buildShareMessage(args: ShareInvoiceArgs): string {
-  const lines = [
-    `Hi ${args.partyName || "there"}, here is your invoice ${args.invoiceNumber}.`,
-  ];
+  const lines = [`Hi ${args.partyName || "there"}, here is your invoice ${args.invoiceNumber}.`];
   if (args.summaryLine) lines.push("", args.summaryLine);
   lines.push("", `View / download: ${args.pdfUrl}`);
   return lines.join("\n");

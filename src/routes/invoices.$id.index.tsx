@@ -50,12 +50,7 @@ import { FileMinus } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
-import {
-  canEditInvoice,
-  lineMath,
-  paymentStatusOf,
-  type Invoice,
-} from "@/types/invoice";
+import { canEditInvoice, lineMath, paymentStatusOf, type Invoice } from "@/types/invoice";
 import { PAYMENT_MODE_LABEL, type Payment } from "@/types/payment";
 import {
   copyShareText,
@@ -68,7 +63,10 @@ export const Route = createFileRoute("/invoices/$id/")({
   head: () => ({
     meta: [
       { title: "Invoice Details" },
-      { name: "description", content: "View invoice header, items, tax, payments, and activity timeline." },
+      {
+        name: "description",
+        content: "View invoice header, items, tax, payments, and activity timeline.",
+      },
     ],
   }),
   component: InvoiceDetailsPage,
@@ -105,13 +103,8 @@ function InvoiceDetailsPage() {
     () =>
       invoice
         ? payments
-            .filter((p) =>
-              p.allocations.some((a) => a.docId === invoice.id),
-            )
-            .sort(
-              (a, b) =>
-                new Date(a.date).getTime() - new Date(b.date).getTime(),
-            )
+            .filter((p) => p.allocations.some((a) => a.docId === invoice.id))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         : [],
     [payments, invoice],
   );
@@ -194,7 +187,9 @@ function InvoiceDetailsPage() {
                   <Copy className="mr-2 h-4 w-4" />
                   Copy message + link
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => shareInvoiceByEmail({ ...shareArgs, email: party?.email })}>
+                <DropdownMenuItem
+                  onClick={() => shareInvoiceByEmail({ ...shareArgs, email: party?.email })}
+                >
                   <Share2 className="mr-2 h-4 w-4" />
                   Send via Email
                 </DropdownMenuItem>
@@ -238,8 +233,8 @@ function InvoiceDetailsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Cancel this invoice?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cancelling {invoice.number} marks it as void. It stays in
-                      records for audit but cannot be edited again.
+                      Cancelling {invoice.number} marks it as void. It stays in records for audit
+                      but cannot be edited again.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -297,9 +292,7 @@ function InvoiceDetailsPage() {
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                   Invoice
                 </p>
-                <p className="mt-1 font-mono text-2xl font-bold tracking-tight">
-                  {invoice.number}
-                </p>
+                <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{invoice.number}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Issued {format(new Date(invoice.date), "dd MMM yyyy")}
                   {invoice.dueDate
@@ -320,9 +313,7 @@ function InvoiceDetailsPage() {
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                   Billed to
                 </p>
-                <p className="mt-1 text-base font-semibold">
-                  {invoice.partyName}
-                </p>
+                <p className="mt-1 text-base font-semibold">{invoice.partyName}</p>
                 {party && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {party.mobile}
@@ -339,13 +330,9 @@ function InvoiceDetailsPage() {
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                   From
                 </p>
-                <p className="mt-1 text-base font-semibold">
-                  {business?.name ?? "—"}
-                </p>
+                <p className="mt-1 text-base font-semibold">{business?.name ?? "—"}</p>
                 {business?.state && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {business.state}
-                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{business.state}</p>
                 )}
                 {business?.gstNumber && (
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -388,9 +375,7 @@ function InvoiceDetailsPage() {
                         <td className="px-3 py-3 text-left text-muted-foreground">
                           {line.unit || "—"}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {line.qty}
-                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{line.qty}</td>
                         <td className="px-3 py-3 text-right tabular-nums">
                           {formatCurrency(line.rate, currency)}
                         </td>
@@ -480,8 +465,8 @@ function InvoiceDetailsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {invoice.number}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This soft-deletes the invoice. It will disappear from lists
-                    and totals, but is retained for audit.
+                    This soft-deletes the invoice. It will disappear from lists and totals, but is
+                    retained for audit.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -604,8 +589,16 @@ function StatusBadge({ status }: { status: Invoice["status"] }) {
 
 function PaymentBadge({ status }: { status: "paid" | "partial" | "unpaid" }) {
   const map = {
-    paid: { label: "Paid", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", icon: CircleCheck },
-    partial: { label: "Partial", className: "bg-amber-500/15 text-amber-700 dark:text-amber-300", icon: CircleAlert },
+    paid: {
+      label: "Paid",
+      className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      icon: CircleCheck,
+    },
+    partial: {
+      label: "Partial",
+      className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      icon: CircleAlert,
+    },
     unpaid: { label: "Unpaid", className: "bg-muted text-muted-foreground", icon: CircleDashed },
   };
   const cfg = map[status];
@@ -663,8 +656,7 @@ function Timeline({
       });
     }
     for (const p of payments) {
-      const allocated =
-        p.allocations.find((a) => a.docId === invoice.id)?.amount ?? 0;
+      const allocated = p.allocations.find((a) => a.docId === invoice.id)?.amount ?? 0;
       list.push({
         id: `payment-${p.id}`,
         at: p.date,
@@ -700,7 +692,8 @@ function Timeline({
                 "absolute -left-[22px] flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background",
                 e.tone === "success" && "border-primary/40 bg-primary/15 text-primary",
                 e.tone === "warning" && "border-destructive/40 bg-destructive/10 text-destructive",
-                e.tone === "destructive" && "border-destructive/40 bg-destructive/15 text-destructive",
+                e.tone === "destructive" &&
+                  "border-destructive/40 bg-destructive/15 text-destructive",
               )}
             >
               <Icon className="h-2.5 w-2.5" />

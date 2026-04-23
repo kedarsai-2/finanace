@@ -16,11 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBusinesses } from "@/hooks/useBusinesses";
-import {
-  ACCOUNT_TYPE_LABEL,
-  type Account,
-  type AccountType,
-} from "@/types/account";
+import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
 
 interface Props {
   account?: Account;
@@ -35,12 +31,8 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const { upsert } = useAccounts(activeId, []);
 
   const [name, setName] = useState(account?.name ?? "");
-  const [type, setType] = useState<AccountType>(
-    account?.type ?? defaultType ?? "bank",
-  );
-  const [openingBalance, setOpeningBalance] = useState<number>(
-    account?.openingBalance ?? 0,
-  );
+  const [type, setType] = useState<AccountType>(account?.type ?? defaultType ?? "bank");
+  const [openingBalance, setOpeningBalance] = useState<number>(account?.openingBalance ?? 0);
   const [accountNumber, setAccountNumber] = useState(account?.accountNumber ?? "");
   const [ifsc, setIfsc] = useState(account?.ifsc ?? "");
   // upiId retained for back-compat reads on legacy accounts; not editable.
@@ -103,9 +95,7 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. HDFC Current ****1234"
             />
-            {errors.name && (
-              <p className="mt-1 text-xs text-destructive">{errors.name}</p>
-            )}
+            {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name}</p>}
           </div>
 
           <div>

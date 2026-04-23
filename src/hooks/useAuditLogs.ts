@@ -21,10 +21,7 @@ export function useAuditLogs(businessId?: string | null) {
   }, []);
 
   const scoped = useMemo(
-    () =>
-      businessId
-        ? logs.filter((l) => !l.businessId || l.businessId === businessId)
-        : logs,
+    () => (businessId ? logs.filter((l) => !l.businessId || l.businessId === businessId) : logs),
     [logs, businessId],
   );
 

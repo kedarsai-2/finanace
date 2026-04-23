@@ -28,10 +28,7 @@ function CreditNotesPage() {
   const currency = activeBusiness?.currency ?? "INR";
 
   const sorted = useMemo(
-    () =>
-      [...creditNotes].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      ),
+    () => [...creditNotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [creditNotes],
   );
 
@@ -68,10 +65,7 @@ function CreditNotesPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total Credit Notes" value={String(totals.count)} />
-            <SummaryCard
-              label="Total Credited"
-              value={formatCurrency(totals.total, currency)}
-            />
+            <SummaryCard label="Total Credited" value={formatCurrency(totals.total, currency)} />
           </div>
 
           <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
@@ -118,18 +112,19 @@ function CreditNotesPage() {
                     {cn.partyName}
                   </Link>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {cn.sourceInvoiceId ? sourceMap.get(cn.sourceInvoiceId) ?? "—" : "—"}
+                    {cn.sourceInvoiceId ? (sourceMap.get(cn.sourceInvoiceId) ?? "—") : "—"}
                   </span>
                   <span className="text-right font-semibold tabular-nums text-destructive">
                     − {formatCurrency(cn.total, currency)}
                   </span>
                   <span className="text-right">
                     <span
-                      className={cn.status === "cancelled"
-                        ? "inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-destructive"
-                        : cn.status === "final"
-                          ? "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
-                          : "inline-flex rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                      className={
+                        cn.status === "cancelled"
+                          ? "inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-destructive"
+                          : cn.status === "final"
+                            ? "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
+                            : "inline-flex rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
                       }
                     >
                       {cn.status}
@@ -148,9 +143,7 @@ function CreditNotesPage() {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
@@ -164,7 +157,8 @@ function EmptyState() {
       </div>
       <h3 className="mt-4 text-lg font-semibold">No credit notes yet</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Open any finalised invoice and click <span className="font-medium">Convert → Credit Note</span> to issue a credit against it.
+        Open any finalised invoice and click{" "}
+        <span className="font-medium">Convert → Credit Note</span> to issue a credit against it.
       </p>
       <Link
         to="/invoices"

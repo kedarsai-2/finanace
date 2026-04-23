@@ -27,10 +27,7 @@ function PurchaseReturnsPage() {
   const currency = activeBusiness?.currency ?? "INR";
 
   const sorted = useMemo(
-    () =>
-      [...returns].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      ),
+    () => [...returns].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [returns],
   );
 
@@ -67,10 +64,7 @@ function PurchaseReturnsPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryCard label="Total Returns" value={String(totals.count)} />
-            <SummaryCard
-              label="Total Returned"
-              value={formatCurrency(totals.total, currency)}
-            />
+            <SummaryCard label="Total Returned" value={formatCurrency(totals.total, currency)} />
           </div>
 
           <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
@@ -117,18 +111,19 @@ function PurchaseReturnsPage() {
                     {r.partyName}
                   </Link>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {r.sourcePurchaseId ? sourceMap.get(r.sourcePurchaseId) ?? "—" : "—"}
+                    {r.sourcePurchaseId ? (sourceMap.get(r.sourcePurchaseId) ?? "—") : "—"}
                   </span>
                   <span className="text-right font-semibold tabular-nums text-success">
                     + {formatCurrency(r.total, currency)}
                   </span>
                   <span className="text-right">
                     <span
-                      className={r.status === "cancelled"
-                        ? "inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-destructive"
-                        : r.status === "final"
-                          ? "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
-                          : "inline-flex rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                      className={
+                        r.status === "cancelled"
+                          ? "inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-destructive"
+                          : r.status === "final"
+                            ? "inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary"
+                            : "inline-flex rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
                       }
                     >
                       {r.status}
@@ -147,9 +142,7 @@ function PurchaseReturnsPage() {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
@@ -163,7 +156,8 @@ function EmptyState() {
       </div>
       <h3 className="mt-4 text-lg font-semibold">No purchase returns yet</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Open any finalised purchase and click <span className="font-medium">Convert → Purchase Return</span> to record returned stock.
+        Open any finalised purchase and click{" "}
+        <span className="font-medium">Convert → Purchase Return</span> to record returned stock.
       </p>
       <Link
         to="/purchases"

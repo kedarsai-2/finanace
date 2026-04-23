@@ -29,11 +29,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const partyId = dto.party?.id;
   const accountId = dto.account?.id;
   const mode =
-    dto.mode === "BANK" || dto.mode === "UPI"
-      ? "bank"
-      : dto.mode === "CASH"
-        ? "cash"
-        : undefined;
+    dto.mode === "BANK" || dto.mode === "UPI" ? "bank" : dto.mode === "CASH" ? "cash" : undefined;
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
@@ -219,10 +215,9 @@ export function useExpenses(businessId?: string | null) {
 
   const scoped = useMemo(
     () =>
-      (businessId
-        ? expenses.filter((e) => e.businessId === businessId)
-        : expenses
-      ).filter((e) => !e.deleted),
+      (businessId ? expenses.filter((e) => e.businessId === businessId) : expenses).filter(
+        (e) => !e.deleted,
+      ),
     [expenses, businessId],
   );
 

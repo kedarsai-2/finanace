@@ -150,7 +150,7 @@ export function QuickAddItemDialog({
             <Input
               id="qa-name"
               autoFocus
-              placeholder="e.g. Steel Bracket 4&quot;"
+              placeholder='e.g. Steel Bracket 4"'
               aria-invalid={!!errors.name}
               {...register("name")}
               className={cn(errors.name && "border-destructive")}

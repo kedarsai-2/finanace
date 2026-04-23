@@ -18,11 +18,11 @@ export const Route = createFileRoute("/items/$id/")({
   notFoundComponent: () => (
     <div className="mx-auto max-w-2xl px-6 py-16 text-center">
       <h1 className="text-2xl font-bold tracking-tight">Item not found</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        This item may have been deleted.
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">This item may have been deleted.</p>
       <Button asChild className="mt-6">
-        <Link to="/items" search={{ q: "", type: "all" }}>Back to Items</Link>
+        <Link to="/items" search={{ q: "", type: "all" }}>
+          Back to Items
+        </Link>
       </Button>
     </div>
   ),
@@ -38,9 +38,7 @@ function ItemDetailsPage() {
 
   if (!hydrated) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16 text-sm text-muted-foreground">
-        Loading…
-      </div>
+      <div className="mx-auto max-w-3xl px-6 py-16 text-sm text-muted-foreground">Loading…</div>
     );
   }
 
@@ -79,9 +77,7 @@ function ItemDetailsPage() {
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                      item.active
-                        ? "bg-success/10 text-success"
-                        : "bg-muted text-muted-foreground",
+                      item.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
                     )}
                   >
                     <span
@@ -109,10 +105,7 @@ function ItemDetailsPage() {
               <Button
                 variant="outline"
                 onClick={onToggle}
-                className={cn(
-                  "gap-2",
-                  item.active && "text-destructive hover:text-destructive",
-                )}
+                className={cn("gap-2", item.active && "text-destructive hover:text-destructive")}
               >
                 {item.active ? (
                   <>
@@ -138,8 +131,8 @@ function ItemDetailsPage() {
 
           {!item.active && (
             <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              This item is inactive. It cannot be added to new invoices, but
-              past transactions referencing it remain unchanged.
+              This item is inactive. It cannot be added to new invoices, but past transactions
+              referencing it remain unchanged.
             </p>
           )}
         </div>
@@ -173,7 +166,9 @@ function ItemDetailsPage() {
                 }
               />
             )}
-            {item.sku && <Field label="SKU" value={<span className="font-mono">{item.sku}</span>} />}
+            {item.sku && (
+              <Field label="SKU" value={<span className="font-mono">{item.sku}</span>} />
+            )}
           </dl>
         </section>
 

@@ -85,10 +85,7 @@ function ItemsPage() {
     return items.filter((it) => {
       if (type !== "all" && it.type !== type) return false;
       if (!term) return true;
-      return (
-        it.name.toLowerCase().includes(term) ||
-        (it.sku ?? "").toLowerCase().includes(term)
-      );
+      return it.name.toLowerCase().includes(term) || (it.sku ?? "").toLowerCase().includes(term);
     });
   }, [items, q, type]);
 
@@ -174,8 +171,8 @@ function ItemsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleting?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This item will be hidden from your catalog and from invoice
-              selection. Past transactions referencing it remain unchanged.
+              This item will be hidden from your catalog and from invoice selection. Past
+              transactions referencing it remain unchanged.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -233,9 +230,7 @@ function ItemsTable({
                   {it.name}
                 </p>
                 {it.sku && (
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    {it.sku}
-                  </p>
+                  <p className="truncate font-mono text-xs text-muted-foreground">{it.sku}</p>
                 )}
               </div>
             </Link>
@@ -266,9 +261,7 @@ function ItemsTable({
               <span
                 className={cn(
                   "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                  it.active
-                    ? "bg-success/10 text-success"
-                    : "bg-muted text-muted-foreground",
+                  it.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
                 )}
               >
                 <span

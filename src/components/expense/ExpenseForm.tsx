@@ -9,11 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -44,20 +40,12 @@ interface ExpenseFormProps {
   compact?: boolean;
 }
 
-export function ExpenseForm({
-  initial,
-  onSaved,
-  onCancel,
-  compact = false,
-}: ExpenseFormProps) {
+export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: ExpenseFormProps) {
   const navigate = useNavigate();
   const { activeId } = useBusinesses();
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const bankAccounts = useMemo(
-    () => safeAccounts.filter((a) => a.type === "bank"),
-    [safeAccounts],
-  );
+  const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const cashAccountId = useMemo(
     () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
     [safeAccounts],
@@ -68,9 +56,7 @@ export function ExpenseForm({
 
   const supplierParties = parties;
 
-  const [date, setDate] = useState<Date>(
-    initial ? new Date(initial.date) : new Date(),
-  );
+  const [date, setDate] = useState<Date>(initial ? new Date(initial.date) : new Date());
   const [accountId, setAccountId] = useState<string>(initial?.accountId ?? "");
   const [category, setCategory] = useState<string>(
     initial?.category ?? categories[0]?.name ?? "Other",
@@ -80,12 +66,8 @@ export function ExpenseForm({
   const [partyId, setPartyId] = useState<string>(initial?.partyId ?? "");
   const [reference, setReference] = useState<string>(initial?.reference ?? "");
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
-  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(
-    initial?.proofDataUrl,
-  );
-  const [proofName, setProofName] = useState<string | undefined>(
-    initial?.proofName,
-  );
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(initial?.proofDataUrl);
+  const [proofName, setProofName] = useState<string | undefined>(initial?.proofName);
   const [showQuickParty, setShowQuickParty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -93,12 +75,8 @@ export function ExpenseForm({
   useEffect(() => {
     if (initial || accountId) return;
     if (mode === "cash") return;
-    const last =
-      typeof window !== "undefined"
-        ? localStorage.getItem(LAST_ACCOUNT_KEY)
-        : null;
-    const candidate =
-      (last && bankAccounts.find((a) => a.id === last)?.id) || bankAccounts[0]?.id;
+    const last = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
+    const candidate = (last && bankAccounts.find((a) => a.id === last)?.id) || bankAccounts[0]?.id;
     if (candidate) setAccountId(candidate);
   }, [bankAccounts, accountId, initial, mode]);
 
@@ -126,9 +104,7 @@ export function ExpenseForm({
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!category) return toast.error("Pick a category");
     if (mode !== "cash" && !proofDataUrl)
-      return toast.error(
-        `Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} expense`,
-      );
+      return toast.error(`Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} expense`);
 
     setSubmitting(true);
     try {
@@ -248,10 +224,7 @@ export function ExpenseForm({
           </div>
           <div className="sm:col-span-3">
             <Label htmlFor="exp-mode">Payment mode</Label>
-            <Select
-              value={mode}
-              onValueChange={(v) => setMode(v as PaymentMode)}
-            >
+            <Select value={mode} onValueChange={(v) => setMode(v as PaymentMode)}>
               <SelectTrigger id="exp-mode">
                 <SelectValue />
               </SelectTrigger>
@@ -354,11 +327,7 @@ export function ExpenseForm({
           </Button>
         )}
         <Button type="submit" disabled={submitting} className="gap-2">
-          {submitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {initial ? "Save changes" : "Save expense"}
         </Button>
       </div>
@@ -385,9 +354,7 @@ function Section({
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <header className="mb-3">
         <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
       </header>
       {children}
     </section>

@@ -133,10 +133,7 @@ export function useTransfers(businessId?: string | null) {
   }, []);
 
   const scoped = useMemo(
-    () =>
-      businessId
-        ? transfers.filter((t) => t.businessId === businessId)
-        : transfers,
+    () => (businessId ? transfers.filter((t) => t.businessId === businessId) : transfers),
     [transfers, businessId],
   );
 

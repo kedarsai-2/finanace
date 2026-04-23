@@ -5,7 +5,10 @@ export const Route = createFileRoute("/purchases/$id/edit")({
   head: () => ({
     meta: [
       { title: "Edit Purchase" },
-      { name: "description", content: "Update a purchase that is still within the editable window." },
+      {
+        name: "description",
+        content: "Update a purchase that is still within the editable window.",
+      },
     ],
   }),
   component: EditPurchasePage,

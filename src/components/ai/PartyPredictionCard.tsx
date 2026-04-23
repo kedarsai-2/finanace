@@ -82,7 +82,9 @@ export function PartyPredictionCard({
             AI Payment Prediction
           </p>
         </div>
-        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", riskCls)}>
+        <span
+          className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", riskCls)}
+        >
           {data.risk_level} risk
         </span>
       </div>

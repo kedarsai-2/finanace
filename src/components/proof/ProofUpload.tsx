@@ -47,8 +47,7 @@ export function ProofUpload({
     const reader = new FileReader();
     reader.onload = () => {
       onChange({
-        proofDataUrl:
-          typeof reader.result === "string" ? reader.result : undefined,
+        proofDataUrl: typeof reader.result === "string" ? reader.result : undefined,
         proofName: file.name,
       });
     };
@@ -62,11 +61,7 @@ export function ProofUpload({
       </Label>
       {proofDataUrl ? (
         <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
-          <img
-            src={proofDataUrl}
-            alt="proof"
-            className="h-9 w-9 rounded object-cover"
-          />
+          <img src={proofDataUrl} alt="proof" className="h-9 w-9 rounded object-cover" />
           <span className="flex-1 truncate text-xs text-muted-foreground">
             {proofName ?? "Proof image"}
           </span>
