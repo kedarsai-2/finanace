@@ -44,6 +44,7 @@ import {
 import { FormSection } from "@/components/business/FormSection";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
 import { QuickAddItemDialog } from "@/components/item/QuickAddItemDialog";
+import { ProofUpload } from "@/components/proof/ProofUpload";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -113,6 +114,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
+  const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
   const [partyOpen, setPartyOpen] = useState(false);
@@ -135,6 +138,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setOverallDiscountValue(existing.overallDiscountValue);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
+      setProofDataUrl(existing.proofDataUrl);
+      setProofName(existing.proofName);
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
     }
