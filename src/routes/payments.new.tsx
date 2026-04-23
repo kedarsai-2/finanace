@@ -92,13 +92,8 @@ function NewPaymentPage() {
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
   const mode = selectedAccount?.type ?? "upi";
 
-  // Filter parties relevant to direction.
-  const filteredParties = useMemo(() => {
-    if (direction === "in") {
-      return parties.filter((p) => p.type === "customer" || p.type === "both");
-    }
-    return parties.filter((p) => p.type === "supplier" || p.type === "both");
-  }, [parties, direction]);
+  // All parties are eligible — direction is now derived from doc allocations only.
+  const filteredParties = parties;
 
   // Open documents for the selected party.
   const openDocs = useMemo(() => {

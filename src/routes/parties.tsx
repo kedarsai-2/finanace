@@ -39,14 +39,12 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePurchases } from "@/hooks/usePurchases";
 import { usePayments } from "@/hooks/usePayments";
-import type { Party, PartyType } from "@/types/party";
-
-const FILTERS = ["all", "customer", "supplier", "both"] as const;
-type Filter = (typeof FILTERS)[number];
+import type { Party } from "@/types/party";
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
-  type: z.enum(FILTERS).catch("all").default("all"),
+  // Kept for URL backward compatibility but no longer used in the UI.
+  type: z.string().catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/parties")({
@@ -55,28 +53,16 @@ export const Route = createFileRoute("/parties")({
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Parties — Customers & Suppliers" },
+      { title: "Parties" },
       {
         name: "description",
         content:
-          "Manage all your customers and suppliers. Track balances, receivables and payables in one place.",
+          "Manage all your parties. Track balances, receivables and payables in one place.",
       },
     ],
   }),
   component: PartiesRouteLayout,
 });
-
-const TYPE_LABEL: Record<PartyType, string> = {
-  customer: "Customer",
-  supplier: "Supplier",
-  both: "Both",
-};
-
-const TYPE_BADGE: Record<PartyType, string> = {
-  customer: "bg-primary/10 text-primary",
-  supplier: "bg-warning/15 text-warning-foreground/80",
-  both: "bg-accent text-accent-foreground",
-};
 
 function PartiesRouteLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -86,7 +72,7 @@ function PartiesRouteLayout() {
 
 function PartiesPage() {
   const navigate = useNavigate({ from: "/parties" });
-  const { q, type } = Route.useSearch();
+  const { q } = Route.useSearch();
   const { activeId, businesses } = useBusinesses();
   const { parties, hydrated, remove } = useParties(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
@@ -113,13 +99,12 @@ function PartiesPage() {
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
     return parties.filter((p) => {
-      if (type !== "all" && p.type !== type) return false;
       if (!term) return true;
       return (
         p.name.toLowerCase().includes(term) || p.mobile.includes(term)
       );
     });
-  }, [parties, q, type]);
+  }, [parties, q]);
 
   const totals = useMemo(() => {
     let receivable = 0;
@@ -133,8 +118,6 @@ function PartiesPage() {
 
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
-  const setType = (next: Filter) =>
-    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, type: next }) });
 
   const confirmDelete = () => {
     if (!deleting) return;
@@ -156,7 +139,7 @@ function PartiesPage() {
               <h1 className="mt-1 text-3xl font-bold tracking-tight">Parties</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {hydrated
-                  ? `${totals.count} ${totals.count === 1 ? "party" : "parties"} • Customers, suppliers & balances`
+                  ? `${totals.count} ${totals.count === 1 ? "party" : "parties"} • Track receivables & payables`
                   : "Loading…"}
               </p>
             </div>
@@ -199,22 +182,6 @@ function PartiesPage() {
                 placeholder="Search by name or mobile…"
                 className="h-11 pl-10"
               />
-            </div>
-            <div className="flex flex-wrap gap-1.5 rounded-xl border border-border bg-card p-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setType(f)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors",
-                    type === f
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {f === "all" ? "All" : TYPE_LABEL[f as PartyType] + "s"}
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -299,9 +266,8 @@ function PartiesTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:grid">
+      <div className="hidden grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:grid">
         <span>Party name</span>
-        <span>Type</span>
         <span>Mobile</span>
         <span>Dates</span>
         <span className="text-right">Balance</span>
@@ -316,7 +282,7 @@ function PartiesTable({
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_110px_130px_180px_160px_100px] md:items-center"
+              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] md:items-center"
             >
               <Link
                 to="/parties/$id"
@@ -344,15 +310,6 @@ function PartiesTable({
                   )}
                 </div>
               </Link>
-
-              <span
-                className={cn(
-                  "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium",
-                  TYPE_BADGE[p.type],
-                )}
-              >
-                {TYPE_LABEL[p.type]}
-              </span>
 
               <span className="font-mono text-sm text-muted-foreground">
                 {p.mobile || "—"}
@@ -435,8 +392,8 @@ function EmptyState({ filtered }: { filtered: boolean }) {
       </h2>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         {filtered
-          ? "Try a different search term or clear the type filter."
-          : "Add your first customer or supplier to start tracking balances."}
+          ? "Try a different search term."
+          : "Add your first party to start tracking balances."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
         <Link to="/parties/new" search={{ q: "", type: "all" }}>
