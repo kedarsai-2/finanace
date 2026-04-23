@@ -137,7 +137,6 @@ export function buildDashboardSnapshot(args: {
 
 export interface PartyHistorySnapshot {
   partyName: string;
-  type: string;
   invoices: Array<{ number: string; date: string; total: number; paidAmount: number; daysToPay: number | null }>;
   averageDaysToPay: number | null;
   totalBilled: number;
