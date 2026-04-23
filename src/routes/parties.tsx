@@ -43,8 +43,8 @@ import type { Party } from "@/types/party";
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
-  // Kept for URL backward compatibility but no longer used in the UI.
-  type: z.string().catch("all").default("all"),
+  // `type` kept for URL backward compatibility (no UI filter anymore).
+  type: z.string().optional().catch("all").default("all"),
 });
 
 export const Route = createFileRoute("/parties")({
