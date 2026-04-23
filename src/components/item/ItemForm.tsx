@@ -46,7 +46,6 @@ const FORCED_TYPE: ItemFormValues["type"] = "service";
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
   number: "Number (bhk)",
-  bhk: "BHK",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
   litre: "Litres (litre)",

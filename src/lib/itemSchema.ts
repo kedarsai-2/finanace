@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const TAX_RATES = [0, 5, 12, 18, 28] as const;
-export const ITEM_UNITS = ["number", "bhk", "pcs", "kg", "litre", "hour"] as const;
+export const ITEM_UNITS = ["number", "pcs", "kg", "litre", "hour"] as const;
 export type ItemUnit = (typeof ITEM_UNITS)[number];
 
 export const itemFormSchema = z.object({

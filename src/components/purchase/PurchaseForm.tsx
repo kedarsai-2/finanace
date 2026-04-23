@@ -44,6 +44,7 @@ import {
 import { FormSection } from "@/components/business/FormSection";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
 import { QuickAddItemDialog } from "@/components/item/QuickAddItemDialog";
+import { ProofUpload } from "@/components/proof/ProofUpload";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -113,6 +114,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
+  const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
   const [partyOpen, setPartyOpen] = useState(false);
@@ -135,6 +138,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setOverallDiscountValue(existing.overallDiscountValue);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
+      setProofDataUrl(existing.proofDataUrl);
+      setProofName(existing.proofName);
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
     }
@@ -223,6 +228,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       ...totals,
       paidAmount: existing?.paidAmount ?? 0,
       status,
+      proofDataUrl,
+      proofName,
       deleted: existing?.deleted,
       notes: notes.trim() || undefined,
       terms: termsText.trim() || undefined,
@@ -240,6 +247,10 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     const err = validate();
     if (err) {
       toast.error(err);
+      return;
+    }
+    if (status === "final" && !proofDataUrl) {
+      toast.error("Upload a bill / proof image before finalising");
       return;
     }
     setSubmitting(true);
@@ -667,6 +678,26 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               />
             </div>
           </div>
+        </FormSection>
+
+        {/* 6. Proof --------------------------------------------------------- */}
+        <FormSection
+          step={6}
+          title="Bill / Proof"
+          description="Upload a photo or scan of the supplier bill. Required to finalise the purchase."
+        >
+          <ProofUpload
+            id="pur-proof"
+            label="Bill image"
+            required
+            proofDataUrl={proofDataUrl}
+            proofName={proofName}
+            disabled={locked}
+            onChange={(p) => {
+              setProofDataUrl(p.proofDataUrl);
+              setProofName(p.proofName);
+            }}
+          />
         </FormSection>
 
         {/* Mobile actions */}

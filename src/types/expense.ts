@@ -34,6 +34,13 @@ export interface Expense {
   mode?: PaymentMode;
   reference?: string;
   notes?: string;
+  /**
+   * Proof image as a base64 data URL (e.g. bill/receipt photo).
+   * Required client-side for non-cash payment modes.
+   */
+  proofDataUrl?: string;
+  /** Original filename for display purposes. */
+  proofName?: string;
   deleted?: boolean;
   createdAt: string;
   updatedAt?: string;
