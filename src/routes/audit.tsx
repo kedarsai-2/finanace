@@ -90,8 +90,9 @@ function formatValue(v: unknown): string {
 }
 
 function AuditPage() {
-  const { activeId } = useBusinesses();
-  const { logs, hydrated } = useAuditLogs(activeId);
+  // Audit is a workspace-wide log; don't hide entries when switching businesses.
+  useBusinesses();
+  const { logs, hydrated } = useAuditLogs(null);
 
   const [user, setUser] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");

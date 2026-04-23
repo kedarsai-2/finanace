@@ -29,6 +29,12 @@ export function buildAccountTxns(args: {
   for (const p of payments) {
     if (p.accountId !== account.id) continue;
     const isIn = p.direction === "in";
+    const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
+    const allocLink = singleAlloc
+      ? isIn
+        ? `/invoices/${singleAlloc.docId}`
+        : `/purchases/${singleAlloc.docId}`
+      : undefined;
     txns.push({
       id: `pay_${p.id}`,
       accountId: account.id,
@@ -36,7 +42,8 @@ export function buildAccountTxns(args: {
       kind: isIn ? "payment-in" : "payment-out",
       amount: isIn ? p.amount : -p.amount,
       refNo: p.allocations.map((a) => a.docNumber).join(", ") || p.reference,
-      refLink: `/payments/${p.id}`,
+      // If the payment is allocated to a single document, link directly to it.
+      refLink: allocLink ?? `/payments/${p.id}`,
       note: isIn ? "Payment received" : "Payment made",
     });
   }
