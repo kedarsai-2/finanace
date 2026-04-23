@@ -33,10 +33,6 @@ import { cn } from "@/lib/utils";
 const quickSchema = z.object({
   name: z.string().trim().min(1, "Item name is required").max(120),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
-  taxPercent: z.number().refine(
-    (v) => (TAX_RATES as readonly number[]).includes(v),
-    "Select a valid tax rate",
-  ),
   unit: z.enum(ITEM_UNITS),
 });
 
@@ -82,7 +78,6 @@ export function QuickAddItemDialog({
     defaultValues: {
       name: defaultName,
       sellingPrice: 0,
-      taxPercent: 18,
       unit: "pcs",
     },
     mode: "onBlur",
@@ -94,7 +89,6 @@ export function QuickAddItemDialog({
       reset({
         name: defaultName,
         sellingPrice: 0,
-        taxPercent: 18,
         unit: "pcs",
       });
     }
@@ -117,7 +111,7 @@ export function QuickAddItemDialog({
           name: values.name.trim(),
           type: defaultType,
           sellingPrice: values.sellingPrice,
-          taxPercent: values.taxPercent,
+          taxPercent: 0,
           unit: values.unit,
           active: true,
         };
