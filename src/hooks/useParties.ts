@@ -3,7 +3,7 @@ import type { LedgerEntry, Party } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
-import { getJwt } from "@/lib/auth";
+import { getJwt, subscribeAuth } from "@/lib/auth";
 
 const STORAGE_KEY = "bm.parties";
 const LEDGER_KEY = "bm.partyLedger";
@@ -106,39 +106,43 @@ function partyToDto(p: Party): PartyDTO {
 }
 
 export function useParties(businessId?: string | null) {
-  const [parties, setParties] = useState<Party[]>(seed);
+  const [token, setToken] = useState<string | null>(() => getJwt());
+  const [parties, setParties] = useState<Party[]>(() =>
+    USE_BACKEND ? [] : seed,
+  );
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const token = getJwt();
+    return subscribeAuth(() => setToken(getJwt()));
+  }, []);
+
+  useEffect(() => {
     if (!USE_BACKEND || !token) {
       setParties(readJson<Party[]>(STORAGE_KEY, seed));
       setLedger(readJson<LedgerEntry[]>(LEDGER_KEY, []));
       setHydrated(true);
       return;
     }
-    // Backend mode: load parties from API when businessId changes.
+    // Backend mode: start from empty to avoid seed data flicker.
+    setParties([]);
     setLedger([]); // ledger is local-only today
     setHydrated(true);
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!hydrated) return;
-    const token = getJwt();
     if (USE_BACKEND && token) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(parties));
-  }, [parties, hydrated]);
+  }, [parties, hydrated, token]);
 
   useEffect(() => {
     if (!hydrated) return;
-    const token = getJwt();
     if (USE_BACKEND && token) return;
     localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger));
-  }, [ledger, hydrated]);
+  }, [ledger, hydrated, token]);
 
   useEffect(() => {
-    const token = getJwt();
     if (!USE_BACKEND || !token) return;
     let cancelled = false;
     (async () => {
@@ -155,7 +159,7 @@ export function useParties(businessId?: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [businessId]);
+  }, [businessId, token]);
 
   const partiesRef = useRef<Party[]>(parties);
   useEffect(() => {
@@ -278,10 +282,9 @@ export function useParties(businessId?: string | null) {
   }, []);
 
   const scoped = useMemo(() => {
-    const token = getJwt();
     if (USE_BACKEND && token) return parties;
     return businessId ? parties.filter((p) => p.businessId === businessId) : parties;
-  }, [parties, businessId]);
+  }, [parties, businessId, token]);
 
   return { parties: scoped, allParties: parties, ledger, hydrated, remove, upsert, upsertLedgerEntry, removeLedgerEntry };
 }
