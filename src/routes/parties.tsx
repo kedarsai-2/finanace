@@ -392,8 +392,8 @@ function EmptyState({ filtered }: { filtered: boolean }) {
       </h2>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         {filtered
-          ? "Try a different search term or clear the type filter."
-          : "Add your first customer or supplier to start tracking balances."}
+          ? "Try a different search term."
+          : "Add your first party to start tracking balances."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
         <Link to="/parties/new" search={{ q: "", type: "all" }}>
