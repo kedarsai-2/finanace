@@ -58,6 +58,10 @@ export function ExpenseForm({
     () => safeAccounts.filter((a) => a.type === "bank"),
     [safeAccounts],
   );
+  const cashAccountId = useMemo(
+    () => safeAccounts.find((a) => a.type === "cash")?.id ?? "",
+    [safeAccounts],
+  );
   const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { add, upsert } = useExpenses(activeId);
@@ -116,6 +120,8 @@ export function ExpenseForm({
   const onSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeId) return toast.error("Select a business first");
+    if (mode === "cash" && !cashAccountId)
+      return toast.error("Set cash balance first (Cash tab → Edit cash balance)");
     if (mode !== "cash" && !accountId) return toast.error("Bank account is required");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!category) return toast.error("Pick a category");
@@ -130,7 +136,7 @@ export function ExpenseForm({
       const exp: Expense = {
         id: initial?.id ?? `exp_${Date.now().toString(36)}`,
         businessId: activeId,
-        accountId: mode === "cash" ? undefined : accountId,
+        accountId: mode === "cash" ? cashAccountId : accountId,
         date: date.toISOString(),
         amount,
         category,

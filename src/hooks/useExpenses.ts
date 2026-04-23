@@ -64,10 +64,7 @@ function expenseToDto(e: Expense): ExpenseDTO {
     deleted: e.deleted ?? false,
     business: businessRefFromId(e.businessId),
     party: e.partyId ? { id: parseInt(e.partyId, 10) } : null,
-    account:
-      e.mode === "cash" || !e.accountId
-        ? null
-        : { id: parseInt(e.accountId, 10) },
+    account: e.accountId ? { id: parseInt(e.accountId, 10) } : null,
   };
 }
 

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Banknote, Plus, ArrowRight } from "lucide-react";
+import { Banknote, Pencil, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -96,8 +96,8 @@ function CashPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Cash</h1>
         </div>
         <Button asChild className="gap-2">
-          <Link to="/cash/new">
-            <Plus className="h-4 w-4" /> Add cash account
+          <Link to="/cash/balance">
+            <Pencil className="h-4 w-4" /> Edit cash balance
           </Link>
         </Button>
       </header>
@@ -256,8 +256,8 @@ function EmptyCashState() {
         Add a cash account to start tracking cash inflows and outflows.
       </p>
       <Button asChild className="gap-2">
-        <Link to="/cash/new">
-          <Plus className="h-4 w-4" /> Add cash account
+        <Link to="/cash/balance">
+          <Pencil className="h-4 w-4" /> Set cash balance
         </Link>
       </Button>
     </div>
