@@ -115,7 +115,10 @@ function InvoicePrintPage() {
   );
 }
 
-function lastPaymentForInvoice(payments: ReturnType<typeof usePayments>["payments"], invoiceId: string) {
+function lastPaymentForInvoice(
+  payments: ReturnType<typeof usePayments>["payments"],
+  invoiceId: string,
+) {
   const list = payments
     .filter((p) => p.allocations.some((a) => a.docId === invoiceId))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

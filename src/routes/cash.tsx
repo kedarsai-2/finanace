@@ -46,7 +46,14 @@ function CashRouteLayout() {
 
 function CashPage() {
   const navigate = useNavigate();
-  const { businesses, activeId, scopedBusinessId, isAll, setActiveId, hydrated: bHyd } = useBusinesses();
+  const {
+    businesses,
+    activeId,
+    scopedBusinessId,
+    isAll,
+    setActiveId,
+    hydrated: bHyd,
+  } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
   const { accounts, hydrated } = useAccounts(effectiveBusinessId, businessIds);

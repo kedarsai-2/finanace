@@ -103,7 +103,8 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
               Invoice No.: <span className="font-semibold">{invoice.number}</span>
             </p>
             <p>
-              Date: <span className="font-semibold">{format(new Date(invoice.date), "dd-MM-yyyy")}</span>
+              Date:{" "}
+              <span className="font-semibold">{format(new Date(invoice.date), "dd-MM-yyyy")}</span>
             </p>
           </div>
         </div>
@@ -128,8 +129,12 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
                 <tr key={line.id} className="border-b border-slate-200 align-top">
                   <td className="px-2 py-2">{idx + 1}</td>
                   <td className="px-2 py-2">{displayName}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{formatCurrency(line.rate, currency)}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{formatCurrency(m.total, currency)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">
+                    {formatCurrency(line.rate, currency)}
+                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums">
+                    {formatCurrency(m.total, currency)}
+                  </td>
                 </tr>
               );
             })}
@@ -185,7 +190,9 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           {payToAccount ? (
             <div className="space-y-0.5 leading-relaxed">
               <div>Bank Name: {payToAccount.name}</div>
-              {payToAccount.accountNumber && <div>Bank Account No.: {payToAccount.accountNumber}</div>}
+              {payToAccount.accountNumber && (
+                <div>Bank Account No.: {payToAccount.accountNumber}</div>
+              )}
               {payToAccount.ifsc && <div>Bank IFSC code: {payToAccount.ifsc}</div>}
               <div>Account Holder&apos;s Name: {business?.name ?? "—"}</div>
             </div>
@@ -233,7 +240,7 @@ function termsList(raw?: string) {
   if (cleaned) {
     const lines = cleaned
       .split(/\r?\n+/)
-      .map((l) => l.trim().replace(/^\d+[\).\s]+/, ""))
+      .map((l) => l.trim().replace(/^\d+[).\s]+/, ""))
       .filter(Boolean);
     if (lines.length) return lines;
   }
