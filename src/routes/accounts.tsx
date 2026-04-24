@@ -121,6 +121,30 @@ function AccountsPage() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link
+                  to="/accounts/transfer"
+                  search={{ mode: "transfer", scope: "all", preset: "bank-bank" }}
+                >
+                  Bank → Bank transfer
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/accounts/transfer"
+                  search={{ mode: "transfer", scope: "all", preset: "cash-bank" }}
+                >
+                  Cash → Bank transfer
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/accounts/transfer"
+                  search={{ mode: "transfer", scope: "all", preset: "bank-cash" }}
+                >
+                  Bank → Cash transfer
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/accounts/transfer" search={{ mode: "adjustment", scope: "bank" }}>
                   Bank adjustment
                 </Link>

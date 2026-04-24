@@ -33,6 +33,7 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 const searchSchema = z.object({
   mode: z.enum(["transfer", "adjustment"]).catch("transfer").default("transfer"),
   scope: z.enum(["all", "bank", "cash"]).catch("all").default("all"),
+  preset: z.enum(["any", "bank-bank", "cash-bank", "bank-cash"]).catch("any").default("any"),
 });
 
 export const Route = createFileRoute("/accounts/transfer")({
@@ -90,6 +91,23 @@ function TransferPage() {
     if (search.scope === "cash") return safeAccounts.filter((a) => a.type === "cash");
     return safeAccounts;
   }, [safeAccounts, search.scope]);
+  const fromOptions = useMemo(() => {
+    if (mode !== "transfer") return scopedAccounts;
+    if (search.preset === "bank-bank") return safeAccounts.filter((a) => a.type === "bank");
+    if (search.preset === "cash-bank") return safeAccounts.filter((a) => a.type === "cash");
+    if (search.preset === "bank-cash") return safeAccounts.filter((a) => a.type === "bank");
+    return scopedAccounts;
+  }, [mode, scopedAccounts, safeAccounts, search.preset]);
+  const toOptions = useMemo(() => {
+    if (mode !== "transfer") return [];
+    if (search.preset === "bank-bank")
+      return safeAccounts.filter((a) => a.type === "bank" && a.id !== fromId);
+    if (search.preset === "cash-bank")
+      return safeAccounts.filter((a) => a.type === "bank" && a.id !== fromId);
+    if (search.preset === "bank-cash")
+      return safeAccounts.filter((a) => a.type === "cash" && a.id !== fromId);
+    return scopedAccounts.filter((a) => a.id !== fromId);
+  }, [mode, scopedAccounts, safeAccounts, search.preset, fromId]);
 
   const fromBalance = fromId ? (balances[fromId] ?? 0) : 0;
 
@@ -145,7 +163,7 @@ function TransferPage() {
           } by ${formatCurrency(amount, currency)}`,
         );
       }
-      navigate({ to: "/accounts" });
+      navigate({ to: search.scope === "cash" ? "/cash" : "/accounts" });
     } finally {
       setSubmitting(false);
     }
@@ -158,8 +176,8 @@ function TransferPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
-        <Link to="/accounts">
-          <ArrowLeft className="h-4 w-4" /> Back to accounts
+        <Link to={search.scope === "cash" ? "/cash" : "/accounts"}>
+          <ArrowLeft className="h-4 w-4" /> Back to {search.scope === "cash" ? "cash" : "accounts"}
         </Link>
       </Button>
       <header className="mb-6">
@@ -183,7 +201,7 @@ function TransferPage() {
                   const next = v as "transfer" | "adjustment";
                   setMode(next);
                   if (next === "adjustment") setToId("");
-                  navigate({ search: (s) => ({ ...s, mode: next }) });
+                  navigate({ search: (s) => ({ ...s, mode: next, preset: next === "adjustment" ? "any" : s.preset }) });
                 }}
               >
                 <SelectTrigger>
@@ -221,7 +239,7 @@ function TransferPage() {
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {scopedAccounts.map((a) => (
+                  {fromOptions.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                     </SelectItem>
@@ -249,13 +267,11 @@ function TransferPage() {
                     <SelectValue placeholder="Select destination" />
                   </SelectTrigger>
                   <SelectContent>
-                    {scopedAccounts
-                      .filter((a) => a.id !== fromId)
-                      .map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
-                        </SelectItem>
-                      ))}
+                    {toOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
