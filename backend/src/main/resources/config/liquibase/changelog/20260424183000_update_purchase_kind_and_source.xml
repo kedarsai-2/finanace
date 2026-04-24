@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260424183000-1" author="cursor">
+        <addColumn tableName="purchase">
+            <column name="purchase_kind" type="varchar(20)" defaultValue="PURCHASE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_purchase_id" type="bigint"/>
+        </addColumn>
+
+        <update tableName="purchase">
+            <column name="purchase_kind" value="RETURN"/>
+            <where>upper(number) like 'PRET-%'</where>
+        </update>
+
+        <sql>
+            update purchase pr
+               set source_purchase_id = src.id
+              from purchase src
+             where pr.purchase_kind = 'RETURN'
+               and pr.source_purchase_id is null
+               and pr.notes is not null
+               and pr.notes like 'Against ' || src.number || '%';
+        </sql>
+
+        <addForeignKeyConstraint
+            baseTableName="purchase"
+            baseColumnNames="source_purchase_id"
+            constraintName="fk_purchase__source_purchase_id"
+            referencedTableName="purchase"
+            referencedColumnNames="id"/>
+
+        <addCheckConstraint
+            tableName="purchase"
+            constraintName="ck_purchase_kind_source_consistency"
+            checkConstraint="(purchase_kind = 'RETURN' and source_purchase_id is not null) or (purchase_kind = 'PURCHASE' and source_purchase_id is null)"/>
+    </changeSet>
+</databaseChangeLog>

@@ -42,4 +42,5 @@
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260423190000_add_proof_fields.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260424120000_update_transfer_for_adjustments.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260424183000_update_purchase_kind_and_source.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

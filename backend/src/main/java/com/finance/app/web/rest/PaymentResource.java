@@ -1,6 +1,7 @@
 package com.finance.app.web.rest;
 
 import com.finance.app.repository.PaymentRepository;
+import com.finance.app.domain.Payment;
 import com.finance.app.service.PaymentQueryService;
 import com.finance.app.service.PaymentService;
 import com.finance.app.service.criteria.PaymentCriteria;
@@ -65,6 +66,7 @@ public class PaymentResource {
         if (paymentDTO.getId() != null) {
             throw new BadRequestAlertException("A new payment cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        validatePaymentPayload(paymentDTO);
         paymentDTO = paymentService.save(paymentDTO);
         return ResponseEntity.created(new URI("/api/payments/" + paymentDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, paymentDTO.getId().toString()))
@@ -98,6 +100,7 @@ public class PaymentResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        validatePaymentPayload(paymentDTO);
         paymentDTO = paymentService.update(paymentDTO);
         return ResponseEntity.ok()
             .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, paymentDTO.getId().toString()))
@@ -132,6 +135,8 @@ public class PaymentResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        Payment existing = paymentRepository.findById(id).orElseThrow();
+        validatePaymentPatchPayload(paymentDTO, existing);
         Optional<PaymentDTO> result = paymentService.partialUpdate(paymentDTO);
 
         return ResponseUtil.wrapOrNotFound(
@@ -197,5 +202,19 @@ public class PaymentResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void validatePaymentPayload(PaymentDTO paymentDTO) {
+        if (paymentDTO.getProofDataUrl() == null || paymentDTO.getProofDataUrl().isBlank()) {
+            throw new BadRequestAlertException("Proof is required for payments", ENTITY_NAME, "proofrequired");
+        }
+    }
+
+    private void validatePaymentPatchPayload(PaymentDTO paymentDTO, Payment existing) {
+        String effectiveProofDataUrl =
+            paymentDTO.getProofDataUrl() != null ? paymentDTO.getProofDataUrl() : existing.getProofDataUrl();
+        if (effectiveProofDataUrl == null || effectiveProofDataUrl.isBlank()) {
+            throw new BadRequestAlertException("Proof is required for payments", ENTITY_NAME, "proofrequired");
+        }
     }
 }

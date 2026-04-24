@@ -1,6 +1,7 @@
 package com.finance.app.service.dto;
 
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
@@ -81,6 +82,11 @@ public class PurchaseDTO implements Serializable {
     @NotNull
     @DecimalMin(value = "0")
     private BigDecimal paidAmount;
+
+    @NotNull
+    private PurchaseKind purchaseKind;
+
+    private Long sourcePurchaseId;
 
     @NotNull
     private PurchaseStatus status;
@@ -264,6 +270,22 @@ public class PurchaseDTO implements Serializable {
         return status;
     }
 
+    public PurchaseKind getPurchaseKind() {
+        return purchaseKind;
+    }
+
+    public void setPurchaseKind(PurchaseKind purchaseKind) {
+        this.purchaseKind = purchaseKind;
+    }
+
+    public Long getSourcePurchaseId() {
+        return sourcePurchaseId;
+    }
+
+    public void setSourcePurchaseId(Long sourcePurchaseId) {
+        this.sourcePurchaseId = sourcePurchaseId;
+    }
+
     public void setStatus(PurchaseStatus status) {
         this.status = status;
     }
@@ -392,6 +414,8 @@ public class PurchaseDTO implements Serializable {
             ", taxTotal=" + getTaxTotal() +
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
+            ", purchaseKind='" + getPurchaseKind() + "'" +
+            ", sourcePurchaseId=" + getSourcePurchaseId() +
             ", status='" + getStatus() + "'" +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +

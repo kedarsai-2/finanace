@@ -18,6 +18,7 @@ export function purchaseReturnLedgerEntryId(purchaseId: string) {
 
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendPurchaseStatus = "DRAFT" | "FINAL" | "CANCELLED";
+type BackendPurchaseKind = "PURCHASE" | "RETURN";
 
 type PurchaseDTO = {
   id?: number;
@@ -39,6 +40,8 @@ type PurchaseDTO = {
   taxTotal: number;
   total: number;
   paidAmount: number;
+  purchaseKind?: BackendPurchaseKind | null;
+  sourcePurchaseId?: number | null;
   status: BackendPurchaseStatus;
   notes?: string | null;
   terms?: string | null;
@@ -114,6 +117,8 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     taxTotal: Number(dto.taxTotal ?? 0),
     total: Number(dto.total ?? 0),
     paidAmount: Number(dto.paidAmount ?? 0),
+    kind: dto.purchaseKind === "RETURN" ? "return" : "purchase",
+    sourcePurchaseId: toStrId(dto.sourcePurchaseId),
     status: fromBackendPurchaseStatus(dto.status),
     deleted: dto.deleted ?? undefined,
     notes: dto.notes ?? undefined,
@@ -136,6 +141,23 @@ function lineDtoToLine(dto: PurchaseLineDTO): PurchaseLine {
     discountValue: Number(dto.discountValue ?? 0),
     taxPercent: Number(dto.taxPercent ?? 0),
   };
+}
+
+function normalizePurchases(list: Purchase[]): Purchase[] {
+  const byNumber = new Map<string, string>();
+  for (const p of list) {
+    byNumber.set((p.number ?? "").trim(), p.id);
+  }
+  return list.map((p) => {
+    const isReturn = p.kind === "return" || (p.number ?? "").toUpperCase().startsWith("PRET-");
+    if (!isReturn) return { ...p, kind: "purchase" };
+    let sourcePurchaseId = p.sourcePurchaseId;
+    if (!sourcePurchaseId) {
+      const m = (p.notes ?? "").match(/Against\s+([A-Za-z]+-?\d+)/i);
+      if (m?.[1]) sourcePurchaseId = byNumber.get(m[1].trim());
+    }
+    return { ...p, kind: "return", sourcePurchaseId };
+  });
 }
 
 function purchaseToDto(p: Purchase): PurchaseDTO {
@@ -161,6 +183,8 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     taxTotal: p.taxTotal,
     total: p.total,
     paidAmount: p.paidAmount,
+    purchaseKind: p.kind === "return" ? "RETURN" : "PURCHASE",
+    sourcePurchaseId: p.kind === "return" ? (toNumId(p.sourcePurchaseId) ?? null) : null,
     status: toBackendPurchaseStatus(p.status),
     notes: p.notes ?? null,
     terms: p.terms ?? null,
@@ -354,7 +378,7 @@ export function usePurchases(businessId?: string | null) {
     const list = await apiFetch<PurchaseDTO[]>(
       `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
     );
-    setPurchases(list.map(dtoToPurchase));
+    setPurchases(normalizePurchases(list.map(dtoToPurchase)));
   }, [businessId]);
 
   useEffect(() => {
@@ -433,7 +457,8 @@ export function usePurchases(businessId?: string | null) {
       const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
       setPurchases((prev) => {
         const exists = prev.some((x) => x.id === savedId);
-        return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
+        const next = exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
+        return normalizePurchases(next);
       });
     },
     [syncLedger],

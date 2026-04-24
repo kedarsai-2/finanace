@@ -1,6 +1,8 @@
 package com.finance.app.web.rest;
 
 import com.finance.app.repository.PurchaseRepository;
+import com.finance.app.domain.Purchase;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.service.PurchaseLineService;
 import com.finance.app.service.PurchaseQueryService;
 import com.finance.app.service.PurchaseService;
@@ -75,6 +77,7 @@ public class PurchaseResource {
         if (purchaseDTO.getId() != null) {
             throw new BadRequestAlertException("A new purchase cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        validatePurchasePayload(purchaseDTO, null);
         purchaseDTO = purchaseService.save(purchaseDTO);
         return ResponseEntity.created(new URI("/api/purchases/" + purchaseDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, purchaseDTO.getId().toString()))
@@ -108,6 +111,7 @@ public class PurchaseResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        validatePurchasePayload(purchaseDTO, id);
         purchaseDTO = purchaseService.update(purchaseDTO);
         return ResponseEntity.ok()
             .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, purchaseDTO.getId().toString()))
@@ -142,6 +146,8 @@ public class PurchaseResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        Purchase existing = purchaseRepository.findById(id).orElseThrow();
+        validatePurchasePatchPayload(purchaseDTO, existing, id);
         Optional<PurchaseDTO> result = purchaseService.partialUpdate(purchaseDTO);
 
         return ResponseUtil.wrapOrNotFound(
@@ -222,5 +228,56 @@ public class PurchaseResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void validatePurchasePayload(PurchaseDTO purchaseDTO, Long pathId) {
+        if (purchaseDTO.getPurchaseKind() == null) {
+            throw new BadRequestAlertException("purchaseKind is required", ENTITY_NAME, "purchasekindrequired");
+        }
+        if (purchaseDTO.getPurchaseKind() == PurchaseKind.RETURN) {
+            if (purchaseDTO.getSourcePurchaseId() == null) {
+                throw new BadRequestAlertException("sourcePurchaseId is required for returns", ENTITY_NAME, "sourcepurchaserequired");
+            }
+            if (pathId != null && pathId.equals(purchaseDTO.getSourcePurchaseId())) {
+                throw new BadRequestAlertException(
+                    "Return cannot reference itself as source purchase",
+                    ENTITY_NAME,
+                    "invalidsourcepurchase"
+                );
+            }
+        } else if (purchaseDTO.getSourcePurchaseId() != null) {
+            throw new BadRequestAlertException(
+                "sourcePurchaseId is allowed only for return documents",
+                ENTITY_NAME,
+                "sourcepurchaseunexpected"
+            );
+        }
+    }
+
+    private void validatePurchasePatchPayload(PurchaseDTO purchaseDTO, Purchase existing, Long pathId) {
+        PurchaseKind effectiveKind = purchaseDTO.getPurchaseKind() != null ? purchaseDTO.getPurchaseKind() : existing.getPurchaseKind();
+        Long effectiveSourcePurchaseId =
+            purchaseDTO.getSourcePurchaseId() != null
+                ? purchaseDTO.getSourcePurchaseId()
+                : (existing.getSourcePurchase() != null ? existing.getSourcePurchase().getId() : null);
+
+        if (effectiveKind == PurchaseKind.RETURN) {
+            if (effectiveSourcePurchaseId == null) {
+                throw new BadRequestAlertException("sourcePurchaseId is required for returns", ENTITY_NAME, "sourcepurchaserequired");
+            }
+            if (pathId.equals(effectiveSourcePurchaseId)) {
+                throw new BadRequestAlertException(
+                    "Return cannot reference itself as source purchase",
+                    ENTITY_NAME,
+                    "invalidsourcepurchase"
+                );
+            }
+        } else if (effectiveSourcePurchaseId != null) {
+            throw new BadRequestAlertException(
+                "sourcePurchaseId is allowed only for return documents",
+                ENTITY_NAME,
+                "sourcepurchaseunexpected"
+            );
+        }
     }
 }

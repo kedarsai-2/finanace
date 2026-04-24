@@ -43,6 +43,7 @@ import {
 } from "@/types/payment";
 import type { Invoice } from "@/types/invoice";
 import type { Purchase } from "@/types/purchase";
+import { ProofUpload } from "@/components/proof/ProofUpload";
 
 export const Route = createFileRoute("/payments/new")({
   head: () => ({ meta: [{ title: "Record Payment — QOBOX" }] }),
@@ -81,6 +82,8 @@ function NewPaymentPage() {
   const [date, setDate] = useState<Date>(new Date());
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
+  const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [autoAllocate, setAutoAllocate] = useState(true);
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -109,10 +112,13 @@ function NewPaymentPage() {
   const openDocs = useMemo(() => {
     if (!partyId) return [];
     if (direction === "in") {
-      return invoices
+      const salesInvoices = invoices
         .filter(
           (i): i is Invoice =>
-            i.partyId === partyId && i.status !== "cancelled" && i.total - i.paidAmount > 0.01,
+            i.partyId === partyId &&
+            i.kind !== "credit-note" &&
+            i.status !== "cancelled" &&
+            i.total - i.paidAmount > 0.01,
         )
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((i) => ({
@@ -121,11 +127,32 @@ function NewPaymentPage() {
           date: i.date,
           outstanding: i.total - i.paidAmount,
         }));
+      const purchaseReturns = purchases
+        .filter(
+          (p): p is Purchase =>
+            p.partyId === partyId &&
+            p.kind === "return" &&
+            p.status !== "cancelled" &&
+            p.total - p.paidAmount > 0.01,
+        )
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((p) => ({
+          docId: p.id,
+          docNumber: p.number,
+          date: p.date,
+          outstanding: p.total - p.paidAmount,
+        }));
+      return [...salesInvoices, ...purchaseReturns].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
     }
-    return purchases
+    const purchasesToPay = purchases
       .filter(
         (p): p is Purchase =>
-          p.partyId === partyId && p.status !== "cancelled" && p.total - p.paidAmount > 0.01,
+          p.partyId === partyId &&
+          p.kind !== "return" &&
+          p.status !== "cancelled" &&
+          p.total - p.paidAmount > 0.01,
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((p) => ({
@@ -134,6 +161,24 @@ function NewPaymentPage() {
         date: p.date,
         outstanding: p.total - p.paidAmount,
       }));
+    const salesReturns = invoices
+      .filter(
+        (i): i is Invoice =>
+          i.partyId === partyId &&
+          i.kind === "credit-note" &&
+          i.status !== "cancelled" &&
+          i.total - i.paidAmount > 0.01,
+      )
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map((i) => ({
+        docId: i.id,
+        docNumber: i.number,
+        date: i.date,
+        outstanding: i.total - i.paidAmount,
+      }));
+    return [...purchasesToPay, ...salesReturns].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   }, [direction, partyId, invoices, purchases]);
 
   const totalOutstanding = openDocs.reduce((s, d) => s + d.outstanding, 0);
@@ -209,6 +254,7 @@ function NewPaymentPage() {
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode !== "cash" && !accountId) return "Select a bank account";
+    if (!proofDataUrl) return "Upload payment proof image";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (partyId && rows.length > 0 && unallocated > 0.01) {
       // Allow advance if user explicitly unchecks all rows.
@@ -249,22 +295,22 @@ function NewPaymentPage() {
         account: mode === "cash" ? "Cash" : selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
+        proofDataUrl,
+        proofName,
         allocations,
       };
       await createPayment(payment);
 
       // Update document paidAmount (must await in backend-mode).
       for (const alloc of allocations) {
-        if (direction === "in") {
-          const inv = invoices.find((i) => i.id === alloc.docId);
-          if (inv) {
-            await upsertInvoice({ ...inv, paidAmount: inv.paidAmount + alloc.amount });
-          }
-        } else {
-          const pur = purchases.find((p) => p.id === alloc.docId);
-          if (pur) {
-            await upsertPurchase({ ...pur, paidAmount: pur.paidAmount + alloc.amount });
-          }
+        const inv = invoices.find((i) => i.id === alloc.docId);
+        if (inv) {
+          await upsertInvoice({ ...inv, paidAmount: inv.paidAmount + alloc.amount });
+          continue;
+        }
+        const pur = purchases.find((p) => p.id === alloc.docId);
+        if (pur) {
+          await upsertPurchase({ ...pur, paidAmount: pur.paidAmount + alloc.amount });
         }
       }
 
@@ -486,6 +532,19 @@ function NewPaymentPage() {
                 placeholder="Optional"
               />
             </div>
+            <div className="sm:col-span-2">
+              <ProofUpload
+                id="pay-proof-new"
+                label="Proof image"
+                required
+                proofDataUrl={proofDataUrl}
+                proofName={proofName}
+                onChange={(p) => {
+                  setProofDataUrl(p.proofDataUrl);
+                  setProofName(p.proofName);
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -519,9 +578,7 @@ function NewPaymentPage() {
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="w-10 px-3 py-2"></th>
-                    <th className="px-3 py-2 text-left">
-                      {direction === "in" ? "Invoice" : "Purchase"}
-                    </th>
+                    <th className="px-3 py-2 text-left">Document</th>
                     <th className="px-3 py-2 text-left">Date</th>
                     <th className="px-3 py-2 text-right">Outstanding</th>
                     <th className="px-3 py-2 text-right">Allocate</th>

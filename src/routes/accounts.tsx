@@ -116,11 +116,6 @@ function AccountsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to="/accounts/transfer" search={{ mode: "transfer", scope: "bank" }}>
-                  Bank transfer
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link
                   to="/accounts/transfer"
                   search={{ mode: "transfer", scope: "all", preset: "bank-bank" }}

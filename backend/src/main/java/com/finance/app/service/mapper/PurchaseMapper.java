@@ -15,7 +15,11 @@ import org.mapstruct.*;
 public interface PurchaseMapper extends EntityMapper<PurchaseDTO, Purchase> {
     @Mapping(target = "business", source = "business", qualifiedByName = "businessName")
     @Mapping(target = "party", source = "party", qualifiedByName = "partyName")
+    @Mapping(target = "sourcePurchaseId", source = "sourcePurchase.id")
     PurchaseDTO toDto(Purchase s);
+
+    @Mapping(target = "sourcePurchase.id", source = "sourcePurchaseId")
+    Purchase toEntity(PurchaseDTO dto);
 
     @Named("businessName")
     @BeanMapping(ignoreByDefault = true)

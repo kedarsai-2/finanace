@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, type SearchSchemaInput } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ArrowLeft, ArrowLeftRight, ArrowRight, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -110,12 +110,25 @@ function TransferPage() {
   }, [mode, scopedAccounts, safeAccounts, search.preset, fromId]);
 
   const fromBalance = fromId ? (balances[fromId] ?? 0) : 0;
+  const fromAccount = fromId ? accountsById[fromId] : undefined;
+  const toAccount = toId ? accountsById[toId] : undefined;
+
+  useEffect(() => {
+    if (search.scope === "cash" && mode !== "adjustment") {
+      setMode("adjustment");
+      setToId("");
+      navigate({ search: (s) => ({ ...s, mode: "adjustment", preset: "any" }) });
+    }
+  }, [search.scope, mode, navigate]);
 
   const validate = (): string | null => {
     if (!fromId) return "Choose a source account";
     if (mode === "transfer") {
       if (!toId) return "Choose a destination account";
       if (fromId === toId) return "Source and destination must be different";
+      if (fromAccount?.type === "cash" && toAccount?.type === "cash") {
+        return "Cash to cash transfer is not allowed";
+      }
     }
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode === "transfer" && amount > fromBalance + 0.01)
@@ -195,23 +208,35 @@ function TransferPage() {
           <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label>Action</Label>
-              <Select
-                value={mode}
-                onValueChange={(v) => {
-                  const next = v as "transfer" | "adjustment";
-                  setMode(next);
-                  if (next === "adjustment") setToId("");
-                  navigate({ search: (s) => ({ ...s, mode: next, preset: next === "adjustment" ? "any" : s.preset }) });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="transfer">Transfer</SelectItem>
-                  <SelectItem value="adjustment">Adjustment</SelectItem>
-                </SelectContent>
-              </Select>
+              {search.scope === "cash" ? (
+                <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
+                  Cash adjustment
+                </div>
+              ) : (
+                <Select
+                  value={mode}
+                  onValueChange={(v) => {
+                    const next = v as "transfer" | "adjustment";
+                    setMode(next);
+                    if (next === "adjustment") setToId("");
+                    navigate({
+                      search: (s) => ({
+                        ...s,
+                        mode: next,
+                        preset: next === "adjustment" ? "any" : s.preset,
+                      }),
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="adjustment">Adjustment</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             {mode === "adjustment" && (
               <div>

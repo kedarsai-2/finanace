@@ -2,6 +2,7 @@ package com.finance.app.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.finance.app.domain.enumeration.DiscountKind;
+import com.finance.app.domain.enumeration.PurchaseKind;
 import com.finance.app.domain.enumeration.PurchaseStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -119,6 +120,15 @@ public class Purchase implements Serializable {
 
     @NotNull
     @Enumerated(EnumType.STRING)
+    @Column(name = "purchase_kind", nullable = false)
+    private PurchaseKind purchaseKind;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties(value = { "business", "party", "sourcePurchase" }, allowSetters = true)
+    private Purchase sourcePurchase;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private PurchaseStatus status;
 
@@ -147,6 +157,7 @@ public class Purchase implements Serializable {
         if (updatedAt == null) updatedAt = createdAt;
         if (deleted == null) deleted = false;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
+        if (purchaseKind == null) purchaseKind = PurchaseKind.PURCHASE;
     }
 
     @PreUpdate
@@ -154,6 +165,7 @@ public class Purchase implements Serializable {
         updatedAt = Instant.now();
         if (deleted == null) deleted = false;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
+        if (purchaseKind == null) purchaseKind = PurchaseKind.PURCHASE;
     }
 
     @Column(name = "deleted")
@@ -431,6 +443,32 @@ public class Purchase implements Serializable {
         return this.status;
     }
 
+    public PurchaseKind getPurchaseKind() {
+        return this.purchaseKind;
+    }
+
+    public Purchase purchaseKind(PurchaseKind purchaseKind) {
+        this.setPurchaseKind(purchaseKind);
+        return this;
+    }
+
+    public void setPurchaseKind(PurchaseKind purchaseKind) {
+        this.purchaseKind = purchaseKind;
+    }
+
+    public Purchase getSourcePurchase() {
+        return this.sourcePurchase;
+    }
+
+    public void setSourcePurchase(Purchase sourcePurchase) {
+        this.sourcePurchase = sourcePurchase;
+    }
+
+    public Purchase sourcePurchase(Purchase sourcePurchase) {
+        this.setSourcePurchase(sourcePurchase);
+        return this;
+    }
+
     public Purchase status(PurchaseStatus status) {
         this.setStatus(status);
         return this;
@@ -643,6 +681,7 @@ public class Purchase implements Serializable {
             ", taxTotal=" + getTaxTotal() +
             ", total=" + getTotal() +
             ", paidAmount=" + getPaidAmount() +
+            ", purchaseKind='" + getPurchaseKind() + "'" +
             ", status='" + getStatus() + "'" +
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
