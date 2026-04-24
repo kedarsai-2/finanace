@@ -21,6 +21,8 @@ export interface Payment {
    * screenshot). Required client-side for non-cash modes.
    */
   proofDataUrl?: string;
+  /** Original filename for display purposes. */
+  proofName?: string;
   /** Allocations against invoices (direction "in") or purchases (direction "out"). */
   allocations: PaymentAllocation[];
 }

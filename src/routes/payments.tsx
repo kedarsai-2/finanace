@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Paperclip } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -201,6 +201,7 @@ function PaymentsPage() {
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3 text-left">Account</th>
                 <th className="px-4 py-3 text-left">Reference</th>
+                <th className="w-10 px-2 py-3 text-center">Proof</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -233,6 +234,22 @@ function PaymentsPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {p.reference || p.allocations.map((a) => a.docNumber).join(", ") || "—"}
+                    </td>
+                    <td className="px-2 py-3 text-center">
+                      {p.proofDataUrl ? (
+                        <a
+                          href={p.proofDataUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={p.proofName || "proof"}
+                          title={p.proofName || "View proof"}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </td>
                   </tr>
                 );

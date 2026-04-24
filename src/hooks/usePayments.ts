@@ -18,6 +18,8 @@ type PaymentDTO = {
   mode: BackendPaymentMode;
   reference?: string | null;
   notes?: string | null;
+  proofDataUrl?: string | null;
+  proofName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   business?: { id: number } | null;
@@ -63,6 +65,8 @@ function dtoToPayment(dto: PaymentDTO, allocations: Payment["allocations"] = [])
     mode: fromBackendMode(dto.mode),
     reference: dto.reference ?? undefined,
     notes: dto.notes ?? undefined,
+    proofDataUrl: dto.proofDataUrl ?? undefined,
+    proofName: dto.proofName ?? undefined,
     accountId: dto.account?.id != null ? toStrId(dto.account.id) : undefined,
     allocations,
   };
@@ -76,6 +80,8 @@ function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
     mode: toBackendMode(p.mode),
     reference: p.reference ?? null,
     notes: p.notes ?? null,
+    proofDataUrl: p.proofDataUrl ?? null,
+    proofName: p.proofName ?? null,
     business: businessRefFromId(businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
     account: p.accountId && toNumId(p.accountId) != null ? { id: toNumId(p.accountId)! } : null,

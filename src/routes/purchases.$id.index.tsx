@@ -360,6 +360,30 @@ function PurchaseDetailsPage() {
             </section>
           )}
 
+          {/* Proof */}
+          {(purchase.proofDataUrl || purchase.proofName) && (
+            <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <h2 className="text-base font-semibold">Proof</h2>
+              <Separator className="my-4" />
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className={cn("font-medium", !purchase.proofName && "text-muted-foreground")}>
+                  {purchase.proofName ?? "Proof attached"}
+                </span>
+                {purchase.proofDataUrl && (
+                  <a
+                    href={purchase.proofDataUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={purchase.proofName || "proof"}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    View / Download
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Danger zone */}
           <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 print:hidden">
             <h3 className="text-sm font-semibold text-destructive">Danger zone</h3>

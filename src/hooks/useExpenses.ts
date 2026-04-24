@@ -16,6 +16,8 @@ type ExpenseDTO = {
   mode?: "CASH" | "BANK" | "UPI" | null;
   reference?: string | null;
   notes?: string | null;
+  proofDataUrl?: string | null;
+  proofName?: string | null;
   deleted?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -39,6 +41,8 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
     mode,
     reference: dto.reference ?? undefined,
     notes: dto.notes ?? undefined,
+    proofDataUrl: dto.proofDataUrl ?? undefined,
+    proofName: dto.proofName ?? undefined,
     deleted: dto.deleted ?? undefined,
     createdAt: dto.createdAt ?? new Date().toISOString(),
     updatedAt: dto.updatedAt ?? undefined,
@@ -57,6 +61,8 @@ function expenseToDto(e: Expense): ExpenseDTO {
     mode,
     reference: e.reference ?? null,
     notes: e.notes ?? null,
+    proofDataUrl: e.proofDataUrl ?? null,
+    proofName: e.proofName ?? null,
     deleted: e.deleted ?? false,
     business: businessRefFromId(e.businessId),
     party: e.partyId ? { id: parseInt(e.partyId, 10) } : null,

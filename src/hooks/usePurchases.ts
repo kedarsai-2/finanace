@@ -43,6 +43,8 @@ type PurchaseDTO = {
   notes?: string | null;
   terms?: string | null;
   finalizedAt?: string | null;
+  proofDataUrl?: string | null;
+  proofName?: string | null;
   deleted?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -115,6 +117,8 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     notes: dto.notes ?? undefined,
     terms: dto.terms ?? undefined,
     finalizedAt: dto.finalizedAt ?? undefined,
+    proofDataUrl: dto.proofDataUrl ?? undefined,
+    proofName: dto.proofName ?? undefined,
   };
 }
 
@@ -157,6 +161,8 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     notes: p.notes ?? null,
     terms: p.terms ?? null,
     finalizedAt: p.finalizedAt ?? null,
+    proofDataUrl: p.proofDataUrl ?? null,
+    proofName: p.proofName ?? null,
     deleted: p.deleted ?? false,
     business: businessRefFromId(p.businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },

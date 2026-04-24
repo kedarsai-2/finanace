@@ -151,6 +151,34 @@ function ExpenseDetailPage() {
             {expense.notes ?? <span className="text-muted-foreground">—</span>}
           </Detail>
         </dl>
+
+        {(expense.proofDataUrl || expense.proofName) && (
+          <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Proof
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <div className="text-sm">
+                {expense.proofName ? (
+                  <span className="font-medium">{expense.proofName}</span>
+                ) : (
+                  <span className="text-muted-foreground">Proof attached</span>
+                )}
+              </div>
+              {expense.proofDataUrl && (
+                <a
+                  href={expense.proofDataUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={expense.proofName || "proof"}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  View / Download
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
