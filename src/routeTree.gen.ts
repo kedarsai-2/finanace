@@ -22,6 +22,7 @@ import { Route as CreditNotesRouteImport } from './routes/credit-notes'
 import { Route as CashRouteImport } from './routes/cash'
 import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsSalesRouteImport } from './routes/reports.sales'
@@ -42,6 +43,7 @@ import { Route as CategoriesExpenseRouteImport } from './routes/categories.expen
 import { Route as CashNewRouteImport } from './routes/cash.new'
 import { Route as CashBalanceRouteImport } from './routes/cash.balance'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as AssetsNewRouteImport } from './routes/assets.new'
 import { Route as AccountsTransferRouteImport } from './routes/accounts.transfer'
 import { Route as AccountsNewRouteImport } from './routes/accounts.new'
 import { Route as PurchasesIdIndexRouteImport } from './routes/purchases.$id.index'
@@ -58,6 +60,7 @@ import { Route as InvoicesIdPrintRouteImport } from './routes/invoices.$id.print
 import { Route as InvoicesIdEditRouteImport } from './routes/invoices.$id.edit'
 import { Route as ExpensesIdEditRouteImport } from './routes/expenses.$id.edit'
 import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.edit'
+import { Route as AssetsIdEditRouteImport } from './routes/assets.$id.edit'
 import { Route as AccountsIdEditRouteImport } from './routes/accounts.$id.edit'
 
 const ReportsRoute = ReportsRouteImport.update({
@@ -123,6 +126,11 @@ const BusinessesRoute = BusinessesRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssetsRoute = AssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountsRoute = AccountsRouteImport.update({
@@ -225,6 +233,11 @@ const BusinessesNewRoute = BusinessesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => BusinessesRoute,
 } as any)
+const AssetsNewRoute = AssetsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AssetsRoute,
+} as any)
 const AccountsTransferRoute = AccountsTransferRouteImport.update({
   id: '/transfer',
   path: '/transfer',
@@ -305,6 +318,11 @@ const BusinessesIdEditRoute = BusinessesIdEditRouteImport.update({
   path: '/$id/edit',
   getParentRoute: () => BusinessesRoute,
 } as any)
+const AssetsIdEditRoute = AssetsIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => AssetsRoute,
+} as any)
 const AccountsIdEditRoute = AccountsIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -314,6 +332,7 @@ const AccountsIdEditRoute = AccountsIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/assets': typeof AssetsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
   '/cash': typeof CashRouteWithChildren
@@ -329,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
+  '/assets/new': typeof AssetsNewRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/cash/balance': typeof CashBalanceRoute
   '/cash/new': typeof CashNewRoute
@@ -348,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
+  '/assets/$id/edit': typeof AssetsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
   '/invoices/$id/edit': typeof InvoicesIdEditRoute
@@ -366,6 +387,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/assets': typeof AssetsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
   '/cash': typeof CashRouteWithChildren
@@ -381,6 +403,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
+  '/assets/new': typeof AssetsNewRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/cash/balance': typeof CashBalanceRoute
   '/cash/new': typeof CashNewRoute
@@ -400,6 +423,7 @@ export interface FileRoutesByTo {
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
+  '/assets/$id/edit': typeof AssetsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
   '/invoices/$id/edit': typeof InvoicesIdEditRoute
@@ -419,6 +443,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRouteWithChildren
+  '/assets': typeof AssetsRouteWithChildren
   '/audit': typeof AuditRoute
   '/businesses': typeof BusinessesRouteWithChildren
   '/cash': typeof CashRouteWithChildren
@@ -434,6 +459,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
+  '/assets/new': typeof AssetsNewRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/cash/balance': typeof CashBalanceRoute
   '/cash/new': typeof CashNewRoute
@@ -453,6 +479,7 @@ export interface FileRoutesById {
   '/reports/purchases': typeof ReportsPurchasesRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/accounts/$id/edit': typeof AccountsIdEditRoute
+  '/assets/$id/edit': typeof AssetsIdEditRoute
   '/businesses/$id/edit': typeof BusinessesIdEditRoute
   '/expenses/$id/edit': typeof ExpensesIdEditRoute
   '/invoices/$id/edit': typeof InvoicesIdEditRoute
@@ -473,6 +500,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accounts'
+    | '/assets'
     | '/audit'
     | '/businesses'
     | '/cash'
@@ -488,6 +516,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
+    | '/assets/new'
     | '/businesses/new'
     | '/cash/balance'
     | '/cash/new'
@@ -507,6 +536,7 @@ export interface FileRouteTypes {
     | '/reports/purchases'
     | '/reports/sales'
     | '/accounts/$id/edit'
+    | '/assets/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
     | '/invoices/$id/edit'
@@ -525,6 +555,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/accounts'
+    | '/assets'
     | '/audit'
     | '/businesses'
     | '/cash'
@@ -540,6 +571,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
+    | '/assets/new'
     | '/businesses/new'
     | '/cash/balance'
     | '/cash/new'
@@ -559,6 +591,7 @@ export interface FileRouteTypes {
     | '/reports/purchases'
     | '/reports/sales'
     | '/accounts/$id/edit'
+    | '/assets/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
     | '/invoices/$id/edit'
@@ -577,6 +610,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/accounts'
+    | '/assets'
     | '/audit'
     | '/businesses'
     | '/cash'
@@ -592,6 +626,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
+    | '/assets/new'
     | '/businesses/new'
     | '/cash/balance'
     | '/cash/new'
@@ -611,6 +646,7 @@ export interface FileRouteTypes {
     | '/reports/purchases'
     | '/reports/sales'
     | '/accounts/$id/edit'
+    | '/assets/$id/edit'
     | '/businesses/$id/edit'
     | '/expenses/$id/edit'
     | '/invoices/$id/edit'
@@ -630,6 +666,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRouteWithChildren
+  AssetsRoute: typeof AssetsRouteWithChildren
   AuditRoute: typeof AuditRoute
   BusinessesRoute: typeof BusinessesRouteWithChildren
   CashRoute: typeof CashRouteWithChildren
@@ -738,6 +775,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assets': {
+      id: '/assets'
+      path: '/assets'
+      fullPath: '/assets'
+      preLoaderRoute: typeof AssetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/accounts': {
@@ -880,6 +924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesNewRouteImport
       parentRoute: typeof BusinessesRoute
     }
+    '/assets/new': {
+      id: '/assets/new'
+      path: '/new'
+      fullPath: '/assets/new'
+      preLoaderRoute: typeof AssetsNewRouteImport
+      parentRoute: typeof AssetsRoute
+    }
     '/accounts/transfer': {
       id: '/accounts/transfer'
       path: '/transfer'
@@ -992,6 +1043,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesIdEditRouteImport
       parentRoute: typeof BusinessesRoute
     }
+    '/assets/$id/edit': {
+      id: '/assets/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/assets/$id/edit'
+      preLoaderRoute: typeof AssetsIdEditRouteImport
+      parentRoute: typeof AssetsRoute
+    }
     '/accounts/$id/edit': {
       id: '/accounts/$id/edit'
       path: '/$id/edit'
@@ -1019,6 +1077,19 @@ const AccountsRouteChildren: AccountsRouteChildren = {
 const AccountsRouteWithChildren = AccountsRoute._addFileChildren(
   AccountsRouteChildren,
 )
+
+interface AssetsRouteChildren {
+  AssetsNewRoute: typeof AssetsNewRoute
+  AssetsIdEditRoute: typeof AssetsIdEditRoute
+}
+
+const AssetsRouteChildren: AssetsRouteChildren = {
+  AssetsNewRoute: AssetsNewRoute,
+  AssetsIdEditRoute: AssetsIdEditRoute,
+}
+
+const AssetsRouteWithChildren =
+  AssetsRoute._addFileChildren(AssetsRouteChildren)
 
 interface BusinessesRouteChildren {
   BusinessesNewRoute: typeof BusinessesNewRoute
@@ -1185,6 +1256,7 @@ const ReportsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRouteWithChildren,
+  AssetsRoute: AssetsRouteWithChildren,
   AuditRoute: AuditRoute,
   BusinessesRoute: BusinessesRouteWithChildren,
   CashRoute: CashRouteWithChildren,

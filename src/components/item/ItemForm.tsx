@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   mode: "new" | "edit";
   itemId?: string;
+  context?: "items" | "assets";
 }
 
 const TYPE_HINT: Record<ItemFormValues["type"], string> = {
@@ -36,8 +37,15 @@ const TYPE_HINT: Record<ItemFormValues["type"], string> = {
   service: "Time- or task-based; no stock tracking.",
 };
 
-/** Items can only be of type "service" in this workspace. */
-const FORCED_TYPE: ItemFormValues["type"] = "service";
+function forcedTypeForContext(context: Props["context"]): ItemFormValues["type"] {
+  return context === "assets" ? "product" : "service";
+}
+
+function labelsForContext(context: Props["context"]) {
+  return context === "assets"
+    ? { singular: "Asset", plural: "Assets", nameLabel: "Asset name" }
+    : { singular: "Item", plural: "Items", nameLabel: "Item name" };
+}
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
   number: "Number (bhk)",
@@ -47,11 +55,13 @@ const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
   hour: "Hours (hour)",
 };
 
-export function ItemForm({ mode, itemId }: Props) {
+export function ItemForm({ mode, itemId, context = "items" }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
   const { allItems, upsert, hydrated } = useItems(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
+  const forcedType = forcedTypeForContext(context);
+  const labels = labelsForContext(context);
 
   const existing = useMemo(
     () => (itemId ? allItems.find((i) => i.id === itemId) : undefined),
@@ -69,7 +79,7 @@ export function ItemForm({ mode, itemId }: Props) {
       : 18;
     return {
       name: existing?.name ?? "",
-      type: FORCED_TYPE,
+      type: forcedType,
       sku: existing?.sku ?? "",
       sellingPrice: existing?.sellingPrice ?? 0,
       purchasePrice: existing?.purchasePrice,
@@ -80,7 +90,7 @@ export function ItemForm({ mode, itemId }: Props) {
       description: existing?.description ?? "",
       active: existing?.active ?? true,
     };
-  }, [existing]);
+  }, [existing, forcedType]);
 
   const {
     register,
@@ -104,7 +114,10 @@ export function ItemForm({ mode, itemId }: Props) {
   const errMsg = (msg?: string) =>
     msg ? <p className="mt-1 text-xs text-destructive">{msg}</p> : null;
 
-  const cancelHref = { to: "/items" as const, search: { q: "", type: "all" as const } };
+  const cancelHref =
+    context === "assets"
+      ? ({ to: "/assets" as const } as const)
+      : ({ to: "/items" as const, search: { q: "", type: "all" as const } } as const);
 
   const onSubmit = handleSubmit(
     async (values) => {
@@ -118,7 +131,7 @@ export function ItemForm({ mode, itemId }: Props) {
           id: existing?.id ?? "",
           businessId: existing?.businessId ?? activeId,
           name: values.name.trim(),
-          type: values.type,
+          type: forcedType,
           sku: emptyToUndef(values.sku)?.toUpperCase(),
           sellingPrice: values.sellingPrice,
           purchasePrice:
@@ -126,11 +139,11 @@ export function ItemForm({ mode, itemId }: Props) {
           taxPercent: values.taxPercent,
           unit: values.unit,
           openingStock:
-            values.type === "product" && values.openingStock && values.openingStock > 0
+            forcedType === "product" && values.openingStock && values.openingStock > 0
               ? values.openingStock
               : undefined,
           reorderLevel:
-            values.type === "product" && values.reorderLevel && values.reorderLevel > 0
+            forcedType === "product" && values.reorderLevel && values.reorderLevel > 0
               ? values.reorderLevel
               : undefined,
           description: emptyToUndef(values.description),
@@ -138,10 +151,10 @@ export function ItemForm({ mode, itemId }: Props) {
           deleted: existing?.deleted,
         };
         await upsert(item);
-        toast.success(mode === "edit" ? "Item updated" : "Item added");
+        toast.success(mode === "edit" ? `${labels.singular} updated` : `${labels.singular} added`);
         navigate(cancelHref);
       } catch {
-        toast.error("Could not save item");
+        toast.error(`Could not save ${labels.singular.toLowerCase()}`);
       } finally {
         setSubmitting(false);
       }
@@ -164,7 +177,7 @@ export function ItemForm({ mode, itemId }: Props) {
                 {activeBusiness?.name ?? "Workspace"}
               </p>
               <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                {mode === "edit" ? "Edit Item" : "Add Item"}
+                {mode === "edit" ? `Edit ${labels.singular}` : `Add ${labels.singular}`}
               </h1>
             </div>
           </div>
@@ -188,7 +201,7 @@ export function ItemForm({ mode, itemId }: Props) {
         <FormSection step={1} title="Basic Info" description="What are you selling?">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label htmlFor="name">Item name *</Label>
+              <Label htmlFor="name">{labels.nameLabel} *</Label>
               <Input
                 id="name"
                 placeholder='e.g. Steel Bracket 4"'
@@ -202,7 +215,7 @@ export function ItemForm({ mode, itemId }: Props) {
               />
               {mode === "edit" && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Item name cannot be changed after creation.
+                  {labels.singular} name cannot be changed after creation.
                 </p>
               )}
               {errMsg(errors.name?.message)}
@@ -211,11 +224,11 @@ export function ItemForm({ mode, itemId }: Props) {
               <Label htmlFor="type">Type *</Label>
               <Input
                 id="type"
-                value="Service"
+                value={forcedType === "product" ? "Product" : "Service"}
                 readOnly
                 className="cursor-not-allowed bg-muted/50 text-muted-foreground"
               />
-              <p className="mt-1 text-xs text-muted-foreground">{TYPE_HINT.service}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{TYPE_HINT[forcedType]}</p>
             </div>
             <div>
               <Label htmlFor="sku">SKU</Label>

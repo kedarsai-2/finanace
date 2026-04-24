@@ -5,6 +5,7 @@ import {
   Building2,
   Users,
   Package,
+  ImageIcon,
   FileText,
   ShoppingCart,
   Wallet,
@@ -23,6 +24,7 @@ const navLinks = [
   { to: "/businesses", label: "Businesses", icon: Building2 },
   { to: "/parties", label: "Parties", icon: Users },
   { to: "/items", label: "Items", icon: Package },
+  { to: "/assets", label: "Assets", icon: ImageIcon },
   { to: "/invoices", label: "Invoices", icon: FileText },
   { to: "/credit-notes", label: "Credit Notes", icon: FileMinus },
   { to: "/purchases", label: "Purchases", icon: ShoppingCart },
@@ -56,7 +58,7 @@ export function AppSidebar() {
           return (
             <Link
               key={l.to}
-              to={l.to}
+              to={l.to as any}
               activeOptions={{ exact: l.to === "/" }}
               className={cn(
                 "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
