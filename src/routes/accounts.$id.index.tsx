@@ -110,6 +110,11 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
+function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string }) {
+  if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  return KIND_LABEL[r.kind];
+}
+
 function AccountDetailsPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
@@ -349,7 +354,7 @@ function AccountDetailsPage() {
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {format(new Date(r.date), "dd MMM yyyy")}
                   </td>
-                  <td className="px-4 py-3">{KIND_LABEL[r.kind]}</td>
+                  <td className="px-4 py-3">{txnTypeLabel(r)}</td>
                   <td className="px-4 py-3 font-mono text-xs">
                     {r.refLink ? (
                       <a href={r.refLink} className="text-primary hover:underline">

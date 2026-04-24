@@ -8,6 +8,7 @@ export interface Address {
 
 export interface Business {
   id: string;
+  createdAt?: string;
   name: string;
   ownerName?: string;
   mobile: string;

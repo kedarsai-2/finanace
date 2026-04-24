@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Expense } from "@/types/expense";
+import { DEFAULT_EXPENSE_CATEGORIES, type Expense } from "@/types/expense";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
@@ -32,12 +32,16 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const accountId = dto.account?.id;
   const mode =
     dto.mode === "BANK" || dto.mode === "UPI" ? "bank" : dto.mode === "CASH" ? "cash" : undefined;
+  const rawCategory = String(dto.category ?? "").toLowerCase();
+  const category = (DEFAULT_EXPENSE_CATEGORIES as readonly string[]).includes(rawCategory)
+    ? (rawCategory as Expense["category"])
+    : "indirect";
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
     date: dto.date,
     amount: Number(dto.amount ?? 0),
-    category: dto.category,
+    category,
     mode,
     reference: dto.reference ?? undefined,
     notes: dto.notes ?? undefined,

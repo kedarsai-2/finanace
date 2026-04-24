@@ -13,7 +13,7 @@ import { usePayments } from "@/hooks/usePayments";
 export const Route = createFileRoute("/invoices/$id/print")({
   head: () => ({
     meta: [
-      { title: "Invoice — Print preview" },
+      { title: "Sale — Print preview" },
       {
         name: "description",
         content: "Print-ready invoice layout. Use Print → Save as PDF to download.",
@@ -58,10 +58,10 @@ function InvoicePrintPage() {
   if (!invoice) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 py-24 text-center">
-        <h1 className="text-xl font-semibold">Invoice not found</h1>
+        <h1 className="text-xl font-semibold">Sale not found</h1>
         <Button asChild variant="outline">
           <Link to="/invoices" search={{ q: "", status: "all", payment: "all", from: "", to: "" }}>
-            Back to Invoices
+            Back to Sales
           </Link>
         </Button>
       </div>
@@ -75,7 +75,7 @@ function InvoicePrintPage() {
         <Button asChild variant="ghost" className="gap-2">
           <Link to="/invoices/$id" params={{ id: invoice.id }}>
             <ArrowLeft className="h-4 w-4" />
-            Back to invoice
+            Back to sale
           </Link>
         </Button>
         <div className="flex gap-2">

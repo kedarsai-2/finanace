@@ -31,6 +31,8 @@ function dtoToItem(dto: ItemDTO): Item {
   const bizId = dto.business?.id;
   return {
     id: toStrId(dto.id),
+    createdAt: dto.createdAt ?? undefined,
+    updatedAt: dto.updatedAt ?? undefined,
     businessId: bizId != null ? String(bizId) : "",
     name: dto.name,
     sku: dto.sku ?? undefined,
@@ -50,6 +52,8 @@ function dtoToItem(dto: ItemDTO): Item {
 function itemToDto(it: Item): ItemDTO {
   return {
     id: toNumId(it.id) ?? undefined,
+    createdAt: it.createdAt ?? null,
+    updatedAt: it.updatedAt ?? null,
     name: it.name,
     sku: it.sku ?? null,
     type: it.type === "product" ? "PRODUCT" : "SERVICE",

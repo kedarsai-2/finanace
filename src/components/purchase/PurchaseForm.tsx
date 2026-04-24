@@ -489,7 +489,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                       <td className="min-w-[220px] px-2 py-2">
                         <ItemPicker
                           value={line.name}
-                          items={items}
+                          items={items.filter((i) => i.type === "product")}
                           onSelect={(item) => applyItemToLine(line.id, item)}
                           onChangeName={(v) => updateLine(line.id, { name: v, itemId: undefined })}
                           onQuickAdd={() => setQuickItemForRow(line.id)}
@@ -784,7 +784,7 @@ function ItemPicker({
                 setOpen(true);
               }}
               readOnly={locked}
-              placeholder="Search or type item…"
+              placeholder="Search or type asset…"
               className={cn("h-9", locked && "bg-muted/50 cursor-not-allowed")}
             />
           </div>
@@ -795,11 +795,11 @@ function ItemPicker({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <Command>
-            <CommandInput placeholder="Search items…" autoFocus />
+            <CommandInput placeholder="Search assets…" autoFocus />
             <CommandList>
               <CommandEmpty>
                 <div className="py-3 text-center text-sm text-muted-foreground">
-                  No items match.
+                  No assets match.
                   <button
                     type="button"
                     onClick={() => {
@@ -808,7 +808,7 @@ function ItemPicker({
                     }}
                     className="mt-1 block w-full text-primary hover:underline"
                   >
-                    + Quick add new item
+                    + Quick add new asset
                   </button>
                 </div>
               </CommandEmpty>

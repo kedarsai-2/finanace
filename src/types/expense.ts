@@ -1,18 +1,12 @@
 import type { PaymentMode } from "./payment";
 
 export const DEFAULT_EXPENSE_CATEGORIES = [
-  "Rent",
-  "Utilities",
-  "Salaries",
-  "Travel",
-  "Office Supplies",
-  "Marketing",
-  "Bank Charges",
-  "Other",
+  "direct",
+  "indirect",
 ] as const;
 
-/** Categories are now user-managed strings. */
-export type ExpenseCategory = string;
+/** Expense categories are fixed to direct/indirect. */
+export type ExpenseCategory = (typeof DEFAULT_EXPENSE_CATEGORIES)[number];
 
 export interface ExpenseCategoryRecord {
   id: string;

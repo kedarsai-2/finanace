@@ -59,10 +59,10 @@ export const Route = createFileRoute("/invoices")({
     searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Invoices — Sales & Receivables" },
+      { title: "Sales — Invoices & Receivables" },
       {
         name: "description",
-        content: "Manage all your invoices. Track totals, payments and outstanding balances.",
+        content: "Manage all your sales. Track totals, payments and outstanding balances.",
       },
     ],
   }),
@@ -166,7 +166,7 @@ function InvoicesPage() {
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 {activeBusiness?.name ?? "Workspace"}
               </p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight">Invoices</h1>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight">Sales</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {hydrated
                   ? `${totals.count} active • ${formatCurrency(totals.outstanding, currency)} outstanding`
@@ -176,7 +176,7 @@ function InvoicesPage() {
             <Button asChild size="lg" className="gap-2">
               <Link to="/invoices/new">
                 <Plus className="h-4 w-4" />
-                Create Invoice
+                Create Sale
               </Link>
             </Button>
           </div>
@@ -562,7 +562,7 @@ function InvoicesTable({
 function EmptyState({ filtered }: { filtered: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
         <FileText className="h-8 w-8" />
       </div>
       <h2 className="mt-6 text-xl font-semibold">

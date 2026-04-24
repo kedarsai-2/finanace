@@ -87,27 +87,63 @@ export function useBusinesses() {
         const list = await apiFetch<
           Array<{
             id: number;
+            createdAt?: string;
             name: string;
+            ownerName?: string;
             mobile?: string;
+            email?: string;
+            logoUrl?: string;
             gstNumber?: string;
             panNumber?: string;
             city?: string;
             state?: string;
+            billingLine1?: string;
+            billingLine2?: string;
+            billingCity?: string;
+            billingState?: string;
+            billingPincode?: string;
+            shippingSameAsBilling?: boolean;
+            shippingLine1?: string;
+            shippingLine2?: string;
+            shippingCity?: string;
+            shippingState?: string;
+            shippingPincode?: string;
             currency?: string;
             fyStartMonth?: number;
+            hasData?: boolean;
           }>
         >("/api/businesses?size=200&sort=id,asc");
 
         const mapped: Business[] = list.map((b) => ({
           id: String(b.id),
+          createdAt: b.createdAt ?? undefined,
           name: b.name,
+          ownerName: b.ownerName ?? undefined,
           mobile: b.mobile ?? "",
+          email: b.email ?? undefined,
+          logoUrl: b.logoUrl ?? undefined,
           gstNumber: b.gstNumber ?? undefined,
           panNumber: b.panNumber ?? undefined,
           city: b.city ?? "",
           state: b.state ?? "",
+          billingAddress: {
+            line1: b.billingLine1 ?? undefined,
+            line2: b.billingLine2 ?? undefined,
+            city: b.billingCity ?? undefined,
+            state: b.billingState ?? undefined,
+            pincode: b.billingPincode ?? undefined,
+          },
+          shippingSameAsBilling: b.shippingSameAsBilling ?? true,
+          shippingAddress: {
+            line1: b.shippingLine1 ?? undefined,
+            line2: b.shippingLine2 ?? undefined,
+            city: b.shippingCity ?? undefined,
+            state: b.shippingState ?? undefined,
+            pincode: b.shippingPincode ?? undefined,
+          },
           currency: b.currency ?? "INR",
           fyStartMonth: b.fyStartMonth ?? 4,
+          hasData: b.hasData ?? undefined,
         }));
 
         setBusinesses(mapped);

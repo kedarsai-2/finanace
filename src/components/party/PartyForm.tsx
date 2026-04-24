@@ -125,6 +125,7 @@ export function PartyForm({ mode, partyId }: Props) {
               : undefined,
           openingBalance: opening || undefined,
           balance: opening,
+          createdAt: existing?.createdAt,
         };
         await upsert(party);
         toast.success(mode === "edit" ? "Party updated" : "Party added");

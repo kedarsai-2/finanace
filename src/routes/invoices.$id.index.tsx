@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -62,10 +63,10 @@ import {
 export const Route = createFileRoute("/invoices/$id/")({
   head: () => ({
     meta: [
-      { title: "Invoice Details" },
+      { title: "Sale Details" },
       {
         name: "description",
-        content: "View invoice header, items, tax, payments, and activity timeline.",
+        content: "View sale header, items, tax, payments, and activity timeline.",
       },
     ],
   }),
@@ -91,6 +92,8 @@ function InvoiceDetailsPage() {
   const party = parties.find((p) => p.id === invoice?.partyId);
   const { payments } = usePayments(invoice?.businessId);
   const [payOpen, setPayOpen] = useState(false);
+  const [cnOpen, setCnOpen] = useState(false);
+  const [cnAmount, setCnAmount] = useState<number>(0);
 
   useEffect(() => {
     if (!invoice) return;
@@ -117,13 +120,13 @@ function InvoiceDetailsPage() {
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-6 py-24 text-center">
         <FileText className="h-10 w-10 text-muted-foreground" />
-        <h1 className="text-2xl font-bold tracking-tight">Invoice not found</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Sale not found</h1>
         <p className="text-sm text-muted-foreground">
           It may have been deleted, or the link is incorrect.
         </p>
         <Button asChild variant="outline">
           <Link to="/invoices" search={LIST_SEARCH}>
-            Back to Invoices
+            Back to Sales
           </Link>
         </Button>
       </div>
@@ -223,7 +226,7 @@ function InvoiceDetailsPage() {
               className="gap-2"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Record Payment</span>
+              <span className="hidden sm:inline">Record Sales</span>
             </Button>
             {invoice.status !== "cancelled" && (
               <AlertDialog>
@@ -267,20 +270,59 @@ function InvoiceDetailsPage() {
               </Button>
             )}
             {invoice.status === "final" && invoice.kind !== "credit-note" && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={async () => {
-                  const cn = await convertToCreditNote(invoice.id);
-                  if (cn) {
-                    toast.success(`Credit note ${cn.number} created`);
-                    navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
-                  }
-                }}
-              >
-                <FileMinus className="h-4 w-4" />
-                <span className="hidden sm:inline">Credit Note</span>
-              </Button>
+              <AlertDialog open={cnOpen} onOpenChange={setCnOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      setCnAmount(invoice.total);
+                      setCnOpen(true);
+                    }}
+                  >
+                    <FileMinus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Credit Note</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Create credit note</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Enter how much you want to credit against <span className="font-mono">{invoice.number}</span>.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Credit amount</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={invoice.total}
+                      step="0.01"
+                      value={cnAmount}
+                      onChange={(e) => setCnAmount(Number(e.target.value))}
+                      className="tabular-nums"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Max: {formatCurrency(invoice.total, currency)}
+                    </p>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        const amt = Math.max(0, Math.min(Number(cnAmount) || 0, invoice.total));
+                        const cn = await convertToCreditNote(invoice.id, amt);
+                        if (cn) {
+                          toast.success(`Credit note ${cn.number} created`);
+                          navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
+                        }
+                      }}
+                    >
+                      Create credit note
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
@@ -294,7 +336,7 @@ function InvoiceDetailsPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                  Invoice
+                  Sale
                 </p>
                 <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{invoice.number}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -489,9 +531,9 @@ function InvoiceDetailsPage() {
 
         {/* Side column */}
         <aside className="space-y-6">
-          {/* Payment summary */}
+          {/* Sales summary */}
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <h3 className="text-sm font-semibold">Payment summary</h3>
+            <h3 className="text-sm font-semibold">Sales summary</h3>
             <Separator className="my-3" />
             <dl className="space-y-2 text-sm">
               <Row label="Total" value={formatCurrency(invoice.total, currency)} />
@@ -514,7 +556,7 @@ function InvoiceDetailsPage() {
               disabled={invoice.status === "cancelled" || balance <= 0}
             >
               <IndianRupee className="h-4 w-4" />
-              Record payment
+              Record sales
             </Button>
           </section>
 
@@ -643,7 +685,7 @@ function Timeline({
       {
         id: "created",
         at: invoice.date,
-        title: "Invoice created",
+        title: "Sale created",
         description: `Draft ${invoice.number} created for ${invoice.partyName}`,
         icon: Receipt,
         tone: "default",
@@ -664,7 +706,7 @@ function Timeline({
       list.push({
         id: `payment-${p.id}`,
         at: p.date,
-        title: `Payment recorded — ${formatCurrency(allocated, currency)}`,
+        title: `Sales recorded — ${formatCurrency(allocated, currency)}`,
         description: `${PAYMENT_MODE_LABEL[p.mode]}${
           p.account ? ` • ${p.account}` : ""
         }${p.reference ? ` • Ref ${p.reference}` : ""}`,
@@ -677,7 +719,7 @@ function Timeline({
         id: "cancelled",
         at: invoice.finalizedAt ?? invoice.date,
         title: "Cancelled",
-        description: "Invoice marked as void",
+        description: "Sale marked as void",
         icon: Ban,
         tone: "destructive",
       });

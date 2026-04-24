@@ -89,6 +89,8 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
   const partyId = toStrId(dto.party?.id);
   return {
     id: toStrId(dto.id),
+    createdAt: dto.createdAt ?? undefined,
+    updatedAt: dto.updatedAt ?? undefined,
     businessId,
     number: dto.number ?? "",
     date: dto.date,
@@ -136,6 +138,8 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
 function invoiceToDto(inv: Invoice): InvoiceDTO {
   return {
     id: toNumId(inv.id) ?? undefined,
+    createdAt: inv.createdAt ?? null,
+    updatedAt: inv.updatedAt ?? null,
     number: inv.number,
     date: inv.date,
     dueDate: inv.dueDate ?? null,
@@ -608,13 +612,34 @@ export function useInvoices(businessId?: string | null) {
    * lines. The user can edit qty/lines before finalising.
    */
   const convertToCreditNote = useCallback(
-    async (sourceId: string): Promise<Invoice | null> => {
+    async (sourceId: string, creditAmount?: number): Promise<Invoice | null> => {
       const src = invoicesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
       const allCN = invoicesRef.current.filter((x) => x.kind === "credit-note");
       const number = nextDocNumber(allCN, src.businessId, "CN-");
       const id = `cn_${Date.now()}`;
       const now = new Date().toISOString();
+      const hasAmount = typeof creditAmount === "number" && Number.isFinite(creditAmount);
+      const safeAmount = hasAmount ? Math.max(0, Math.min(creditAmount!, src.total)) : undefined;
+      const lines = safeAmount
+        ? [
+            {
+              id: `cnl_${id}_0`,
+              name: `Credit note against ${src.number}`,
+              qty: 1,
+              unit: "pcs",
+              rate: safeAmount,
+              discountKind: "percent" as const,
+              discountValue: 0,
+              taxPercent: 0,
+            },
+          ]
+        : src.lines.map((l, i) => ({ ...l, id: `cnl_${id}_${i}` }));
+      const totals = computeTotals({
+        lines,
+        overallDiscountKind: "percent",
+        overallDiscountValue: 0,
+      });
       const cn: Invoice = {
         ...src,
         id,
@@ -627,7 +652,10 @@ export function useInvoices(businessId?: string | null) {
         kind: "credit-note",
         sourceInvoiceId: src.id,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
-        lines: src.lines.map((l, i) => ({ ...l, id: `cnl_${id}_${i}` })),
+        lines,
+        ...totals,
+        overallDiscountKind: "percent",
+        overallDiscountValue: 0,
       };
       await upsert(cn);
       return cn;

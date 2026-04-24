@@ -172,8 +172,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const locked = mode === "edit" && existing ? !canEditInvoice(existing) : false;
   const lockedReason =
     existing?.status === "cancelled"
-      ? "Cancelled invoices cannot be edited."
-      : "Final invoices can only be edited within 24 hours of finalising.";
+      ? "Cancelled sales cannot be edited."
+      : "Final sales can only be edited within 24 hours of finalising.";
 
   // -------- Line helpers --------------------------------------------------
   const updateLine = (id: string, patch: Partial<InvoiceLine>) =>
@@ -232,9 +232,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const validate = (): string | null => {
     if (!activeId) return "Select an active business first";
     if (!partyId) return "Please select a party";
-    if (!number.trim()) return "Invoice number is required";
+    if (!number.trim()) return "Sale number is required";
     if (!/^[A-Z0-9-]{1,30}$/i.test(number.trim()))
-      return "Invoice number can only contain letters, numbers and dashes (max 30)";
+      return "Sale number can only contain letters, numbers and dashes (max 30)";
     if (
       allInvoices.some(
         (i) =>
@@ -244,7 +244,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           i.number.toLowerCase() === number.trim().toLowerCase(),
       )
     ) {
-      return `Invoice number ${number} already exists`;
+      return `Sale number ${number} already exists`;
     }
     if (!lines.length) return "Add at least one item";
     for (const l of lines) {
@@ -317,7 +317,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       const inv = buildInvoice(status);
       await upsert(inv);
       toast.success(
-        status === "final" ? `Invoice ${inv.number} finalised` : `Draft ${inv.number} saved`,
+        status === "final" ? `Sale ${inv.number} finalised` : `Draft ${inv.number} saved`,
       );
       navigate({
         to: "/invoices",
@@ -350,7 +350,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                 {activeBusiness?.name ?? "Workspace"}
               </p>
               <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
-                {mode === "edit" ? "Edit Invoice" : "New Invoice"}
+                {mode === "edit" ? "Edit Sale" : "New Sale"}
                 {locked && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     <Lock className="h-3 w-3" />
@@ -392,7 +392,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {locked && (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground/80">
-            <strong className="font-semibold">This invoice is locked.</strong> {lockedReason}
+            <strong className="font-semibold">This sale is locked.</strong> {lockedReason}
           </div>
         )}
 
@@ -462,11 +462,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           </div>
         </FormSection>
 
-        {/* 2. Invoice meta --------------------------------------------------- */}
-        <FormSection step={2} title="Invoice Details">
+        {/* 2. Sale meta --------------------------------------------------- */}
+        <FormSection step={2} title="Sale Details">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="number">Invoice number *</Label>
+              <Label htmlFor="number">Sale number *</Label>
               <Input
                 id="number"
                 value={number}
@@ -479,7 +479,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               </p>
             </div>
             <div>
-              <Label>Invoice date</Label>
+              <Label>Sale date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-10 w-full justify-between font-normal">

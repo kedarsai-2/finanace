@@ -1,4 +1,11 @@
-import { createFileRoute, Link, useNavigate, type SearchSchemaInput } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { ImageIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
@@ -35,12 +42,18 @@ export const Route = createFileRoute("/assets")({
   validateSearch: (
     search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
-  component: AssetsPage,
+  component: AssetsRouteLayout,
 });
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
 });
+
+function AssetsRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/assets") return <Outlet />;
+  return <AssetsPage />;
+}
 
 function AssetsPage() {
   const navigate = useNavigate({ from: "/assets" });

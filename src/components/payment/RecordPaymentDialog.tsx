@@ -45,7 +45,7 @@ import { ProofUpload } from "@/components/proof/ProofUpload";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When set, dialog opens scoped to this party (Record Payment from invoice). */
+  /** When set, dialog opens scoped to this party (Record Payment from sale). */
   partyId: string;
   partyName: string;
   businessId: string;
@@ -234,7 +234,7 @@ export function RecordPaymentDialog({
     if (amount - totalOutstanding > 0.01)
       return `Amount exceeds outstanding ${formatCurrency(totalOutstanding, currency)}`;
     if (!rows.some((r) => r.selected && r.amount > 0))
-      return "Select at least one invoice to allocate to";
+      return "Select at least one sale to allocate to";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (unallocated > 0.01)
       return `${formatCurrency(unallocated, currency)} is unallocated. Adjust rows or amount.`;
@@ -306,7 +306,7 @@ export function RecordPaymentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
-            Record Payment
+            Record Sales
           </DialogTitle>
           <DialogDescription>
             From <span className="font-medium text-foreground">{partyName}</span> • Outstanding{" "}
@@ -318,7 +318,7 @@ export function RecordPaymentDialog({
 
         {openInvoices.length === 0 ? (
           <div className="rounded-lg border border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-            No outstanding invoices for this party.
+            No outstanding sales for this party.
           </div>
         ) : (
           <div className="space-y-5">

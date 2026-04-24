@@ -16,6 +16,8 @@ export type PurchaseLine = InvoiceLine;
 
 export interface Purchase {
   id: string;
+  createdAt?: string;
+  updatedAt?: string;
   businessId: string;
   /** Purchase / bill number. */
   number: string;

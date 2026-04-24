@@ -110,6 +110,7 @@ function readJson<T>(key: string, fallback: T): T {
 
 type PartyDTO = {
   id?: number;
+  createdAt?: string | null;
   name: string;
   type: "CUSTOMER" | "SUPPLIER" | "BOTH";
   mobile?: string | null;
@@ -155,6 +156,7 @@ function dtoToParty(dto: PartyDTO): Party {
     paymentTermsDays: dto.paymentTermsDays ?? undefined,
     openingBalance: opening,
     balance: bal,
+    createdAt: dto.createdAt ?? undefined,
   };
 }
 
@@ -164,6 +166,7 @@ function partyToDto(p: Party): PartyDTO {
   const businessId = parseInt(p.businessId, 10);
   return {
     id: /^\d+$/.test(p.id) ? parseInt(p.id, 10) : undefined,
+    createdAt: p.createdAt ?? null,
     name: p.name,
     type,
     mobile: p.mobile || null,

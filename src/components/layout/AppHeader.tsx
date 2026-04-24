@@ -14,7 +14,7 @@ const navLinks = [
   { to: "/businesses", label: "Businesses" },
   { to: "/parties", label: "Parties" },
   { to: "/items", label: "Items" },
-  { to: "/invoices", label: "Invoices" },
+  { to: "/invoices", label: "Sales" },
   { to: "/purchases", label: "Purchases" },
   { to: "/payments", label: "Payments" },
   { to: "/accounts", label: "Bank Accounts" },

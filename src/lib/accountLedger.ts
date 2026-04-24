@@ -29,6 +29,7 @@ export function buildAccountTxns(args: {
   for (const p of payments) {
     if (p.accountId !== account.id) continue;
     const isIn = p.direction === "in";
+    const isSales = isIn && p.allocations.length > 0;
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
     const allocLink = singleAlloc
       ? isIn
@@ -46,7 +47,7 @@ export function buildAccountTxns(args: {
       // If the payment is allocated to a single document, link directly to it.
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
-      note: isIn ? "Payment received" : "Payment made",
+      note: isIn ? (isSales ? "Sales received" : "Payment received") : "Payment made",
     });
   }
 

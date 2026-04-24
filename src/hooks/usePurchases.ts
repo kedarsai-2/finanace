@@ -91,6 +91,8 @@ function fromBackendPurchaseStatus(
 function dtoToPurchase(dto: PurchaseDTO): Purchase {
   return {
     id: toStrId(dto.id),
+    createdAt: dto.createdAt ?? undefined,
+    updatedAt: dto.updatedAt ?? undefined,
     businessId: toStrId(dto.business?.id),
     number: dto.number ?? "",
     date: dto.date,
@@ -139,6 +141,8 @@ function lineDtoToLine(dto: PurchaseLineDTO): PurchaseLine {
 function purchaseToDto(p: Purchase): PurchaseDTO {
   return {
     id: toNumId(p.id) ?? undefined,
+    createdAt: p.createdAt ?? null,
+    updatedAt: p.updatedAt ?? null,
     number: p.number,
     date: p.date,
     dueDate: p.dueDate ?? null,

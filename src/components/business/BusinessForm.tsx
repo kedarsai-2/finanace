@@ -131,6 +131,7 @@ export function BusinessForm({ mode, businessId }: Props) {
                 : (values.shippingAddress?.pincode ?? null),
               currency: values.currency || null,
               fyStartMonth: values.fyStartMonth ?? null,
+              createdAt: existing?.createdAt ?? null,
               hasData: existing?.hasData ?? null,
             };
             if (!dto.city || !dto.state) {

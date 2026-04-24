@@ -38,6 +38,11 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
+function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string }) {
+  if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  return KIND_LABEL[r.kind];
+}
+
 function CashRouteLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname !== "/cash") return <Outlet />;
@@ -135,7 +140,7 @@ function CashPage() {
         <>
           {/* Balance summary */}
           <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-xl border border-border bg-gradient-to-br from-emerald-500/10 to-emerald-500/0 p-6">
+            <div className="rounded-xl border border-border bg-linear-to-br from-emerald-500/10 to-emerald-500/0 p-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   <Banknote className="h-5 w-5" />
@@ -235,7 +240,7 @@ function CashPage() {
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                         {format(new Date(r.date), "dd MMM yyyy")}
                       </td>
-                      <td className="px-4 py-3">{KIND_LABEL[r.kind]}</td>
+                      <td className="px-4 py-3">{txnTypeLabel(r)}</td>
                       <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {r.refLink ? (

@@ -24,10 +24,9 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { type PaymentMode } from "@/types/payment";
-import type { Expense } from "@/types/expense";
+import { DEFAULT_EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
@@ -46,7 +45,6 @@ export function QuickAddExpenseDialog({
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
-  const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
   const lastAccount = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
@@ -57,7 +55,7 @@ export function QuickAddExpenseDialog({
       bankAccounts[0]?.id ||
       "",
   );
-  const [category, setCategory] = useState<string>(categories[0]?.name ?? "Other");
+  const [category, setCategory] = useState<ExpenseCategory>("indirect");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSave = async () => {
@@ -140,15 +138,15 @@ export function QuickAddExpenseDialog({
             </Select>
           </div>
           <div>
-            <Label htmlFor="qae-cat">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Label htmlFor="qae-cat">Expense type</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
               <SelectTrigger id="qae-cat">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
+                {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c === "direct" ? "Direct" : "Indirect"}
                   </SelectItem>
                 ))}
               </SelectContent>

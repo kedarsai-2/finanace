@@ -32,9 +32,9 @@ import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
+import { DEFAULT_EXPENSE_CATEGORIES } from "@/types/expense";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -62,7 +62,6 @@ function ExpensesPage() {
 
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { expenses, remove } = useExpenses(activeId);
 
@@ -157,9 +156,9 @@ function ExpensesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.name}>
-                  {c.name}
+              {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c === "direct" ? "Direct" : "Indirect"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -237,7 +236,7 @@ function ExpensesPage() {
                   </td>
                   <td className="px-4 py-3 font-medium">
                     <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
-                      {e.category}
+                      {e.category === "direct" ? "Direct" : e.category === "indirect" ? "Indirect" : e.category}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

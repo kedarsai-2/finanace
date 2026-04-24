@@ -4,10 +4,10 @@ import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 export const Route = createFileRoute("/invoices/new")({
   head: () => ({
     meta: [
-      { title: "New Invoice — Sales" },
+      { title: "New Sale — QOBOX" },
       {
         name: "description",
-        content: "Create a new sales invoice with items, tax, and payment terms.",
+        content: "Create a new sale with items, tax, and payment terms.",
       },
     ],
   }),

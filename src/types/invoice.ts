@@ -25,6 +25,8 @@ export interface InvoiceLine {
 
 export interface Invoice {
   id: string;
+  createdAt?: string;
+  updatedAt?: string;
   businessId: string;
   number: string; // e.g. INV-0001
   date: string; // ISO

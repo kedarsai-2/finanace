@@ -22,13 +22,12 @@ import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties } from "@/hooks/useParties";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
 import { ProofUpload } from "@/components/proof/ProofUpload";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
-import type { Expense } from "@/types/expense";
+import { DEFAULT_EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
@@ -46,7 +45,6 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
-  const { categories } = useExpenseCategories(activeId);
   const { parties } = useParties(activeId);
   const { add, upsert } = useExpenses(activeId);
 
@@ -54,8 +52,8 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
 
   const [date, setDate] = useState<Date>(initial ? new Date(initial.date) : new Date());
   const [accountId, setAccountId] = useState<string>(initial?.accountId ?? "");
-  const [category, setCategory] = useState<string>(
-    initial?.category ?? categories[0]?.name ?? "Other",
+  const [category, setCategory] = useState<ExpenseCategory | "">(
+    initial?.category ?? "",
   );
   const [amount, setAmount] = useState<number>(initial?.amount ?? 0);
   const [mode, setMode] = useState<PaymentMode>(initial?.mode ?? "cash");
@@ -86,17 +84,18 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // Default category when categories load
+  // Ensure legacy records get mapped to a valid fixed category.
   useEffect(() => {
-    if (!category && categories[0]) setCategory(categories[0].name);
-  }, [categories, category]);
+    if (category) return;
+    setCategory("indirect");
+  }, [category]);
 
   const onSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeId) return toast.error("Select a business first");
     if (mode !== "cash" && !accountId) return toast.error("Bank account is required");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
-    if (!category) return toast.error("Pick a category");
+    if (!category) return toast.error("Select expense type");
     if (mode !== "cash" && !proofDataUrl)
       return toast.error(`Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} expense`);
 
@@ -178,16 +177,16 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="exp-cat">
-              Category <span className="text-destructive">*</span>
+              Expense type <span className="text-destructive">*</span>
             </Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
               <SelectTrigger id="exp-cat">
-                <SelectValue placeholder="Select" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
+                {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c === "direct" ? "Direct" : "Indirect"}
                   </SelectItem>
                 ))}
               </SelectContent>

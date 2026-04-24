@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { FileMinus, Search } from "lucide-react";
@@ -18,8 +18,14 @@ export const Route = createFileRoute("/credit-notes")({
       },
     ],
   }),
-  component: CreditNotesPage,
+  component: CreditNotesRouteLayout,
 });
+
+function CreditNotesRouteLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/credit-notes") return <Outlet />;
+  return <CreditNotesPage />;
+}
 
 function CreditNotesPage() {
   const { activeId, scopedBusinessId, businesses } = useBusinesses();

@@ -2,6 +2,8 @@ export type ItemType = "product" | "service";
 
 export interface Item {
   id: string;
+  createdAt?: string;
+  updatedAt?: string;
   businessId: string;
   name: string;
   sku?: string;

@@ -105,7 +105,11 @@ function ExpenseDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {expense.category}
+              {expense.category === "direct"
+                ? "Direct"
+                : expense.category === "indirect"
+                  ? "Indirect"
+                  : expense.category}
             </p>
             <p className="mt-1 text-3xl font-semibold tabular-nums text-destructive">
               − {formatCurrency(expense.amount, currency)}

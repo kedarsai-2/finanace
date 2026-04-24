@@ -60,8 +60,8 @@ function DashboardPage() {
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
-  const { invoices } = useInvoices(scopedBusinessId);
-  const { purchases } = usePurchases(scopedBusinessId);
+  const { invoices, creditNotes } = useInvoices(scopedBusinessId);
+  const { purchases, returns } = usePurchases(scopedBusinessId);
   const { payments } = usePayments(scopedBusinessId);
   const { expenses } = useExpenses(scopedBusinessId);
   const { accounts } = useAccounts(
@@ -78,17 +78,42 @@ function DashboardPage() {
     () => purchases.filter((p) => p.status !== "cancelled"),
     [purchases],
   );
+  const liveCreditNotes = useMemo(
+    () => creditNotes.filter((cn) => cn.status !== "cancelled"),
+    [creditNotes],
+  );
+  const livePurchaseReturns = useMemo(
+    () => returns.filter((r) => r.status !== "cancelled"),
+    [returns],
+  );
 
   const totalSales = liveInvoices.reduce((s, i) => s + i.total, 0);
+  const totalCreditNotes = liveCreditNotes.reduce((s, cn) => s + cn.total, 0);
   const totalReceived = liveInvoices.reduce((s, i) => s + i.paidAmount, 0);
   const totalReceivable = liveInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
   const totalPurchases = livePurchases.reduce((s, p) => s + p.total, 0);
+  const totalPurchaseReturns = livePurchaseReturns.reduce((s, p) => s + p.total, 0);
   const totalPaidSuppliers = livePurchases.reduce((s, p) => s + p.paidAmount, 0);
   const totalPayable = livePurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  const netProfit = totalSales - totalPurchases - totalExpenses;
+  const totalPaymentsPaid = payments.reduce(
+    (s, p) => (p.direction === "out" ? s + p.amount : s),
+    0,
+  );
+  const totalPaymentsReceived = payments.reduce(
+    (s, p) => (p.direction === "in" ? s + p.amount : s),
+    0,
+  );
+  const netProfit =
+    totalSales +
+    totalPaymentsReceived -
+    totalPurchases -
+    totalPaymentsPaid +
+    totalPurchaseReturns -
+    totalCreditNotes -
+    totalExpenses;
 
-  const totalAccountsBalance = useMemo(() => {
+  const accountBalances = useMemo(() => {
     // Dashboard-only fast path: avoid building/sorting full ledgers per account.
     const paySum = new Map<string, number>();
     for (const p of payments) {
@@ -109,15 +134,22 @@ function DashboardPage() {
       expSum.set(e.accountId, (expSum.get(e.accountId) ?? 0) - e.amount);
     }
 
-    let total = 0;
+    let cash = 0;
+    let bank = 0;
+    let cashCount = 0;
+    let bankCount = 0;
     for (const a of accounts) {
-      total +=
-        a.openingBalance +
-        (paySum.get(a.id) ?? 0) +
-        (trSum.get(a.id) ?? 0) +
-        (expSum.get(a.id) ?? 0);
+      const bal =
+        a.openingBalance + (paySum.get(a.id) ?? 0) + (trSum.get(a.id) ?? 0) + (expSum.get(a.id) ?? 0);
+      if (a.type === "cash") {
+        cash += bal;
+        cashCount += 1;
+      } else {
+        bank += bal;
+        bankCount += 1;
+      }
     }
-    return total;
+    return { cash, bank, cashCount, bankCount };
   }, [accounts, payments, transfers, expenses]);
 
   const trendData = useMemo(
@@ -197,7 +229,7 @@ function DashboardPage() {
     return (
       <div className="mx-auto max-w-3xl px-6 py-20">
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
             <Building2 className="h-8 w-8" />
           </div>
           <h2 className="mt-6 text-xl font-semibold">Welcome to QOBOX</h2>
@@ -296,6 +328,7 @@ function DashboardPage() {
           to="/reports"
           label="Net Profit"
           value={formatCurrency(netProfit, currency)}
+          note="Sales - Credit Note - Purchase + Purchase Return - Payment Pay + Payment Received - Expenses"
           icon={
             netProfit >= 0 ? (
               <TrendingUp className="h-4 w-4" />
@@ -308,8 +341,8 @@ function DashboardPage() {
         />
       </section>
 
-      {/* Section 2: Receivables / Payables / Cash */}
-      <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Section 2: Receivables / Payables / Accounts */}
+      <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <BalanceCard
           to="/reports/parties"
           label="Total Receivable"
@@ -329,13 +362,22 @@ function DashboardPage() {
           icon={<ArrowUpRight className="h-4 w-4" />}
         />
         <BalanceCard
-          to="/reports/accounts"
-          label="Cash & Bank"
-          sublabel={`${accounts.length} accounts`}
-          amount={totalAccountsBalance}
+          to="/cash"
+          label="Cash Accounts"
+          sublabel={`${accountBalances.cashCount} accounts`}
+          amount={accountBalances.cash}
           currency={currency}
           tone="primary"
           icon={<Wallet className="h-4 w-4" />}
+        />
+        <BalanceCard
+          to="/accounts"
+          label="Bank Accounts"
+          sublabel={`${accountBalances.bankCount} accounts`}
+          amount={accountBalances.bank}
+          currency={currency}
+          tone="primary"
+          icon={<CreditCard className="h-4 w-4" />}
         />
       </section>
 
@@ -448,6 +490,7 @@ function SummaryCard({
   to,
   label,
   value,
+  note,
   icon,
   tone,
   signed = "",
@@ -455,6 +498,7 @@ function SummaryCard({
   to: string;
   label: string;
   value: string;
+  note?: string;
   icon: React.ReactNode;
   tone: "primary" | "success" | "warning" | "destructive";
   signed?: string;
@@ -482,6 +526,7 @@ function SummaryCard({
         {signed}
         {value}
       </p>
+      {note ? <p className="mt-1 text-[11px] text-muted-foreground">{note}</p> : null}
     </Link>
   );
 }
