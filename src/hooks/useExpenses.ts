@@ -147,10 +147,10 @@ export function useExpenses(businessId?: string | null) {
     expensesRef.current = expenses;
   }, [expenses]);
 
-  const upsert = useCallback((e: Expense) => {
+  const upsert = useCallback((e: Expense): Promise<Expense> => {
     const token = getJwt();
     if (USE_BACKEND && token) {
-      return (async () => {
+      return (async (): Promise<Expense> => {
         const isUpdate = /^\d+$/.test(e.id);
         const dto = expenseToDto(e);
         if (!isUpdate) delete dto.id;
@@ -184,12 +184,11 @@ export function useExpenses(businessId?: string | null) {
     return Promise.resolve(e);
   }, []);
 
-  const add = useCallback((e: Expense) => {
+  const add = useCallback((e: Expense): Promise<Expense> => {
     const token = getJwt();
     if (USE_BACKEND && token) {
-      // In backend mode, treat add() as create.
-      void upsert(e);
-      return;
+      // In backend mode, treat add() as create and surface errors to caller.
+      return upsert(e);
     }
     setExpenses((prev) => [...prev, e]);
     logAudit({
@@ -201,6 +200,7 @@ export function useExpenses(businessId?: string | null) {
       businessId: e.businessId,
       after: snapshot(e),
     });
+    return Promise.resolve(e);
   }, []);
 
   const remove = useCallback((id: string) => {

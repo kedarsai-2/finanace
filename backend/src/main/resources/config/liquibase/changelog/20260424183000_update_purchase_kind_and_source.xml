@@ -34,9 +34,14 @@
             referencedTableName="purchase"
             referencedColumnNames="id"/>
 
-        <addCheckConstraint
-            tableName="purchase"
-            constraintName="ck_purchase_kind_source_consistency"
-            checkConstraint="(purchase_kind = 'RETURN' and source_purchase_id is not null) or (purchase_kind = 'PURCHASE' and source_purchase_id is null)"/>
+        <sql>
+            alter table purchase
+            add constraint ck_purchase_kind_source_consistency
+            check (
+              (purchase_kind = 'RETURN' and source_purchase_id is not null)
+              or
+              (purchase_kind = 'PURCHASE' and source_purchase_id is null)
+            );
+        </sql>
     </changeSet>
 </databaseChangeLog>

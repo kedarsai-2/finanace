@@ -30,6 +30,7 @@ import { type PaymentMode } from "@/types/payment";
 import { DEFAULT_EXPENSE_TYPES, type Expense, type ExpenseType } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
+const CASH_OPTION = "__cash__";
 
 interface QuickAddExpenseDialogProps {
   open: boolean;
@@ -78,14 +79,18 @@ export function QuickAddExpenseDialog({
         mode: (accountId ? "bank" : "cash") as PaymentMode,
         createdAt: new Date().toISOString(),
       };
-      await add(exp);
+      const created = await add(exp);
       if (typeof window !== "undefined") {
         if (accountId) localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
       }
       toast.success("Expense recorded");
-      onCreated?.(exp);
+      onCreated?.(created);
       setAmount(0);
+      setCategory("");
       onOpenChange(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to record expense";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -128,12 +133,15 @@ export function QuickAddExpenseDialog({
           </div>
           <div>
             <Label htmlFor="qae-acc">Account *</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
+            <Select
+              value={accountId || CASH_OPTION}
+              onValueChange={(v) => setAccountId(v === CASH_OPTION ? "" : v)}
+            >
               <SelectTrigger id="qae-acc">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Cash</SelectItem>
+                <SelectItem value={CASH_OPTION}>Cash</SelectItem>
                 {bankAccounts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
