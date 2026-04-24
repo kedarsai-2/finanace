@@ -35,6 +35,7 @@ export function buildAccountTxns(args: {
         ? `/invoices/${singleAlloc.docId}`
         : `/purchases/${singleAlloc.docId}`
       : undefined;
+    const paymentsListLink = `/payments?account=${encodeURIComponent(account.id)}`;
     txns.push({
       id: `pay_${p.id}`,
       accountId: account.id,
@@ -43,7 +44,8 @@ export function buildAccountTxns(args: {
       amount: isIn ? p.amount : -p.amount,
       refNo: p.allocations.map((a) => a.docNumber).join(", ") || p.reference,
       // If the payment is allocated to a single document, link directly to it.
-      refLink: allocLink ?? `/payments/${p.id}`,
+      // Otherwise route to the payments list filtered by this account.
+      refLink: allocLink ?? paymentsListLink,
       note: isIn ? "Payment received" : "Payment made",
     });
   }

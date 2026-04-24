@@ -50,7 +50,7 @@ const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
 export function ItemForm({ mode, itemId }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allItems, upsert, hydrated } = useItems();
+  const { allItems, upsert, hydrated } = useItems(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(

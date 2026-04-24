@@ -33,7 +33,7 @@ function ItemDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allItems, hydrated, toggleActive } = useItems();
+  const { allItems, hydrated, toggleActive } = useItems(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   if (!hydrated) {
