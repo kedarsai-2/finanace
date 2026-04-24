@@ -1,5 +1,7 @@
 package com.finance.app.service.dto;
 
+import com.finance.app.domain.enumeration.AdjustmentDirection;
+import com.finance.app.domain.enumeration.TransferKind;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -21,8 +23,18 @@ public class TransferDTO implements Serializable {
     @DecimalMin(value = "0")
     private BigDecimal amount;
 
+    @NotNull
+    private TransferKind transferKind;
+
+    private AdjustmentDirection adjustmentDirection;
+
     @Size(max = 2000)
     private String notes;
+
+    private String proofDataUrl;
+
+    @Size(max = 255)
+    private String proofName;
 
     private Instant createdAt;
 
@@ -64,6 +76,38 @@ public class TransferDTO implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public TransferKind getTransferKind() {
+        return transferKind;
+    }
+
+    public void setTransferKind(TransferKind transferKind) {
+        this.transferKind = transferKind;
+    }
+
+    public AdjustmentDirection getAdjustmentDirection() {
+        return adjustmentDirection;
+    }
+
+    public void setAdjustmentDirection(AdjustmentDirection adjustmentDirection) {
+        this.adjustmentDirection = adjustmentDirection;
+    }
+
+    public String getProofDataUrl() {
+        return proofDataUrl;
+    }
+
+    public void setProofDataUrl(String proofDataUrl) {
+        this.proofDataUrl = proofDataUrl;
+    }
+
+    public String getProofName() {
+        return proofName;
+    }
+
+    public void setProofName(String proofName) {
+        this.proofName = proofName;
     }
 
     public Instant getCreatedAt() {
@@ -134,7 +178,11 @@ public class TransferDTO implements Serializable {
             "id=" + getId() +
             ", date='" + getDate() + "'" +
             ", amount=" + getAmount() +
+            ", transferKind='" + getTransferKind() + "'" +
+            ", adjustmentDirection='" + getAdjustmentDirection() + "'" +
             ", notes='" + getNotes() + "'" +
+            ", proofDataUrl='" + getProofDataUrl() + "'" +
+            ", proofName='" + getProofName() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
             ", business=" + getBusiness() +

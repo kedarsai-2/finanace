@@ -23,10 +23,11 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useExpenses } from "@/hooks/useExpenses";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { type PaymentMode } from "@/types/payment";
-import { DEFAULT_EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/types/expense";
+import { DEFAULT_EXPENSE_TYPES, type Expense, type ExpenseType } from "@/types/expense";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
@@ -45,6 +46,7 @@ export function QuickAddExpenseDialog({
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
+  const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
   const lastAccount = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
@@ -55,12 +57,14 @@ export function QuickAddExpenseDialog({
       bankAccounts[0]?.id ||
       "",
   );
-  const [category, setCategory] = useState<ExpenseCategory>("indirect");
+  const [type, setType] = useState<ExpenseType>("indirect");
+  const [category, setCategory] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSave = async () => {
     if (!activeId) return toast.error("Select a business first");
     if (!(amount > 0)) return toast.error("Amount must be > 0");
+    if (!category.trim()) return toast.error("Enter expense category");
     setSubmitting(true);
     try {
       const exp: Expense = {
@@ -69,7 +73,8 @@ export function QuickAddExpenseDialog({
         accountId: accountId || undefined,
         date: new Date().toISOString(),
         amount,
-        category,
+        type,
+        category: category.trim(),
         mode: (accountId ? "bank" : "cash") as PaymentMode,
         createdAt: new Date().toISOString(),
       };
@@ -139,18 +144,33 @@ export function QuickAddExpenseDialog({
           </div>
           <div>
             <Label htmlFor="qae-cat">Expense type</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
+            <Select value={type} onValueChange={(v) => setType(v as ExpenseType)}>
               <SelectTrigger id="qae-cat">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c === "direct" ? "Direct" : "Indirect"}
+                {DEFAULT_EXPENSE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t === "direct" ? "Direct" : "Indirect"}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="qae-category">Expense category *</Label>
+            <Input
+              id="qae-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              list="qae-categories-list"
+              placeholder="e.g. Travel"
+            />
+            <datalist id="qae-categories-list">
+              {categories.map((c) => (
+                <option key={c.id} value={c.name} />
+              ))}
+            </datalist>
           </div>
         </div>
 

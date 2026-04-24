@@ -15,6 +15,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -102,11 +108,25 @@ function AccountsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Bank Accounts</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <Link to="/accounts/transfer">
-              <ArrowLeftRight className="h-4 w-4" /> Transfer
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <ArrowLeftRight className="h-4 w-4" /> Transfer
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to="/accounts/transfer" search={{ mode: "transfer", scope: "bank" }}>
+                  Bank transfer
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/accounts/transfer" search={{ mode: "adjustment", scope: "bank" }}>
+                  Bank adjustment
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button asChild className="gap-2">
             <Link to="/accounts/new">
               <Plus className="h-4 w-4" /> Add account

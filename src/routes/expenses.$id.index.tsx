@@ -105,11 +105,7 @@ function ExpenseDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {expense.category === "direct"
-                ? "Direct"
-                : expense.category === "indirect"
-                  ? "Indirect"
-                  : expense.category}
+              {expense.type === "direct" ? "Direct" : "Indirect"}
             </p>
             <p className="mt-1 text-3xl font-semibold tabular-nums text-destructive">
               − {formatCurrency(expense.amount, currency)}
@@ -122,6 +118,7 @@ function ExpenseDetailPage() {
         </div>
 
         <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Detail label="Category">{expense.category}</Detail>
           <Detail label="Account">
             {account ? (
               <Link

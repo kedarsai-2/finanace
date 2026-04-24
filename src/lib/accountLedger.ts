@@ -52,8 +52,22 @@ export function buildAccountTxns(args: {
   }
 
   for (const t of transfers) {
+    const isAdjustment = t.kind === "adjustment";
+    if (isAdjustment && t.fromAccountId === account.id) {
+      const delta = t.adjustmentDirection === "decrement" ? -t.amount : t.amount;
+      txns.push({
+        id: `adj_${t.id}`,
+        accountId: account.id,
+        date: t.date,
+        kind: delta >= 0 ? "transfer-in" : "transfer-out",
+        amount: delta,
+        refNo: "Adjustment",
+        note: t.notes || "Balance adjustment",
+      });
+      continue;
+    }
     if (t.fromAccountId === account.id) {
-      const to = accountsById[t.toAccountId];
+      const to = t.toAccountId ? accountsById[t.toAccountId] : undefined;
       txns.push({
         id: `tr_out_${t.id}`,
         accountId: account.id,

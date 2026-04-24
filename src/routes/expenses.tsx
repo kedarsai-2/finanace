@@ -32,9 +32,10 @@ import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
-import { DEFAULT_EXPENSE_CATEGORIES } from "@/types/expense";
+import { DEFAULT_EXPENSE_TYPES } from "@/types/expense";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -63,6 +64,7 @@ function ExpensesPage() {
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { parties } = useParties(activeId);
+  const { categories } = useExpenseCategories(activeId);
   const { expenses, remove } = useExpenses(activeId);
 
   const accountById = useMemo(
@@ -72,6 +74,7 @@ function ExpensesPage() {
   const partyById = useMemo(() => Object.fromEntries(parties.map((p) => [p.id, p])), [parties]);
 
   const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [from, setFrom] = useState<Date | undefined>();
@@ -81,6 +84,7 @@ function ExpensesPage() {
   const filtered = useMemo(() => {
     return expenses
       .filter((e) => {
+        if (typeFilter !== "all" && e.type !== typeFilter) return false;
         if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
         if (accountFilter !== "all" && e.accountId !== accountFilter) return false;
         const t = new Date(e.date).getTime();
@@ -96,12 +100,13 @@ function ExpensesPage() {
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, categoryFilter, accountFilter, from, to, q, partyById]);
+  }, [expenses, typeFilter, categoryFilter, accountFilter, from, to, q, partyById]);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
 
   const clearFilters = () => {
     setQ("");
+    setTypeFilter("all");
     setCategoryFilter("all");
     setAccountFilter("all");
     setFrom(undefined);
@@ -150,21 +155,36 @@ function ExpensesPage() {
           />
         </div>
         <div className="sm:col-span-2">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c === "direct" ? "Direct" : "Indirect"}
+              <SelectItem value="all">All types</SelectItem>
+              {DEFAULT_EXPENSE_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === "direct" ? "Direct" : "Indirect"}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="sm:col-span-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-1">
           <Select value={accountFilter} onValueChange={setAccountFilter}>
             <SelectTrigger>
               <SelectValue />
@@ -187,7 +207,7 @@ function ExpensesPage() {
         </div>
       </div>
 
-      {(q || categoryFilter !== "all" || accountFilter !== "all" || from || to) && (
+      {(q || typeFilter !== "all" || categoryFilter !== "all" || accountFilter !== "all" || from || to) && (
         <div className="mb-3 flex justify-end">
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Clear filters
@@ -214,6 +234,7 @@ function ExpensesPage() {
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Type</th>
                 <th className="px-4 py-3 text-left">Category</th>
                 <th className="px-4 py-3 text-left">Party</th>
                 <th className="px-4 py-3 text-left">Account</th>
@@ -236,7 +257,12 @@ function ExpensesPage() {
                   </td>
                   <td className="px-4 py-3 font-medium">
                     <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
-                      {e.category === "direct" ? "Direct" : e.category === "indirect" ? "Indirect" : e.category}
+                      {e.type === "direct" ? "Direct" : "Indirect"}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
+                      {e.category}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_EXPENSE_CATEGORIES, type ExpenseCategoryRecord } from "@/types/expense";
+import { type ExpenseCategoryRecord } from "@/types/expense";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
@@ -58,14 +58,6 @@ function seedDefaults(existing: ExpenseCategoryRecord[], businessId: string) {
   }
   if (seeded[businessId]) return existing;
   const next = [...existing];
-  for (const name of DEFAULT_EXPENSE_CATEGORIES) {
-    next.push({
-      id: `cat_${businessId}_${name.replace(/\s+/g, "_").toLowerCase()}`,
-      businessId,
-      name,
-      createdAt: new Date().toISOString(),
-    });
-  }
   seeded[businessId] = true;
   localStorage.setItem(SEEDED_KEY, JSON.stringify(seeded));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));

@@ -11,8 +11,12 @@ const STORAGE_KEY = "bm.transfers";
 type TransferDTO = {
   id?: number;
   date: string;
+  transferKind?: "TRANSFER" | "ADJUSTMENT" | null;
+  adjustmentDirection?: "INCREMENT" | "DECREMENT" | null;
   amount: number;
   notes?: string | null;
+  proofDataUrl?: string | null;
+  proofName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   business?: { id: number } | null;
@@ -28,10 +32,19 @@ function dtoToTransfer(dto: TransferDTO): Transfer {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
     date: dto.date,
+    kind: dto.transferKind === "ADJUSTMENT" ? "adjustment" : "transfer",
+    adjustmentDirection:
+      dto.adjustmentDirection === "DECREMENT"
+        ? "decrement"
+        : dto.adjustmentDirection === "INCREMENT"
+          ? "increment"
+          : undefined,
     fromAccountId: fromId != null ? String(fromId) : "",
-    toAccountId: toId != null ? String(toId) : "",
+    toAccountId: toId != null ? String(toId) : undefined,
     amount: Number(dto.amount ?? 0),
     notes: dto.notes ?? undefined,
+    proofDataUrl: dto.proofDataUrl ?? undefined,
+    proofName: dto.proofName ?? undefined,
     createdAt: dto.createdAt ?? new Date().toISOString(),
   };
 }
@@ -40,11 +53,20 @@ function transferToDto(t: Transfer): TransferDTO {
   return {
     id: toNumId(t.id) ?? undefined,
     date: t.date,
+    transferKind: t.kind === "adjustment" ? "ADJUSTMENT" : "TRANSFER",
+    adjustmentDirection:
+      t.kind === "adjustment"
+        ? t.adjustmentDirection === "decrement"
+          ? "DECREMENT"
+          : "INCREMENT"
+        : null,
     amount: t.amount,
     notes: t.notes ?? null,
+    proofDataUrl: t.proofDataUrl ?? null,
+    proofName: t.proofName ?? null,
     business: businessRefFromId(t.businessId),
     fromAccount: t.fromAccountId ? { id: parseInt(t.fromAccountId, 10) } : null,
-    toAccount: t.toAccountId ? { id: parseInt(t.toAccountId, 10) } : null,
+    toAccount: t.kind === "transfer" && t.toAccountId ? { id: parseInt(t.toAccountId, 10) } : null,
   };
 }
 

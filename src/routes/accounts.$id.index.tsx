@@ -110,8 +110,11 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
-function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string }) {
+function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string; refNo?: string; note?: string }) {
   if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
+    return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";
+  }
   return KIND_LABEL[r.kind];
 }
 
@@ -182,7 +185,7 @@ function AccountDetailsPage() {
     const header = ["Date", "Type", "Reference", "Note", "Debit", "Credit", "Balance"];
     const lines = filteredRows.map((r) => [
       format(new Date(r.date), "yyyy-MM-dd"),
-      KIND_LABEL[r.kind],
+      txnTypeLabel(r),
       r.refNo ?? "",
       (r.note ?? "").replace(/[",\n]/g, " "),
       r.amount < 0 ? Math.abs(r.amount).toFixed(2) : "",

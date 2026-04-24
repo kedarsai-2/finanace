@@ -1,12 +1,12 @@
 import type { PaymentMode } from "./payment";
 
-export const DEFAULT_EXPENSE_CATEGORIES = [
+export const DEFAULT_EXPENSE_TYPES = [
   "direct",
   "indirect",
 ] as const;
 
-/** Expense categories are fixed to direct/indirect. */
-export type ExpenseCategory = (typeof DEFAULT_EXPENSE_CATEGORIES)[number];
+/** Expense type is fixed to direct/indirect. */
+export type ExpenseType = (typeof DEFAULT_EXPENSE_TYPES)[number];
 
 export interface ExpenseCategoryRecord {
   id: string;
@@ -23,7 +23,8 @@ export interface Expense {
   accountId?: string;
   date: string;
   amount: number;
-  category: ExpenseCategory;
+  type: ExpenseType;
+  category: string;
   /** Optional party reference (no ledger impact — for filtering/reporting only). */
   partyId?: string;
   mode?: PaymentMode;

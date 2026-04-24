@@ -5,6 +5,12 @@ import { Banknote, Pencil, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -40,6 +46,9 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
 
 function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string }) {
   if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
+    return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";
+  }
   return KIND_LABEL[r.kind];
 }
 
@@ -110,19 +119,32 @@ function CashPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Cash</h1>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            if (!effectiveBusinessId) {
-              toast.error("No business available for cash balance");
-              return;
-            }
-            if (isAll) setActiveId(effectiveBusinessId);
-            navigate({ to: "/cash/balance" });
-          }}
-        >
-          <Pencil className="h-4 w-4" /> Edit cash balance
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="gap-2">
+              <Pencil className="h-4 w-4" /> Cash actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                if (!effectiveBusinessId) {
+                  toast.error("No business available for cash balance");
+                  return;
+                }
+                if (isAll) setActiveId(effectiveBusinessId);
+                navigate({ to: "/cash/balance" });
+              }}
+            >
+              Edit cash balance
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/accounts/transfer" search={{ mode: "adjustment", scope: "cash" }}>
+                Cash adjustment
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {cashAccounts.length === 0 ? (

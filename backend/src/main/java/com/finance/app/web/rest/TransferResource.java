@@ -66,6 +66,7 @@ public class TransferResource {
     @PostMapping("")
     public ResponseEntity<TransferDTO> createTransfer(@Valid @RequestBody TransferDTO transferDTO) throws URISyntaxException {
         LOG.debug("REST request to save Transfer : {}", transferDTO);
+        validateTransferPayload(transferDTO);
         if (transferDTO.getId() != null) {
             throw new BadRequestAlertException("A new transfer cannot already have an ID", ENTITY_NAME, "idexists");
         }
@@ -91,6 +92,7 @@ public class TransferResource {
         @Valid @RequestBody TransferDTO transferDTO
     ) throws URISyntaxException {
         LOG.debug("REST request to update Transfer : {}, {}", id, transferDTO);
+        validateTransferPayload(transferDTO);
         if (transferDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
@@ -201,5 +203,49 @@ public class TransferResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void validateTransferPayload(TransferDTO transferDTO) {
+        if (transferDTO.getProofDataUrl() == null || transferDTO.getProofDataUrl().isBlank()) {
+            throw new BadRequestAlertException("Proof image is required", ENTITY_NAME, "proofrequired");
+        }
+        if (transferDTO.getTransferKind() == null) {
+            throw new BadRequestAlertException("Transfer kind is required", ENTITY_NAME, "kindrequired");
+        }
+        switch (transferDTO.getTransferKind()) {
+            case TRANSFER -> {
+                if (transferDTO.getFromAccount() == null || transferDTO.getToAccount() == null) {
+                    throw new BadRequestAlertException(
+                        "Both source and destination accounts are required for transfer",
+                        ENTITY_NAME,
+                        "accountsrequired"
+                    );
+                }
+                if (
+                    transferDTO.getFromAccount().getId() != null &&
+                    Objects.equals(transferDTO.getFromAccount().getId(), transferDTO.getToAccount().getId())
+                ) {
+                    throw new BadRequestAlertException(
+                        "Source and destination cannot be same for transfer",
+                        ENTITY_NAME,
+                        "sameaccount"
+                    );
+                }
+            }
+            case ADJUSTMENT -> {
+                if (transferDTO.getFromAccount() == null) {
+                    throw new BadRequestAlertException("Account is required for adjustment", ENTITY_NAME, "accountrequired");
+                }
+                if (transferDTO.getAdjustmentDirection() == null) {
+                    throw new BadRequestAlertException(
+                        "Adjustment direction is required",
+                        ENTITY_NAME,
+                        "directionrequired"
+                    );
+                }
+                transferDTO.setToAccount(null);
+            }
+            default -> throw new BadRequestAlertException("Invalid transfer kind", ENTITY_NAME, "kindinvalid");
+        }
     }
 }

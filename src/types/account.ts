@@ -51,10 +51,14 @@ export interface Transfer {
   id: string;
   businessId: string;
   date: string;
+  kind?: "transfer" | "adjustment";
+  adjustmentDirection?: "increment" | "decrement";
   fromAccountId: string;
-  toAccountId: string;
+  toAccountId?: string;
   amount: number;
   notes?: string;
+  proofDataUrl?: string;
+  proofName?: string;
   createdAt: string;
 }
 

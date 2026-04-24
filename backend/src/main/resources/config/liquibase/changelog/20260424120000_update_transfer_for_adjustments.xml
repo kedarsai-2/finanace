@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260424120000-1" author="cursor">
+        <addColumn tableName="transfer">
+            <column name="transfer_kind" type="varchar(20)" defaultValue="TRANSFER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adjustment_direction" type="varchar(20)"/>
+            <column name="proof_data_url" type="text"/>
+            <column name="proof_name" type="varchar(255)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
+

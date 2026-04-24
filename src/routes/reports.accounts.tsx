@@ -37,6 +37,14 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
+function txnTypeLabel(r: { kind: AccountTxnKind; refNo?: string; note?: string; refLink?: string }) {
+  if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
+    return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";
+  }
+  return KIND_LABEL[r.kind];
+}
+
 function AccountReport() {
   const { activeId, businesses } = useBusinesses();
   const business = businesses.find((b) => b.id === activeId);
@@ -94,7 +102,7 @@ function AccountReport() {
         .reverse()
         .map((r) => [
           format(new Date(r.date), "yyyy-MM-dd"),
-          KIND_LABEL[r.kind],
+          txnTypeLabel(r),
           r.refNo ?? "",
           r.amount < 0 ? Math.abs(r.amount).toFixed(2) : "",
           r.amount > 0 ? r.amount.toFixed(2) : "",
@@ -189,7 +197,7 @@ function AccountReport() {
                   <td className="px-4 py-3 text-muted-foreground">
                     {format(new Date(r.date), "dd MMM yyyy")}
                   </td>
-                  <td className="px-4 py-3">{KIND_LABEL[r.kind]}</td>
+                  <td className="px-4 py-3">{txnTypeLabel(r)}</td>
                   <td className="px-4 py-3 font-mono text-xs">{r.refNo ?? "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
                     {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}

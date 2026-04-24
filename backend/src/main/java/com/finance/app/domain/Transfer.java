@@ -1,6 +1,8 @@
 package com.finance.app.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.finance.app.domain.enumeration.AdjustmentDirection;
+import com.finance.app.domain.enumeration.TransferKind;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serial;
@@ -37,9 +39,25 @@ public class Transfer implements Serializable {
     @Column(name = "amount", precision = 21, scale = 2, nullable = false)
     private BigDecimal amount;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transfer_kind", nullable = false)
+    private TransferKind transferKind;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "adjustment_direction")
+    private AdjustmentDirection adjustmentDirection;
+
     @Size(max = 2000)
     @Column(name = "notes", length = 2000)
     private String notes;
+
+    @Column(name = "proof_data_url")
+    private String proofDataUrl;
+
+    @Size(max = 255)
+    @Column(name = "proof_name", length = 255)
+    private String proofName;
 
     @NotNull
     @Column(name = "created_at", nullable = false)
@@ -66,6 +84,9 @@ public class Transfer implements Serializable {
         Instant now = Instant.now();
         if (this.createdAt == null) {
             this.createdAt = now;
+        }
+        if (this.transferKind == null) {
+            this.transferKind = TransferKind.TRANSFER;
         }
         this.updatedAt = now;
     }
@@ -114,6 +135,32 @@ public class Transfer implements Serializable {
         this.amount = amount;
     }
 
+    public TransferKind getTransferKind() {
+        return this.transferKind;
+    }
+
+    public Transfer transferKind(TransferKind transferKind) {
+        this.setTransferKind(transferKind);
+        return this;
+    }
+
+    public void setTransferKind(TransferKind transferKind) {
+        this.transferKind = transferKind;
+    }
+
+    public AdjustmentDirection getAdjustmentDirection() {
+        return this.adjustmentDirection;
+    }
+
+    public Transfer adjustmentDirection(AdjustmentDirection adjustmentDirection) {
+        this.setAdjustmentDirection(adjustmentDirection);
+        return this;
+    }
+
+    public void setAdjustmentDirection(AdjustmentDirection adjustmentDirection) {
+        this.adjustmentDirection = adjustmentDirection;
+    }
+
     public String getNotes() {
         return this.notes;
     }
@@ -125,6 +172,32 @@ public class Transfer implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getProofDataUrl() {
+        return this.proofDataUrl;
+    }
+
+    public Transfer proofDataUrl(String proofDataUrl) {
+        this.setProofDataUrl(proofDataUrl);
+        return this;
+    }
+
+    public void setProofDataUrl(String proofDataUrl) {
+        this.proofDataUrl = proofDataUrl;
+    }
+
+    public String getProofName() {
+        return this.proofName;
+    }
+
+    public Transfer proofName(String proofName) {
+        this.setProofName(proofName);
+        return this;
+    }
+
+    public void setProofName(String proofName) {
+        this.proofName = proofName;
     }
 
     public Instant getCreatedAt() {
@@ -218,7 +291,11 @@ public class Transfer implements Serializable {
             "id=" + getId() +
             ", date='" + getDate() + "'" +
             ", amount=" + getAmount() +
+            ", transferKind='" + getTransferKind() + "'" +
+            ", adjustmentDirection='" + getAdjustmentDirection() + "'" +
             ", notes='" + getNotes() + "'" +
+            ", proofDataUrl='" + getProofDataUrl() + "'" +
+            ", proofName='" + getProofName() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
             "}";

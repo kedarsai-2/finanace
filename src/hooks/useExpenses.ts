@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_EXPENSE_CATEGORIES, type Expense } from "@/types/expense";
+import { DEFAULT_EXPENSE_TYPES, type Expense } from "@/types/expense";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
@@ -32,15 +32,26 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const accountId = dto.account?.id;
   const mode =
     dto.mode === "BANK" || dto.mode === "UPI" ? "bank" : dto.mode === "CASH" ? "cash" : undefined;
-  const rawCategory = String(dto.category ?? "").toLowerCase();
-  const category = (DEFAULT_EXPENSE_CATEGORIES as readonly string[]).includes(rawCategory)
-    ? (rawCategory as Expense["category"])
-    : "indirect";
+  const rawCategory = String(dto.category ?? "").trim();
+  const norm = rawCategory.toLowerCase();
+  const splitIdx = rawCategory.indexOf(":");
+  const hasEncodedType = splitIdx > 0;
+  const encodedType = hasEncodedType ? rawCategory.slice(0, splitIdx).toLowerCase() : "";
+  const encodedCategory = hasEncodedType ? rawCategory.slice(splitIdx + 1).trim() : "";
+  const type = (DEFAULT_EXPENSE_TYPES as readonly string[]).includes(encodedType)
+    ? (encodedType as Expense["type"])
+    : norm === "direct"
+      ? "direct"
+      : "indirect";
+  const category = hasEncodedType
+    ? (encodedCategory || (type === "direct" ? "Direct expense" : "Indirect expense"))
+    : rawCategory || (type === "direct" ? "Direct expense" : "Indirect expense");
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
     date: dto.date,
     amount: Number(dto.amount ?? 0),
+    type,
     category,
     mode,
     reference: dto.reference ?? undefined,
@@ -61,7 +72,7 @@ function expenseToDto(e: Expense): ExpenseDTO {
     id: toNumId(e.id) ?? undefined,
     date: e.date,
     amount: e.amount,
-    category: e.category,
+    category: `${e.type}:${(e.category || "").trim()}`,
     mode,
     reference: e.reference ?? null,
     notes: e.notes ?? null,
@@ -164,7 +175,7 @@ export function useExpenses(businessId?: string | null) {
       module: "expense",
       action: before ? "edit" : "create",
       recordId: e.id,
-      reference: `${e.category} · ₹${e.amount}`,
+      reference: `${e.type} · ${e.category} · ₹${e.amount}`,
       refLink: `/expenses/${e.id}`,
       businessId: e.businessId,
       before: before ? snapshot(before) : null,
@@ -185,7 +196,7 @@ export function useExpenses(businessId?: string | null) {
       module: "expense",
       action: "create",
       recordId: e.id,
-      reference: `${e.category} · ₹${e.amount}`,
+      reference: `${e.type} · ${e.category} · ₹${e.amount}`,
       refLink: `/expenses/${e.id}`,
       businessId: e.businessId,
       after: snapshot(e),
@@ -216,7 +227,7 @@ export function useExpenses(businessId?: string | null) {
         module: "expense",
         action: "delete",
         recordId: id,
-        reference: `${before.category} · ₹${before.amount}`,
+        reference: `${before.type} · ${before.category} · ₹${before.amount}`,
         businessId: before.businessId,
         before: snapshot(before),
       });
