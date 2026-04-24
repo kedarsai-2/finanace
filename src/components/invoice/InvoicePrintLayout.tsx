@@ -27,6 +27,9 @@ interface Props {
 export function InvoicePrintLayout({ invoice, business, party, lastPayment, payToAccount }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
+  const paymentModeText = lastPayment
+    ? (lastPayment.account ?? payToAccount?.name ?? PAYMENT_MODE_LABEL[lastPayment.mode])
+    : "—";
 
   return (
     <div
@@ -39,11 +42,6 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      {/* Watermark / Stamp (print-safe, no image asset required) */}
-      <div className="pointer-events-none absolute right-[16mm] top-[250mm] hidden print:block">
-        <SnickrStamp />
-      </div>
-
       {/* ---------- Letterhead ---------- */}
       <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-4">
         <div className="flex items-start gap-4">
@@ -175,14 +173,7 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           <KV label="Total" value={formatCurrency(invoice.total, currency)} />
           <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
           <KV label="Balance" value={formatCurrency(balance, currency)} />
-          <KV
-            label="Payment Mode"
-            value={
-              lastPayment
-                ? `${PAYMENT_MODE_LABEL[lastPayment.mode]}${lastPayment.account ? ` (${lastPayment.account})` : ""}`
-                : "—"
-            }
-          />
+          <KV label="Payment Mode" value={paymentModeText} />
           <KV label="Previous Balance" value={formatCurrency(0, currency)} />
           <KV label="Current Balance" value={formatCurrency(0, currency)} />
           <div className="pt-2" />
@@ -203,18 +194,18 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
       </section>
 
       {/* ---------- Signature ---------- */}
-      <section className="mt-6 text-xs">
-        <p>For: {business?.name ?? "Your Business"}</p>
-        <div className="relative mt-10 w-56 border-t border-slate-400 pt-1 text-[10px] uppercase tracking-wider text-slate-600">
-          Authorized Signatory
-          <div className="pointer-events-none absolute -right-24 -top-20 opacity-60 print:opacity-80">
+      <section className="mt-10 text-xs">
+        <div className="text-center">
+          <p className="text-sm font-medium">For: {business?.name ?? "Your Business"}</p>
+          <div className="mt-6 flex items-center justify-center">
             <SnickrStamp />
           </div>
+          <p className="mt-6 text-lg font-bold">Authorized Signatory</p>
         </div>
       </section>
 
-      <footer className="mt-10 border-t border-slate-200 pt-3 text-center text-[10px] uppercase tracking-[0.18em] text-slate-400">
-        This is a system-generated invoice.
+      <footer className="absolute bottom-[10mm] left-0 right-0 text-center text-[10px] text-slate-500">
+        -- 1 of 1 --
       </footer>
     </div>
   );
@@ -245,23 +236,23 @@ function termsList(raw?: string) {
     if (lines.length) return lines;
   }
   return [
+    "This invoice is generated for services completed through the Snickr platform.",
+    "Snickr acts as a service facilitation platform connecting customers with independent service providers.",
+    "Charges include service fees, convenience/platform fees.",
     "Payment is due immediately unless otherwise agreed.",
+    "Refunds and cancellations are governed by SnickR’s refund policy.",
     "Any dispute regarding service quality must be reported within 24 hours of service completion.",
-    "This invoice is generated for completed services/products.",
+    "Snickr’s liability is limited to the platform/service facilitation charges collected.",
   ];
 }
 
 function SnickrLogo() {
   return (
-    <div className="flex items-center gap-2">
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M12 2.5c-4.97 0-9 4.03-9 9 0 4.47 3.27 8.18 7.55 8.87.42.07.57-.18.57-.4v-1.4c-3.07.67-3.72-1.32-3.72-1.32-.5-1.28-1.22-1.62-1.22-1.62-.99-.68.08-.66.08-.66 1.1.08 1.68 1.12 1.68 1.12.98 1.68 2.57 1.19 3.2.91.1-.71.38-1.19.7-1.47-2.45-.28-5.03-1.22-5.03-5.43 0-1.2.43-2.18 1.12-2.95-.11-.28-.49-1.41.11-2.94 0 0 .92-.29 3.01 1.13.87-.24 1.8-.36 2.73-.36.93 0 1.86.12 2.73.36 2.09-1.42 3.01-1.13 3.01-1.13.6 1.53.22 2.66.11 2.94.69.77 1.12 1.75 1.12 2.95 0 4.22-2.58 5.15-5.04 5.42.39.34.74 1.02.74 2.06v3.05c0 .22.15.48.58.4A9 9 0 0 0 21 11.5c0-4.97-4.03-9-9-9Z"
-          fill="#111827"
-        />
-      </svg>
-      <span className="text-xs font-semibold tracking-wide text-slate-800">snickr</span>
-    </div>
+    <img
+      src="/snickr-logo.png"
+      alt="SnickR"
+      style={{ height: "48px", width: "auto", objectFit: "contain" }}
+    />
   );
 }
 

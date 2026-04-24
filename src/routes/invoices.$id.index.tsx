@@ -84,7 +84,7 @@ function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allInvoices, cancel, remove, ensureLines, convertToCreditNote } = useInvoices(activeId);
+  const { allInvoices, hydrated, cancel, remove, ensureLines, convertToCreditNote } = useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
@@ -108,6 +108,10 @@ function InvoiceDetailsPage() {
         : [],
     [payments, invoice],
   );
+
+  if (!hydrated) {
+    return <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
 
   if (!invoice) {
     return (

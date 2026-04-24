@@ -363,9 +363,8 @@ export function useInvoices(businessId?: string | null) {
       setHydrated(true);
       return;
     }
-    // Backend-mode: start empty; fetch is scoped by businessId below.
+    // Backend-mode: start empty; hydrated is set after the first fetch completes.
     setInvoices([]);
-    setHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -377,12 +376,14 @@ export function useInvoices(businessId?: string | null) {
     if (!USE_BACKEND) return;
     if (!businessId) {
       setInvoices([]);
+      setHydrated(true);
       return;
     }
     const list = await apiFetch<InvoiceDTO[]>(
       `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
     );
     setInvoices(list.map(dtoToInvoice));
+    setHydrated(true);
   }, [businessId]);
 
   useEffect(() => {
@@ -390,6 +391,7 @@ export function useInvoices(businessId?: string | null) {
     void refresh().catch(() => {
       // If backend is down/misconfigured, don’t crash the UI.
       setInvoices([]);
+      setHydrated(true);
     });
   }, [refresh]);
 
