@@ -8,7 +8,13 @@
         <sql>
             alter table purchase add column if not exists purchase_kind varchar(20);
             alter table purchase add column if not exists source_purchase_id bigint;
-            update purchase set purchase_kind = 'PURCHASE' where purchase_kind is null;
+            update purchase
+               set purchase_kind = upper(trim(purchase_kind))
+             where purchase_kind is not null;
+            update purchase
+               set purchase_kind = 'PURCHASE'
+             where purchase_kind is null
+                or purchase_kind not in ('PURCHASE', 'RETURN');
             alter table purchase alter column purchase_kind set default 'PURCHASE';
             alter table purchase alter column purchase_kind set not null;
         </sql>
@@ -28,7 +34,7 @@
                and pr.notes like 'Against ' || src.number || '%';
         </sql>
 
-        <sql>
+        <sql splitStatements="false" stripComments="false">
             do $$
             begin
               if not exists (
@@ -44,7 +50,7 @@
             end $$;
         </sql>
 
-        <sql>
+        <sql splitStatements="false" stripComments="false">
             do $$
             begin
               if not exists (
