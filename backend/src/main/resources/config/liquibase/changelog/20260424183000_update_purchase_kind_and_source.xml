@@ -5,12 +5,13 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="20260424183000-1" author="cursor">
-        <addColumn tableName="purchase">
-            <column name="purchase_kind" type="varchar(20)" defaultValue="PURCHASE">
-                <constraints nullable="false"/>
-            </column>
-            <column name="source_purchase_id" type="bigint"/>
-        </addColumn>
+        <sql>
+            alter table purchase add column if not exists purchase_kind varchar(20);
+            alter table purchase add column if not exists source_purchase_id bigint;
+            update purchase set purchase_kind = 'PURCHASE' where purchase_kind is null;
+            alter table purchase alter column purchase_kind set default 'PURCHASE';
+            alter table purchase alter column purchase_kind set not null;
+        </sql>
 
         <update tableName="purchase">
             <column name="purchase_kind" value="RETURN"/>
@@ -27,21 +28,39 @@
                and pr.notes like 'Against ' || src.number || '%';
         </sql>
 
-        <addForeignKeyConstraint
-            baseTableName="purchase"
-            baseColumnNames="source_purchase_id"
-            constraintName="fk_purchase__source_purchase_id"
-            referencedTableName="purchase"
-            referencedColumnNames="id"/>
+        <sql>
+            do $$
+            begin
+              if not exists (
+                select 1
+                  from pg_constraint
+                 where conname = 'fk_purchase__source_purchase_id'
+              ) then
+                alter table purchase
+                  add constraint fk_purchase__source_purchase_id
+                  foreign key (source_purchase_id)
+                  references purchase(id);
+              end if;
+            end $$;
+        </sql>
 
         <sql>
-            alter table purchase
-            add constraint ck_purchase_kind_source_consistency
-            check (
-              (purchase_kind = 'RETURN' and source_purchase_id is not null)
-              or
-              (purchase_kind = 'PURCHASE' and source_purchase_id is null)
-            );
+            do $$
+            begin
+              if not exists (
+                select 1
+                  from pg_constraint
+                 where conname = 'ck_purchase_kind_source_consistency'
+              ) then
+                alter table purchase
+                  add constraint ck_purchase_kind_source_consistency
+                  check (
+                    (purchase_kind = 'RETURN' and source_purchase_id is not null)
+                    or
+                    (purchase_kind = 'PURCHASE' and source_purchase_id is null)
+                  );
+              end if;
+            end $$;
         </sql>
     </changeSet>
 </databaseChangeLog>
