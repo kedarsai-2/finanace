@@ -2,6 +2,7 @@ package com.finance.app.service;
 
 import com.finance.app.domain.Payment;
 import com.finance.app.domain.enumeration.PaymentMode;
+import com.finance.app.repository.PaymentAllocationRepository;
 import com.finance.app.repository.PaymentRepository;
 import com.finance.app.service.dto.PaymentDTO;
 import com.finance.app.service.mapper.PaymentMapper;
@@ -24,12 +25,20 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
 
+    private final PaymentAllocationRepository paymentAllocationRepository;
+
     private final PaymentMapper paymentMapper;
 
     private final CashLedgerAccountService cashLedgerAccountService;
 
-    public PaymentService(PaymentRepository paymentRepository, PaymentMapper paymentMapper, CashLedgerAccountService cashLedgerAccountService) {
+    public PaymentService(
+        PaymentRepository paymentRepository,
+        PaymentAllocationRepository paymentAllocationRepository,
+        PaymentMapper paymentMapper,
+        CashLedgerAccountService cashLedgerAccountService
+    ) {
         this.paymentRepository = paymentRepository;
+        this.paymentAllocationRepository = paymentAllocationRepository;
         this.paymentMapper = paymentMapper;
         this.cashLedgerAccountService = cashLedgerAccountService;
     }
@@ -121,6 +130,7 @@ public class PaymentService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Payment : {}", id);
+        paymentAllocationRepository.deleteAllByPaymentId(id);
         paymentRepository.deleteById(id);
     }
 }

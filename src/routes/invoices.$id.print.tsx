@@ -5,8 +5,10 @@ import { ArrowLeft, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InvoicePrintLayout } from "@/components/invoice/InvoicePrintLayout";
 import { useBusinesses } from "@/hooks/useBusinesses";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useParties } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
 
 export const Route = createFileRoute("/invoices/$id/print")({
   head: () => ({
@@ -30,6 +32,8 @@ function InvoicePrintPage() {
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
+  const { payments } = usePayments(invoice?.businessId);
+  const { accounts } = useAccounts(invoice?.businessId, []);
 
   useEffect(() => {
     if (!invoice) return;
@@ -87,7 +91,13 @@ function InvoicePrintPage() {
       </div>
 
       <div className="mx-auto shadow-2xl">
-        <InvoicePrintLayout invoice={invoice} business={business} party={party} />
+        <InvoicePrintLayout
+          invoice={invoice}
+          business={business}
+          party={party}
+          lastPayment={lastPaymentForInvoice(payments, invoice.id)}
+          payToAccount={resolvePayToAccount(accounts, payments, invoice.id)}
+        />
       </div>
 
       {/* Print rules — keep colours, hide everything else, lock to A4 */}
@@ -103,4 +113,24 @@ function InvoicePrintPage() {
       `}</style>
     </div>
   );
+}
+
+function lastPaymentForInvoice(payments: ReturnType<typeof usePayments>["payments"], invoiceId: string) {
+  const list = payments
+    .filter((p) => p.allocations.some((a) => a.docId === invoiceId))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return list.at(-1) ?? null;
+}
+
+function resolvePayToAccount(
+  accounts: ReturnType<typeof useAccounts>["accounts"],
+  payments: ReturnType<typeof usePayments>["payments"],
+  invoiceId: string,
+) {
+  const last = lastPaymentForInvoice(payments, invoiceId);
+  if (last?.accountId) {
+    const match = accounts.find((a) => a.id === last.accountId);
+    if (match) return match;
+  }
+  return accounts.find((a) => a.type === "bank") ?? undefined;
 }

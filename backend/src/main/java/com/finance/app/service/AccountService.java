@@ -104,6 +104,11 @@ public class AccountService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Account : {}", id);
-        accountRepository.deleteById(id);
+        accountRepository
+            .findById(id)
+            .ifPresent(account -> {
+                account.setDeleted(true);
+                accountRepository.save(account);
+            });
     }
 }

@@ -116,6 +116,11 @@ public class ExpenseCategoryService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete ExpenseCategory : {}", id);
-        expenseCategoryRepository.deleteById(id);
+        expenseCategoryRepository
+            .findById(id)
+            .ifPresent(cat -> {
+                cat.setDeleted(true);
+                expenseCategoryRepository.save(cat);
+            });
     }
 }

@@ -44,4 +44,8 @@ public interface InvoiceLineRepository extends JpaRepository<InvoiceLine, Long> 
         "select invoiceLine from InvoiceLine invoiceLine left join fetch invoiceLine.item left join fetch invoiceLine.invoice where invoiceLine.invoice.id = :invoiceId order by invoiceLine.lineOrder asc, invoiceLine.id asc"
     )
     List<InvoiceLine> findAllByInvoiceIdWithToOneRelationships(@Param("invoiceId") Long invoiceId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from InvoiceLine invoiceLine where invoiceLine.invoice.id = :invoiceId")
+    int deleteAllByInvoiceId(@Param("invoiceId") Long invoiceId);
 }

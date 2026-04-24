@@ -258,6 +258,16 @@ export function useParties(businessId?: string | null) {
       (async () => {
         try {
           await apiFetch<void>(`/api/parties/${id}`, { method: "DELETE" });
+          if (before) {
+            logAudit({
+              module: "party",
+              action: "delete",
+              recordId: id,
+              reference: before.name,
+              businessId: before.businessId,
+              before: snapshot(before),
+            });
+          }
           setParties((prev) => prev.filter((p) => p.id !== id));
         } catch {
           // ignore; UI will remain unchanged
@@ -304,6 +314,7 @@ export function useParties(businessId?: string | null) {
     const token = getJwt();
     if (USE_BACKEND && token) {
       return (async () => {
+        const before = partiesRef.current.find((x) => x.id === p.id);
         const isUpdate = /^\d+$/.test(p.id);
         const dto = partyToDto(p);
         // For create, omit id to avoid error.idexists.
@@ -317,6 +328,16 @@ export function useParties(businessId?: string | null) {
         setParties((prev) => {
           const exists = prev.some((x) => x.id === mapped.id);
           return exists ? prev.map((x) => (x.id === mapped.id ? mapped : x)) : [mapped, ...prev];
+        });
+        logAudit({
+          module: "party",
+          action: before ? "edit" : "create",
+          recordId: mapped.id,
+          reference: mapped.name,
+          refLink: `/parties/${mapped.id}`,
+          businessId: mapped.businessId,
+          before: before ? snapshot(before) : null,
+          after: snapshot(mapped),
         });
         return mapped;
       })();

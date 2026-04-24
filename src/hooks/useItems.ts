@@ -212,6 +212,7 @@ export function useItems(businessId?: string | null) {
     const token = getJwt();
     if (USE_BACKEND && token) {
       return (async () => {
+        const before = itemsRef.current.find((x) => x.id === it.id);
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
         if (!isUpdate) delete dto.id;
@@ -223,6 +224,16 @@ export function useItems(businessId?: string | null) {
         setItems((prev) => {
           const exists = prev.some((x) => x.id === mapped.id);
           return exists ? prev.map((x) => (x.id === mapped.id ? mapped : x)) : [mapped, ...prev];
+        });
+        logAudit({
+          module: "item",
+          action: before ? "edit" : "create",
+          recordId: mapped.id,
+          reference: mapped.name,
+          refLink: `/items/${mapped.id}`,
+          businessId: mapped.businessId,
+          before: before ? snapshot(before) : null,
+          after: snapshot(mapped),
         });
         return mapped;
       })();
@@ -253,6 +264,16 @@ export function useItems(businessId?: string | null) {
       (async () => {
         try {
           await apiFetch<void>(`/api/items/${id}`, { method: "DELETE" });
+          if (before) {
+            logAudit({
+              module: "item",
+              action: "delete",
+              recordId: id,
+              reference: before.name,
+              businessId: before.businessId,
+              before: snapshot(before),
+            });
+          }
           setItems((prev) => prev.filter((x) => x.id !== id));
         } catch {
           // ignore
@@ -286,6 +307,17 @@ export function useItems(businessId?: string | null) {
             headers: { "Content-Type": "application/merge-patch+json" },
             body: JSON.stringify({ id: parseInt(id, 10), active: nextActive }),
           });
+          if (before) {
+            logAudit({
+              module: "item",
+              action: "edit",
+              recordId: id,
+              reference: before.name,
+              businessId: before.businessId,
+              before: { active: before.active },
+              after: { active: nextActive },
+            });
+          }
         } catch {
           // ignore
         }

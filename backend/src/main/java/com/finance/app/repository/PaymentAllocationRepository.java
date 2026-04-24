@@ -19,4 +19,8 @@ public interface PaymentAllocationRepository extends JpaRepository<PaymentAlloca
 
     @Query("select pa from PaymentAllocation pa left join fetch pa.payment p where p.id = :paymentId order by pa.id asc")
     List<PaymentAllocation> findAllByPaymentId(@Param("paymentId") Long paymentId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from PaymentAllocation pa where pa.payment.id = :paymentId")
+    int deleteAllByPaymentId(@Param("paymentId") Long paymentId);
 }

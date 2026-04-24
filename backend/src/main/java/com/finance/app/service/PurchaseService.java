@@ -1,6 +1,7 @@
 package com.finance.app.service;
 
 import com.finance.app.domain.Purchase;
+import com.finance.app.repository.PurchaseLineRepository;
 import com.finance.app.repository.PurchaseRepository;
 import com.finance.app.service.dto.PurchaseDTO;
 import com.finance.app.service.mapper.PurchaseMapper;
@@ -23,10 +24,17 @@ public class PurchaseService {
 
     private final PurchaseRepository purchaseRepository;
 
+    private final PurchaseLineRepository purchaseLineRepository;
+
     private final PurchaseMapper purchaseMapper;
 
-    public PurchaseService(PurchaseRepository purchaseRepository, PurchaseMapper purchaseMapper) {
+    public PurchaseService(
+        PurchaseRepository purchaseRepository,
+        PurchaseLineRepository purchaseLineRepository,
+        PurchaseMapper purchaseMapper
+    ) {
         this.purchaseRepository = purchaseRepository;
+        this.purchaseLineRepository = purchaseLineRepository;
         this.purchaseMapper = purchaseMapper;
     }
 
@@ -104,6 +112,7 @@ public class PurchaseService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Purchase : {}", id);
+        purchaseLineRepository.deleteAllByPurchaseId(id);
         purchaseRepository.deleteById(id);
     }
 }

@@ -164,12 +164,18 @@ function CashPage() {
               });
               const bal = accountBalance(txns);
               return (
-                <Link
+                <button
                   key={a.id}
-                  to="/accounts/$id"
-                  params={{ id: a.id }}
-                  search={{ source: "cash" }}
-                  className="group rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
+                  type="button"
+                  onClick={() => {
+                    if (!effectiveBusinessId) {
+                      toast.error("No business available for cash balance");
+                      return;
+                    }
+                    if (isAll) setActiveId(effectiveBusinessId);
+                    navigate({ to: "/cash/balance" });
+                  }}
+                  className="group w-full rounded-xl border border-border bg-card p-6 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <p className="font-semibold">{a.name}</p>
@@ -185,7 +191,7 @@ function CashPage() {
                     {bal < 0 ? "-" : ""}
                     {formatCurrency(bal, currency)}
                   </p>
-                </Link>
+                </button>
               );
             })}
           </section>

@@ -430,6 +430,7 @@ export function useInvoices(businessId?: string | null) {
         return;
       }
 
+      const before = invoicesRef.current.find((x) => x.id === inv.id);
       const dto = invoiceToDto(inv);
       const isUpdate = toNumId(inv.id) != null;
       const saved = isUpdate
@@ -470,6 +471,17 @@ export function useInvoices(businessId?: string | null) {
         const exists = prev.some((x) => x.id === savedId);
         return exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
       });
+
+      logAudit({
+        module: "invoice",
+        action: before ? "edit" : "create",
+        recordId: savedId,
+        reference: after.number,
+        refLink: after.kind === "credit-note" ? `/credit-notes/${savedId}` : `/invoices/${savedId}`,
+        businessId: after.businessId,
+        before: before ? snapshot(before) : null,
+        after: snapshot(after),
+      });
     },
     [syncLedger],
   );
@@ -501,7 +513,18 @@ export function useInvoices(businessId?: string | null) {
       }
       const idNum = toNumId(id);
       if (idNum == null) return;
+      const before = invoicesRef.current.find((x) => x.id === id);
       await apiFetch<void>(`/api/invoices/${idNum}`, { method: "DELETE" });
+      if (before) {
+        logAudit({
+          module: "invoice",
+          action: "delete",
+          recordId: id,
+          reference: before.number,
+          businessId: before.businessId,
+          before: snapshot(before),
+        });
+      }
       setInvoices((prev) => prev.filter((x) => x.id !== id));
     },
     [syncLedger],
@@ -542,11 +565,18 @@ export function useInvoices(businessId?: string | null) {
         headers: { "Content-Type": "application/merge-patch+json" },
         body: JSON.stringify(patch),
       });
-      setInvoices((prev) =>
-        prev.map((x) =>
-          x.id === id ? { ...x, status: fromBackendInvoiceStatus(saved.status) } : x,
-        ),
-      );
+      const nextStatus = fromBackendInvoiceStatus(saved.status);
+      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status: nextStatus } : x)));
+      logAudit({
+        module: "invoice",
+        action: "cancel",
+        recordId: id,
+        reference: existing.number,
+        refLink: `/invoices/${id}`,
+        businessId: existing.businessId,
+        before: snapshot(existing),
+        after: { status: nextStatus },
+      });
     },
     [syncLedger],
   );

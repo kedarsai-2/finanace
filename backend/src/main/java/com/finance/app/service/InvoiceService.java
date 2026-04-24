@@ -1,6 +1,7 @@
 package com.finance.app.service;
 
 import com.finance.app.domain.Invoice;
+import com.finance.app.repository.InvoiceLineRepository;
 import com.finance.app.repository.InvoiceRepository;
 import com.finance.app.service.dto.InvoiceDTO;
 import com.finance.app.service.mapper.InvoiceMapper;
@@ -23,10 +24,13 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
 
+    private final InvoiceLineRepository invoiceLineRepository;
+
     private final InvoiceMapper invoiceMapper;
 
-    public InvoiceService(InvoiceRepository invoiceRepository, InvoiceMapper invoiceMapper) {
+    public InvoiceService(InvoiceRepository invoiceRepository, InvoiceLineRepository invoiceLineRepository, InvoiceMapper invoiceMapper) {
         this.invoiceRepository = invoiceRepository;
+        this.invoiceLineRepository = invoiceLineRepository;
         this.invoiceMapper = invoiceMapper;
     }
 
@@ -104,6 +108,7 @@ public class InvoiceService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Invoice : {}", id);
+        invoiceLineRepository.deleteAllByInvoiceId(id);
         invoiceRepository.deleteById(id);
     }
 }

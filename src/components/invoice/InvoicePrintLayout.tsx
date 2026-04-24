@@ -4,11 +4,16 @@ import type { Party } from "@/types/party";
 import type { Invoice } from "@/types/invoice";
 import { lineMath } from "@/types/invoice";
 import { formatCurrency } from "@/hooks/useParties";
+import type { Account } from "@/types/account";
+import type { Payment } from "@/types/payment";
+import { PAYMENT_MODE_LABEL } from "@/types/payment";
 
 interface Props {
   invoice: Invoice;
   business?: Business;
   party?: Party;
+  lastPayment?: Payment | null;
+  payToAccount?: Account;
 }
 
 /**
@@ -19,13 +24,13 @@ interface Props {
  * theme. The container forces a white background + dark text so dark-mode
  * users get a clean print preview.
  */
-export function InvoicePrintLayout({ invoice, business, party }: Props) {
+export function InvoicePrintLayout({ invoice, business, party, lastPayment, payToAccount }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
 
   return (
     <div
-      className="invoice-print mx-auto bg-white text-slate-900"
+      className="invoice-print relative mx-auto bg-white text-slate-900"
       style={{
         width: "210mm",
         minHeight: "297mm",
@@ -34,8 +39,13 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
+      {/* Watermark / Stamp (print-safe, no image asset required) */}
+      <div className="pointer-events-none absolute right-[16mm] top-[250mm] hidden print:block">
+        <SnickrStamp />
+      </div>
+
       {/* ---------- Letterhead ---------- */}
-      <header className="flex items-start justify-between gap-6 border-b-2 border-slate-900 pb-6">
+      <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-4">
         <div className="flex items-start gap-4">
           {business?.logoUrl ? (
             <img
@@ -49,11 +59,8 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold leading-tight">
-              {business?.name ?? "Your Business"}
-            </h1>
-            {business?.ownerName && <p className="text-sm text-slate-600">{business.ownerName}</p>}
-            <div className="mt-1 text-xs leading-relaxed text-slate-600">
+            <h1 className="text-xl font-bold leading-tight">{business?.name ?? "Your Business"}</h1>
+            <div className="mt-1 text-xs leading-relaxed text-slate-700">
               {[business?.billingAddress?.line1, business?.billingAddress?.line2]
                 .filter(Boolean)
                 .join(", ")}
@@ -64,9 +71,9 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
                     .join(", ")}
                 </div>
               )}
-              <div className="mt-1 space-x-3">
-                {business?.mobile && <span>📞 {business.mobile}</span>}
-                {business?.email && <span>✉ {business.email}</span>}
+              <div className="mt-1 space-y-0.5">
+                {business?.mobile && <div>Phone no.: {business.mobile}</div>}
+                {business?.email && <div>Email: {business.email}</div>}
               </div>
               {business?.gstNumber && (
                 <div className="mt-1 font-mono">GSTIN: {business.gstNumber}</div>
@@ -75,172 +82,126 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Tax Invoice
-          </p>
-          <p className="mt-1 font-mono text-2xl font-bold tracking-tight">{invoice.number}</p>
-          <dl className="mt-3 space-y-1 text-xs text-slate-600">
-            <div className="flex justify-end gap-4">
-              <dt>Date</dt>
-              <dd className="font-medium text-slate-900">
-                {format(new Date(invoice.date), "dd MMM yyyy")}
-              </dd>
-            </div>
-            {invoice.dueDate && (
-              <div className="flex justify-end gap-4">
-                <dt>Due</dt>
-                <dd className="font-medium text-slate-900">
-                  {format(new Date(invoice.dueDate), "dd MMM yyyy")}
-                </dd>
-              </div>
-            )}
-            <div className="flex justify-end gap-4">
-              <dt>Status</dt>
-              <dd className="font-medium uppercase text-slate-900">{invoice.status}</dd>
-            </div>
-          </dl>
+          <div className="flex flex-col items-end gap-1">
+            <SnickrLogo />
+            <p className="text-sm font-bold">Tax Invoice</p>
+          </div>
         </div>
       </header>
 
-      {/* ---------- Bill to / Ship to ---------- */}
-      <section className="mt-6 grid grid-cols-2 gap-6">
+      {/* ---------- Bill To / Invoice Details ---------- */}
+      <section className="mt-5 grid grid-cols-2 gap-10 text-xs">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Bill to
-          </p>
-          <p className="mt-1 text-base font-bold">{invoice.partyName}</p>
-          {party && (
-            <div className="mt-1 text-xs leading-relaxed text-slate-700">
-              {party.address?.line1 && <div>{party.address.line1}</div>}
-              <div>
-                {[party.address?.city ?? party.city, party.state, party.address?.pincode]
-                  .filter(Boolean)
-                  .join(", ")}
-              </div>
-              {party.mobile && <div className="mt-1">📞 {party.mobile}</div>}
-              {party.gstNumber && <div className="mt-1 font-mono">GSTIN: {party.gstNumber}</div>}
-            </div>
-          )}
+          <p className="text-sm font-bold">Bill To</p>
+          <p className="mt-1 text-sm font-semibold">{invoice.partyName}</p>
+          {party?.mobile && <p className="mt-0.5">Contact No.: {party.mobile}</p>}
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Place of supply
-          </p>
-          <p className="mt-1 text-sm font-medium">{invoice.partyState ?? "—"}</p>
+          <p className="text-sm font-bold">Invoice Details</p>
+          <div className="mt-1 space-y-0.5">
+            <p>
+              Invoice No.: <span className="font-semibold">{invoice.number}</span>
+            </p>
+            <p>
+              Date: <span className="font-semibold">{format(new Date(invoice.date), "dd-MM-yyyy")}</span>
+            </p>
+          </div>
         </div>
       </section>
 
       {/* ---------- Items ---------- */}
-      <section className="mt-6">
+      <section className="mt-5">
         <table className="w-full border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-900 text-white">
+            <tr className="border-b border-slate-300">
               <th className="w-10 px-2 py-2 text-left font-semibold">#</th>
-              <th className="px-2 py-2 text-left font-semibold">Item</th>
-              <th className="w-16 px-2 py-2 text-right font-semibold">Qty</th>
-              <th className="w-14 px-2 py-2 text-left font-semibold">Unit</th>
-              <th className="w-24 px-2 py-2 text-right font-semibold">Rate</th>
-              <th className="w-20 px-2 py-2 text-right font-semibold">Disc.</th>
+              <th className="px-2 py-2 text-left font-semibold">Item name</th>
+              <th className="w-28 px-2 py-2 text-right font-semibold">Price/ Unit</th>
               <th className="w-28 px-2 py-2 text-right font-semibold">Amount</th>
             </tr>
           </thead>
           <tbody>
             {invoice.lines.map((line, idx) => {
               const m = lineMath(line);
+              const displayName = `${line.qty} ${line.name}`.trim();
               return (
                 <tr key={line.id} className="border-b border-slate-200 align-top">
-                  <td className="px-2 py-2 text-slate-500">{idx + 1}</td>
-                  <td className="px-2 py-2 font-medium">{line.name}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{line.qty}</td>
-                  <td className="px-2 py-2 text-slate-600">{line.unit}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">
-                    {formatCurrency(line.rate, currency)}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums text-slate-600">
-                    {line.discountValue > 0
-                      ? line.discountKind === "percent"
-                        ? `${line.discountValue}%`
-                        : formatCurrency(line.discountValue, currency)
-                      : "—"}
-                  </td>
-                  <td className="px-2 py-2 text-right font-semibold tabular-nums">
-                    {formatCurrency(m.total, currency)}
-                  </td>
+                  <td className="px-2 py-2">{idx + 1}</td>
+                  <td className="px-2 py-2">{displayName}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{formatCurrency(line.rate, currency)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{formatCurrency(m.total, currency)}</td>
                 </tr>
               );
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={3} className="px-2 py-2 text-right font-semibold">
+                Total
+              </td>
+              <td className="px-2 py-2 text-right font-semibold tabular-nums">
+                {formatCurrency(invoice.total, currency)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </section>
 
-      {/* ---------- Summary ---------- */}
-      <section className="mt-6 grid grid-cols-2 gap-6">
-        <div className="text-xs text-slate-700">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Amount in words
-          </p>
-          <p className="mt-1 font-medium capitalize">{amountInWords(invoice.total, currency)}</p>
-        </div>
-        <dl className="space-y-1.5 text-xs">
-          <SummaryRow label="Subtotal" value={formatCurrency(invoice.subtotal, currency)} />
-          {invoice.itemDiscountTotal > 0 && (
-            <SummaryRow
-              label="Line discounts"
-              value={`− ${formatCurrency(invoice.itemDiscountTotal, currency)}`}
-              muted
-            />
-          )}
-          {invoice.overallDiscountAmount > 0 && (
-            <SummaryRow
-              label="Overall discount"
-              value={`− ${formatCurrency(invoice.overallDiscountAmount, currency)}`}
-              muted
-            />
-          )}
-          <div className="my-1 border-t border-slate-300" />
-          <div className="flex items-baseline justify-between gap-6 bg-slate-900 px-3 py-2 text-white">
-            <dt className="text-sm font-semibold">Grand total</dt>
-            <dd className="text-lg font-bold tabular-nums">
-              {formatCurrency(invoice.total, currency)}
-            </dd>
-          </div>
-          {invoice.paidAmount > 0 && (
-            <>
-              <SummaryRow label="Paid" value={formatCurrency(invoice.paidAmount, currency)} muted />
-              <SummaryRow label="Balance due" value={formatCurrency(balance, currency)} emphasis />
-            </>
-          )}
-        </dl>
+      {/* ---------- Amount in words ---------- */}
+      <section className="mt-4 text-xs">
+        <p className="font-semibold">Invoice Amount In Words</p>
+        <p className="mt-1">{sentenceCase(amountInWords(invoice.total, currency))}</p>
       </section>
 
-      {/* ---------- Notes / Terms / Sign ---------- */}
-      <section className="mt-8 grid grid-cols-2 gap-6 text-xs">
+      {/* ---------- Terms / Totals / Pay To ---------- */}
+      <section className="mt-5 grid grid-cols-2 gap-10 text-xs">
         <div className="space-y-3">
-          {invoice.notes && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Notes
-              </p>
-              <p className="mt-1 whitespace-pre-wrap leading-relaxed">{invoice.notes}</p>
+          <div>
+            <p className="font-semibold">Terms And Conditions</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4 leading-relaxed">
+              {termsList(invoice.terms).map((t, i) => (
+                <li key={`${i}-${t}`}>{t}</li>
+              ))}
+            </ol>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <KV label="Sub Total" value={formatCurrency(invoice.total, currency)} />
+          <KV label="Total" value={formatCurrency(invoice.total, currency)} />
+          <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
+          <KV label="Balance" value={formatCurrency(balance, currency)} />
+          <KV
+            label="Payment Mode"
+            value={
+              lastPayment
+                ? `${PAYMENT_MODE_LABEL[lastPayment.mode]}${lastPayment.account ? ` (${lastPayment.account})` : ""}`
+                : "—"
+            }
+          />
+          <KV label="Previous Balance" value={formatCurrency(0, currency)} />
+          <KV label="Current Balance" value={formatCurrency(0, currency)} />
+          <div className="pt-2" />
+          <p className="font-semibold">Pay To:</p>
+          {payToAccount ? (
+            <div className="space-y-0.5 leading-relaxed">
+              <div>Bank Name: {payToAccount.name}</div>
+              {payToAccount.accountNumber && <div>Bank Account No.: {payToAccount.accountNumber}</div>}
+              {payToAccount.ifsc && <div>Bank IFSC code: {payToAccount.ifsc}</div>}
+              <div>Account Holder&apos;s Name: {business?.name ?? "—"}</div>
             </div>
-          )}
-          {invoice.terms && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Terms &amp; conditions
-              </p>
-              <p className="mt-1 whitespace-pre-wrap leading-relaxed">{invoice.terms}</p>
-            </div>
+          ) : (
+            <div className="text-slate-600">—</div>
           )}
         </div>
-        <div className="flex flex-col items-end justify-end">
-          <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              For {business?.name ?? "Your Business"}
-            </p>
-            <div className="mt-10 w-56 border-t border-slate-400 pt-1 text-[10px] uppercase tracking-wider text-slate-500">
-              Authorised signatory
-            </div>
+      </section>
+
+      {/* ---------- Signature ---------- */}
+      <section className="mt-6 text-xs">
+        <p>For: {business?.name ?? "Your Business"}</p>
+        <div className="relative mt-10 w-56 border-t border-slate-400 pt-1 text-[10px] uppercase tracking-wider text-slate-600">
+          Authorized Signatory
+          <div className="pointer-events-none absolute -right-24 -top-20 opacity-60 print:opacity-80">
+            <SnickrStamp />
           </div>
         </div>
       </section>
@@ -252,32 +213,90 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  muted,
-  emphasis,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  emphasis?: boolean;
-}) {
+function KV({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-6">
-      <dt className={muted ? "text-slate-500" : "text-slate-700"}>{label}</dt>
-      <dd
-        className={
-          "tabular-nums " +
-          (emphasis
-            ? "text-base font-bold text-slate-900"
-            : muted
-              ? "text-slate-500"
-              : "font-medium text-slate-900")
-        }
+      <span className="text-slate-700">{label}</span>
+      <span className="tabular-nums text-slate-900">{value}</span>
+    </div>
+  );
+}
+
+function sentenceCase(s: string) {
+  const t = (s ?? "").trim();
+  if (!t) return t;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function termsList(raw?: string) {
+  const cleaned = (raw ?? "").trim();
+  if (cleaned) {
+    const lines = cleaned
+      .split(/\r?\n+/)
+      .map((l) => l.trim().replace(/^\d+[\).\s]+/, ""))
+      .filter(Boolean);
+    if (lines.length) return lines;
+  }
+  return [
+    "Payment is due immediately unless otherwise agreed.",
+    "Any dispute regarding service quality must be reported within 24 hours of service completion.",
+    "This invoice is generated for completed services/products.",
+  ];
+}
+
+function SnickrLogo() {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M12 2.5c-4.97 0-9 4.03-9 9 0 4.47 3.27 8.18 7.55 8.87.42.07.57-.18.57-.4v-1.4c-3.07.67-3.72-1.32-3.72-1.32-.5-1.28-1.22-1.62-1.22-1.62-.99-.68.08-.66.08-.66 1.1.08 1.68 1.12 1.68 1.12.98 1.68 2.57 1.19 3.2.91.1-.71.38-1.19.7-1.47-2.45-.28-5.03-1.22-5.03-5.43 0-1.2.43-2.18 1.12-2.95-.11-.28-.49-1.41.11-2.94 0 0 .92-.29 3.01 1.13.87-.24 1.8-.36 2.73-.36.93 0 1.86.12 2.73.36 2.09-1.42 3.01-1.13 3.01-1.13.6 1.53.22 2.66.11 2.94.69.77 1.12 1.75 1.12 2.95 0 4.22-2.58 5.15-5.04 5.42.39.34.74 1.02.74 2.06v3.05c0 .22.15.48.58.4A9 9 0 0 0 21 11.5c0-4.97-4.03-9-9-9Z"
+          fill="#111827"
+        />
+      </svg>
+      <span className="text-xs font-semibold tracking-wide text-slate-800">snickr</span>
+    </div>
+  );
+}
+
+function SnickrStamp() {
+  return (
+    <div
+      style={{
+        width: "70mm",
+        height: "70mm",
+        borderRadius: "9999px",
+        border: "2px solid rgba(15, 23, 42, 0.35)",
+        position: "relative",
+        transform: "rotate(-12deg)",
+        background: "rgba(148, 163, 184, 0.06)",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: "10mm",
+          borderRadius: "9999px",
+          border: "1px dashed rgba(15, 23, 42, 0.28)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: "2mm",
+          color: "rgba(15, 23, 42, 0.7)",
+          textTransform: "uppercase",
+          letterSpacing: "0.22em",
+        }}
       >
-        {value}
-      </dd>
+        <div style={{ fontSize: "10px", fontWeight: 700 }}>Snickr</div>
+        <div style={{ fontSize: "18px", fontWeight: 800 }}>AUTHORIZED</div>
+        <div style={{ fontSize: "10px", fontWeight: 700 }}>Signatory</div>
+      </div>
     </div>
   );
 }

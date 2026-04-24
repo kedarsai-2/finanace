@@ -104,6 +104,11 @@ public class PartyService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Party : {}", id);
-        partyRepository.deleteById(id);
+        partyRepository
+            .findById(id)
+            .ifPresent(party -> {
+                party.setDeleted(true);
+                partyRepository.save(party);
+            });
     }
 }

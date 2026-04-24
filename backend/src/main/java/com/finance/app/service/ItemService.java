@@ -104,6 +104,12 @@ public class ItemService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Item : {}", id);
-        itemRepository.deleteById(id);
+        itemRepository
+            .findById(id)
+            .ifPresent(item -> {
+                item.setDeleted(true);
+                item.setActive(false);
+                itemRepository.save(item);
+            });
     }
 }
