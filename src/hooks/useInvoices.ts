@@ -87,12 +87,14 @@ function fromBackendInvoiceStatus(s: BackendInvoiceStatus | null | undefined): I
 function dtoToInvoice(dto: InvoiceDTO): Invoice {
   const businessId = toStrId(dto.business?.id);
   const partyId = toStrId(dto.party?.id);
+  const number = dto.number ?? "";
+  const kind = number.toUpperCase().startsWith("CN-") ? "credit-note" : "invoice";
   return {
     id: toStrId(dto.id),
     createdAt: dto.createdAt ?? undefined,
     updatedAt: dto.updatedAt ?? undefined,
     businessId,
-    number: dto.number ?? "",
+    number,
     date: dto.date,
     dueDate: dto.dueDate ?? undefined,
     paymentTermsDays: dto.paymentTermsDays ?? undefined,
@@ -118,6 +120,7 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     notes: dto.notes ?? undefined,
     terms: dto.terms ?? undefined,
     finalizedAt: dto.finalizedAt ?? undefined,
+    kind,
   };
 }
 
