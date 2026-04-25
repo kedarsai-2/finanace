@@ -8,6 +8,7 @@ import { getJwt, subscribeAuth } from "@/lib/auth";
 const STORAGE_KEY = "bm.businesses";
 const ACTIVE_KEY = "bm.activeBusinessId";
 const API_ACTIVE_KEY = "bm.activeBusinessId.api";
+const API_STORAGE_KEY = "bm.businesses.api";
 
 const seed: Business[] = [
   {
@@ -54,9 +55,19 @@ function read(): Business[] {
   }
 }
 
+function readApi(): Business[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(API_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Business[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useBusinesses() {
   const [token, setToken] = useState<string | null>(() => getJwt());
-  const [businesses, setBusinesses] = useState<Business[]>(() => (USE_BACKEND ? [] : seed));
+  const [businesses, setBusinesses] = useState<Business[]>(() => (USE_BACKEND ? readApi() : seed));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -81,7 +92,8 @@ export function useBusinesses() {
       return;
     }
 
-    setBusinesses([]); // avoid showing seed data in backend mode
+    // Keep cached backend businesses visible while refetching.
+    setBusinesses((prev) => (prev.length > 0 ? prev : readApi()));
     (async () => {
       try {
         const list = await apiFetch<
@@ -147,6 +159,9 @@ export function useBusinesses() {
         }));
 
         setBusinesses(mapped);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(API_STORAGE_KEY, JSON.stringify(mapped));
+        }
         const stored = typeof window !== "undefined" ? localStorage.getItem(API_ACTIVE_KEY) : null;
         const hasStored = !!stored && mapped.some((b) => b.id === stored);
         const nextActiveId = hasStored ? stored : (mapped[0]?.id ?? null);
@@ -159,9 +174,10 @@ export function useBusinesses() {
           }
         }
       } catch {
-        // Backend mode should fail closed (empty state), not show local seed data.
-        setBusinesses([]);
-        setActiveId(null);
+        // Backend mode should never fallback to seed data; use cached API list if available.
+        const cached = readApi();
+        setBusinesses(cached);
+        setActiveId((prev) => (prev && cached.some((b) => b.id === prev) ? prev : (cached[0]?.id ?? null)));
       } finally {
         setHydrated(true);
       }
