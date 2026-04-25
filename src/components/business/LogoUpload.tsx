@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -13,10 +14,11 @@ const MAX_BYTES = 2 * 1024 * 1024; // 2MB
 
 export function LogoUpload({ value, onChange }: Props) {
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!file.type.startsWith("image/")) {
         toast.error("Please upload an image file");
         return;
@@ -25,9 +27,17 @@ export function LogoUpload({ value, onChange }: Props) {
         toast.error("Image must be under 2MB");
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => onChange(reader.result as string);
-      reader.readAsDataURL(file);
+      setUploading(true);
+      try {
+        const uploaded = await uploadImageToCloudinary(file);
+        onChange(uploaded.secureUrl);
+        toast.success("Logo uploaded");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to upload logo";
+        toast.error(message);
+      } finally {
+        setUploading(false);
+      }
     },
     [onChange],
   );
@@ -40,11 +50,13 @@ export function LogoUpload({ value, onChange }: Props) {
           dragOver ? "border-primary bg-primary/5" : "border-border",
         )}
         onDragOver={(e) => {
+          if (uploading) return;
           e.preventDefault();
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
+          if (uploading) return;
           e.preventDefault();
           setDragOver(false);
           const file = e.dataTransfer.files?.[0];
@@ -67,9 +79,14 @@ export function LogoUpload({ value, onChange }: Props) {
             variant="outline"
             size="sm"
             onClick={() => inputRef.current?.click()}
+            disabled={uploading}
           >
-            <Upload className="h-4 w-4" />
-            {value ? "Replace" : "Upload"}
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {uploading ? "Uploading..." : value ? "Replace" : "Upload"}
           </Button>
           {value && (
             <Button
@@ -77,6 +94,7 @@ export function LogoUpload({ value, onChange }: Props) {
               variant="ghost"
               size="sm"
               onClick={() => onChange(undefined)}
+              disabled={uploading}
               className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="h-4 w-4" />
@@ -89,6 +107,7 @@ export function LogoUpload({ value, onChange }: Props) {
           type="file"
           accept="image/*"
           className="hidden"
+          disabled={uploading}
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) handleFile(f);
