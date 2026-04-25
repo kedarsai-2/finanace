@@ -203,10 +203,16 @@ export function useParties(businessId?: string | null) {
       setHydrated(true);
       return;
     }
-    // Backend mode: never show seed data.
+    if (!token) {
+      setParties([]);
+      setLedger([]);
+      setHydrated(true);
+      return;
+    }
+    // Backend mode with token: wait for first fetch before marking hydrated.
     setParties([]);
     setLedger([]); // ledger is local-only today
-    setHydrated(true);
+    setHydrated(false);
   }, [token]);
 
   useEffect(() => {
@@ -242,6 +248,9 @@ export function useParties(businessId?: string | null) {
       } catch {
         if (cancelled) return;
         setParties([]);
+      } finally {
+        if (cancelled) return;
+        setHydrated(true);
       }
     })();
     return () => {

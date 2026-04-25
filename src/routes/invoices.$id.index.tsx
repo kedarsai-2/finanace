@@ -47,6 +47,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { creditedAmountForInvoice } from "@/hooks/useInvoices";
 import { FileMinus } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
@@ -111,6 +112,14 @@ function InvoiceDetailsPage() {
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         : [],
     [payments, invoice],
+  );
+  const alreadyCredited = useMemo(
+    () => (invoice ? creditedAmountForInvoice(invoice, allInvoices) : 0),
+    [invoice, allInvoices],
+  );
+  const remainingCredit = useMemo(
+    () => (invoice ? Math.max(0, invoice.total - alreadyCredited) : 0),
+    [invoice, alreadyCredited],
   );
 
   if (!hydrated) {
@@ -286,8 +295,9 @@ function InvoiceDetailsPage() {
                   <Button
                     variant="outline"
                     className="gap-2"
+                    disabled={remainingCredit <= 0}
                     onClick={() => {
-                      setCnAmount(invoice.total);
+                      setCnAmount(remainingCredit);
                       setCnOpen(true);
                     }}
                   >
@@ -308,25 +318,42 @@ function InvoiceDetailsPage() {
                     <Input
                       type="number"
                       min={0}
-                      max={invoice.total}
+                      max={remainingCredit}
                       step="0.01"
                       value={cnAmount}
                       onChange={(e) => setCnAmount(Number(e.target.value))}
                       className="tabular-nums"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Max: {formatCurrency(invoice.total, currency)}
-                    </p>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>Already credited: {formatCurrency(alreadyCredited, currency)}</p>
+                      <p>Remaining max: {formatCurrency(remainingCredit, currency)}</p>
+                    </div>
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={async () => {
-                        const amt = Math.max(0, Math.min(Number(cnAmount) || 0, invoice.total));
-                        const cn = await convertToCreditNote(invoice.id, amt);
-                        if (cn) {
-                          toast.success(`Credit note ${cn.number} created`);
-                          navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
+                        const raw = Number(cnAmount) || 0;
+                        if (raw <= 0) {
+                          toast.error("Credit amount must be greater than zero.");
+                          return;
+                        }
+                        if (raw > remainingCredit) {
+                          toast.error(
+                            `You can credit at most ${formatCurrency(remainingCredit, currency)}.`,
+                          );
+                          return;
+                        }
+                        try {
+                          const cn = await convertToCreditNote(invoice.id, raw);
+                          if (cn) {
+                            toast.success(`Credit note ${cn.number} created`);
+                            navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
+                          }
+                        } catch (err) {
+                          const message =
+                            err instanceof Error ? err.message : "Could not create credit note";
+                          toast.error(message);
                         }
                       }}
                     >

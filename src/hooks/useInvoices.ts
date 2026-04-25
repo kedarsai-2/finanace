@@ -15,6 +15,24 @@ export function creditNoteLedgerEntryId(invoiceId: string) {
   return `le_cn_${invoiceId}`;
 }
 
+function isCreditNoteAgainstSource(cn: Invoice, source: Pick<Invoice, "id" | "number">): boolean {
+  if (cn.sourceInvoiceId && cn.sourceInvoiceId === source.id) return true;
+  const notes = (cn.notes ?? "").trim();
+  if (!notes) return false;
+  return notes.startsWith(`Against ${source.number}`);
+}
+
+export function creditedAmountForInvoice(
+  source: Pick<Invoice, "id" | "number">,
+  invoices: Invoice[],
+): number {
+  return invoices.reduce((sum, x) => {
+    if (x.deleted || x.kind !== "credit-note" || x.status === "cancelled") return sum;
+    if (!isCreditNoteAgainstSource(x, source)) return sum;
+    return sum + Math.max(0, Number(x.total ?? 0));
+  }, 0);
+}
+
 type BackendDiscountKind = "PERCENT" | "AMOUNT";
 type BackendInvoiceStatus = "DRAFT" | "FINAL" | "CANCELLED";
 
@@ -619,26 +637,34 @@ export function useInvoices(businessId?: string | null) {
     async (sourceId: string, creditAmount?: number): Promise<Invoice | null> => {
       const src = invoicesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
+      const alreadyCredited = creditedAmountForInvoice(src, invoicesRef.current);
+      const remaining = Math.max(0, src.total - alreadyCredited);
+      if (remaining <= 0) {
+        throw new Error(`Credit note limit reached for ${src.number}.`);
+      }
       const allCN = invoicesRef.current.filter((x) => x.kind === "credit-note");
       const number = nextDocNumber(allCN, src.businessId, "CN-");
       const id = `cn_${Date.now()}`;
       const now = new Date().toISOString();
       const hasAmount = typeof creditAmount === "number" && Number.isFinite(creditAmount);
-      const safeAmount = hasAmount ? Math.max(0, Math.min(creditAmount!, src.total)) : undefined;
-      const lines = safeAmount
-        ? [
-            {
-              id: `cnl_${id}_0`,
-              name: `Credit note against ${src.number}`,
-              qty: 1,
-              unit: "pcs",
-              rate: safeAmount,
-              discountKind: "percent" as const,
-              discountValue: 0,
-              taxPercent: 0,
-            },
-          ]
-        : src.lines.map((l, i) => ({ ...l, id: `cnl_${id}_${i}` }));
+      const safeAmount = hasAmount
+        ? Math.max(0, Math.min(creditAmount!, remaining))
+        : remaining;
+      if (safeAmount <= 0) {
+        throw new Error("Credit amount must be greater than zero.");
+      }
+      const lines = [
+        {
+          id: `cnl_${id}_0`,
+          name: `Credit note against ${src.number}`,
+          qty: 1,
+          unit: "pcs",
+          rate: safeAmount,
+          discountKind: "percent" as const,
+          discountValue: 0,
+          taxPercent: 0,
+        },
+      ];
       const totals = computeTotals({
         lines,
         overallDiscountKind: "percent",
