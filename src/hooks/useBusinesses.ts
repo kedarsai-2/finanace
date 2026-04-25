@@ -148,7 +148,16 @@ export function useBusinesses() {
 
         setBusinesses(mapped);
         const stored = typeof window !== "undefined" ? localStorage.getItem(API_ACTIVE_KEY) : null;
-        setActiveId(stored ?? mapped[0]?.id ?? null);
+        const hasStored = !!stored && mapped.some((b) => b.id === stored);
+        const nextActiveId = hasStored ? stored : (mapped[0]?.id ?? null);
+        setActiveId(nextActiveId);
+        if (typeof window !== "undefined") {
+          if (nextActiveId) {
+            localStorage.setItem(API_ACTIVE_KEY, nextActiveId);
+          } else {
+            localStorage.removeItem(API_ACTIVE_KEY);
+          }
+        }
       } catch {
         // Backend mode should fail closed (empty state), not show local seed data.
         setBusinesses([]);

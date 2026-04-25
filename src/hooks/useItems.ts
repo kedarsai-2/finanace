@@ -219,6 +219,12 @@ export function useItems(businessId?: string | null) {
         const before = itemsRef.current.find((x) => x.id === it.id);
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
+        if (!dto.business && before?.businessId) {
+          dto.business = businessRefFromId(before.businessId);
+        }
+        if (!dto.business) {
+          throw new Error("Select a specific business before saving an item.");
+        }
         dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         if (!isUpdate) {
           delete dto.id;
