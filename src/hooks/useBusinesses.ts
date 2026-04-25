@@ -231,7 +231,7 @@ export function useBusinesses() {
           }
           return;
         } catch (err) {
-          if (err instanceof ApiError && err.status === 500) {
+          if (err instanceof ApiError && (err.status === 500 || err.status === 400)) {
             throw new Error(
               "This business cannot be deleted because it still has related data (parties, invoices, purchases, etc.).",
             );

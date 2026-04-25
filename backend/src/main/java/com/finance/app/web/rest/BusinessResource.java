@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -171,7 +172,15 @@ public class BusinessResource {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBusiness(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete Business : {}", id);
-        businessService.delete(id);
+        try {
+            businessService.delete(id);
+        } catch (DataIntegrityViolationException ex) {
+            throw new BadRequestAlertException(
+                "Business has related records. Delete parties, invoices, purchases, payments, expenses, items and accounts first.",
+                ENTITY_NAME,
+                "hasdependencies"
+            );
+        }
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
