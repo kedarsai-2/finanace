@@ -1,28 +1,28 @@
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME?.trim();
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET?.trim();
-const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_FOLDER?.trim();
+import { apiFetch } from "@/lib/api";
 
-export function hasCloudinaryConfig(): boolean {
-  return Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET);
-}
+type CloudinarySignatureResponse = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+};
 
 export async function uploadImageToCloudinary(file: File): Promise<{
   secureUrl: string;
   originalFilename: string;
 }> {
-  if (!hasCloudinaryConfig()) {
-    throw new Error(
-      "Cloudinary is not configured. Set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.",
-    );
-  }
+  const signed = await apiFetch<CloudinarySignatureResponse>("/api/cloudinary/signature", {
+    method: "POST",
+  });
 
   const body = new FormData();
   body.append("file", file);
-  body.append("upload_preset", CLOUDINARY_UPLOAD_PRESET!);
-  if (CLOUDINARY_FOLDER) body.append("folder", CLOUDINARY_FOLDER);
+  body.append("api_key", signed.apiKey);
+  body.append("timestamp", String(signed.timestamp));
+  body.append("signature", signed.signature);
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME!)}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(signed.cloudName)}/image/upload`,
     {
       method: "POST",
       body,
@@ -32,8 +32,7 @@ export async function uploadImageToCloudinary(file: File): Promise<{
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.secure_url) {
     const message =
-      data?.error?.message ||
-      "Image upload failed. Please verify Cloudinary settings and upload preset permissions.";
+      data?.error?.message || "Image upload failed. Please verify Cloudinary credentials.";
     throw new Error(message);
   }
 
