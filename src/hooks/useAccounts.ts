@@ -187,11 +187,12 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     const token = getJwt();
     if (USE_BACKEND && token) {
       return (async () => {
+        const before = accountsRef.current.find((x) => x.id === a.id);
         const isUpdate = /^\d+$/.test(a.id);
         const dto = accountToDto(a);
+        dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         if (!isUpdate) {
           delete dto.id;
-          dto.createdAt = dto.createdAt ?? new Date().toISOString();
         }
         const saved = await apiFetch<AccountDTO>(
           isUpdate ? `/api/accounts/${a.id}` : "/api/accounts",
@@ -230,18 +231,12 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     return Promise.resolve(local);
   }, []);
 
-  const remove = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
     const before = accountsRef.current.find((x) => x.id === id);
     const token = getJwt();
     if (USE_BACKEND && token) {
-      (async () => {
-        try {
-          await apiFetch<void>(`/api/accounts/${id}`, { method: "DELETE" });
-          setAccounts((prev) => prev.filter((x) => x.id !== id));
-        } catch {
-          // ignore
-        }
-      })();
+      await apiFetch<void>(`/api/accounts/${id}`, { method: "DELETE" });
+      setAccounts((prev) => prev.filter((x) => x.id !== id));
       return;
     }
     setAccounts((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true } : x)));
@@ -255,6 +250,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
         before: snapshot(before),
       });
     }
+    return;
   }, []);
 
   const scoped = useMemo(

@@ -58,10 +58,15 @@ function ExpenseDetailPage() {
   const account = accounts.find((a) => a.id === expense.accountId);
   const party = expense.partyId ? parties.find((p) => p.id === expense.partyId) : null;
 
-  const handleDelete = () => {
-    remove(expense.id);
-    toast.success("Expense deleted");
-    navigate({ to: "/expenses" });
+  const handleDelete = async () => {
+    try {
+      await remove(expense.id);
+      toast.success("Expense deleted");
+      navigate({ to: "/expenses" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete expense";
+      toast.error(message);
+    }
   };
 
   return (

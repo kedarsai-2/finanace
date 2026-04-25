@@ -219,9 +219,9 @@ export function useItems(businessId?: string | null) {
         const before = itemsRef.current.find((x) => x.id === it.id);
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
+        dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         if (!isUpdate) {
           delete dto.id;
-          dto.createdAt = dto.createdAt ?? new Date().toISOString();
         }
         const saved = await apiFetch<ItemDTO>(isUpdate ? `/api/items/${it.id}` : "/api/items", {
           method: isUpdate ? "PUT" : "POST",
@@ -264,28 +264,22 @@ export function useItems(businessId?: string | null) {
   }, []);
 
   /** Soft delete — keeps the row but hides it from all surfaces. */
-  const remove = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
     const before = itemsRef.current.find((x) => x.id === id);
     const token = getJwt();
     if (USE_BACKEND && token) {
-      (async () => {
-        try {
-          await apiFetch<void>(`/api/items/${id}`, { method: "DELETE" });
-          if (before) {
-            logAudit({
-              module: "item",
-              action: "delete",
-              recordId: id,
-              reference: before.name,
-              businessId: before.businessId,
-              before: snapshot(before),
-            });
-          }
-          setItems((prev) => prev.filter((x) => x.id !== id));
-        } catch {
-          // ignore
-        }
-      })();
+      await apiFetch<void>(`/api/items/${id}`, { method: "DELETE" });
+      if (before) {
+        logAudit({
+          module: "item",
+          action: "delete",
+          recordId: id,
+          reference: before.name,
+          businessId: before.businessId,
+          before: snapshot(before),
+        });
+      }
+      setItems((prev) => prev.filter((x) => x.id !== id));
       return;
     }
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, deleted: true, active: false } : x)));
@@ -299,6 +293,7 @@ export function useItems(businessId?: string | null) {
         before: snapshot(before),
       });
     }
+    return;
   }, []);
 
   const toggleActive = useCallback((id: string) => {

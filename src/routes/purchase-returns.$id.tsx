@@ -67,15 +67,25 @@ function PurchaseReturnDetailPage() {
   const editable = canEditPurchase(ret);
   const currency = business?.currency ?? "INR";
 
-  const handleCancel = () => {
-    cancel(ret.id);
-    toast.success(`Return ${ret.number} cancelled`);
+  const handleCancel = async () => {
+    try {
+      await cancel(ret.id);
+      toast.success(`Return ${ret.number} cancelled`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not cancel return";
+      toast.error(message);
+    }
   };
 
-  const handleDelete = () => {
-    remove(ret.id);
-    toast.success(`Return ${ret.number} deleted`);
-    navigate({ to: "/purchase-returns" });
+  const handleDelete = async () => {
+    try {
+      await remove(ret.id);
+      toast.success(`Return ${ret.number} deleted`);
+      navigate({ to: "/purchase-returns" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete return";
+      toast.error(message);
+    }
   };
 
   return (

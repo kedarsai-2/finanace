@@ -254,28 +254,22 @@ export function useParties(businessId?: string | null) {
     partiesRef.current = parties;
   }, [parties]);
 
-  const remove = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
     const before = partiesRef.current.find((p) => p.id === id);
     const token = getJwt();
     if (USE_BACKEND && token) {
-      (async () => {
-        try {
-          await apiFetch<void>(`/api/parties/${id}`, { method: "DELETE" });
-          if (before) {
-            logAudit({
-              module: "party",
-              action: "delete",
-              recordId: id,
-              reference: before.name,
-              businessId: before.businessId,
-              before: snapshot(before),
-            });
-          }
-          setParties((prev) => prev.filter((p) => p.id !== id));
-        } catch {
-          // ignore; UI will remain unchanged
-        }
-      })();
+      await apiFetch<void>(`/api/parties/${id}`, { method: "DELETE" });
+      if (before) {
+        logAudit({
+          module: "party",
+          action: "delete",
+          recordId: id,
+          reference: before.name,
+          businessId: before.businessId,
+          before: snapshot(before),
+        });
+      }
+      setParties((prev) => prev.filter((p) => p.id !== id));
       return;
     }
 
@@ -291,6 +285,7 @@ export function useParties(businessId?: string | null) {
         before: snapshot(before),
       });
     }
+    return;
   }, []);
 
   /**
@@ -320,10 +315,10 @@ export function useParties(businessId?: string | null) {
         const before = partiesRef.current.find((x) => x.id === p.id);
         const isUpdate = /^\d+$/.test(p.id);
         const dto = partyToDto(p);
+        dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         // For create, omit id to avoid error.idexists.
         if (!isUpdate) {
           delete dto.id;
-          dto.createdAt = dto.createdAt ?? new Date().toISOString();
         }
 
         const saved = await apiFetch<PartyDTO>(isUpdate ? `/api/parties/${p.id}` : "/api/parties", {

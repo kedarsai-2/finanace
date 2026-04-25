@@ -85,7 +85,8 @@ function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allInvoices, hydrated, cancel, remove, ensureLines, convertToCreditNote } = useInvoices(activeId);
+  const { allInvoices, hydrated, cancel, remove, ensureLines, convertToCreditNote } =
+    useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
@@ -138,15 +139,25 @@ function InvoiceDetailsPage() {
   const editable = canEditInvoice(invoice);
   const currency = business?.currency ?? "INR";
 
-  const handleCancel = () => {
-    cancel(invoice.id);
-    toast.success(`Invoice ${invoice.number} cancelled`);
+  const handleCancel = async () => {
+    try {
+      await cancel(invoice.id);
+      toast.success(`Invoice ${invoice.number} cancelled`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not cancel invoice";
+      toast.error(message);
+    }
   };
 
-  const handleDelete = () => {
-    remove(invoice.id);
-    toast.success(`Invoice ${invoice.number} deleted`);
-    navigate({ to: "/invoices", search: LIST_SEARCH });
+  const handleDelete = async () => {
+    try {
+      await remove(invoice.id);
+      toast.success(`Invoice ${invoice.number} deleted`);
+      navigate({ to: "/invoices", search: LIST_SEARCH });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete invoice";
+      toast.error(message);
+    }
   };
 
   const shareArgs = {
@@ -288,7 +299,8 @@ function InvoiceDetailsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Create credit note</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Enter how much you want to credit against <span className="font-mono">{invoice.number}</span>.
+                      Enter how much you want to credit against{" "}
+                      <span className="font-mono">{invoice.number}</span>.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <div className="space-y-2">

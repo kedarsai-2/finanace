@@ -165,9 +165,14 @@ function AccountsPage() {
               balance={balance}
               txnCount={txns}
               currency={currency}
-              onDelete={() => {
-                remove(account.id);
-                toast.success(`${account.name} deleted`);
+              onDelete={async () => {
+                try {
+                  await remove(account.id);
+                  toast.success(`${account.name} deleted`);
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : "Could not delete account";
+                  toast.error(message);
+                }
               }}
             />
           ))}

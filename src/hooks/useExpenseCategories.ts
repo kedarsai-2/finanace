@@ -123,11 +123,12 @@ export function useExpenseCategories(businessId?: string | null) {
     const token = getJwt();
     if (USE_BACKEND && token) {
       return (async () => {
+        const before = categoriesRef.current.find((x) => x.id === c.id);
         const isUpdate = /^\d+$/.test(c.id);
         const dto = categoryToDto(c);
+        dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         if (!isUpdate) {
           delete dto.id;
-          dto.createdAt = dto.createdAt ?? new Date().toISOString();
         }
         const saved = await apiFetch<ExpenseCategoryDTO>(
           isUpdate ? `/api/expense-categories/${c.id}` : "/api/expense-categories",
@@ -158,18 +159,12 @@ export function useExpenseCategories(businessId?: string | null) {
     return Promise.resolve(c);
   }, []);
 
-  const remove = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
     const before = categoriesRef.current.find((x) => x.id === id);
     const token = getJwt();
     if (USE_BACKEND && token) {
-      (async () => {
-        try {
-          await apiFetch<void>(`/api/expense-categories/${id}`, { method: "DELETE" });
-          setCategories((prev) => prev.filter((x) => x.id !== id));
-        } catch {
-          // ignore
-        }
-      })();
+      await apiFetch<void>(`/api/expense-categories/${id}`, { method: "DELETE" });
+      setCategories((prev) => prev.filter((x) => x.id !== id));
       return;
     }
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, deleted: true } : c)));
@@ -183,6 +178,7 @@ export function useExpenseCategories(businessId?: string | null) {
         before: snapshot(before),
       });
     }
+    return;
   }, []);
 
   const scoped = useMemo(

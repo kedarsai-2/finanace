@@ -77,12 +77,17 @@ function AssetsPage() {
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
     const name = deleting.name;
-    remove(deleting.id);
-    setDeleting(null);
-    toast.success(`Deleted ${name}`);
+    try {
+      await remove(deleting.id);
+      setDeleting(null);
+      toast.success(`Deleted ${name}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete asset";
+      toast.error(message);
+    }
   };
 
   return (
@@ -187,7 +192,9 @@ function AssetsTable({
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold text-foreground">{it.name}</p>
-                {it.sku && <p className="truncate font-mono text-xs text-muted-foreground">{it.sku}</p>}
+                {it.sku && (
+                  <p className="truncate font-mono text-xs text-muted-foreground">{it.sku}</p>
+                )}
               </div>
             </div>
 
@@ -256,9 +263,13 @@ function EmptyState({ filtered }: { filtered: boolean }) {
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
         <ImageIcon className="h-8 w-8" />
       </div>
-      <h2 className="mt-6 text-xl font-semibold">{filtered ? "No assets match your search" : "No assets yet"}</h2>
+      <h2 className="mt-6 text-xl font-semibold">
+        {filtered ? "No assets match your search" : "No assets yet"}
+      </h2>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        {filtered ? "Try a different search term." : "Add your first asset (product) to start using it in invoices."}
+        {filtered
+          ? "Try a different search term."
+          : "Add your first asset (product) to start using it in invoices."}
       </p>
       <Button asChild size="lg" className="mt-6 gap-2">
         <Link to="/assets/new">
@@ -269,4 +280,3 @@ function EmptyState({ filtered }: { filtered: boolean }) {
     </div>
   );
 }
-

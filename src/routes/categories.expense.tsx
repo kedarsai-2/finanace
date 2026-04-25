@@ -105,9 +105,15 @@ function ExpenseCategoriesPage() {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-destructive"
-                  onClick={() => {
-                    remove(category.id);
-                    toast.success("Category deleted");
+                  onClick={async () => {
+                    try {
+                      await remove(category.id);
+                      toast.success("Category deleted");
+                    } catch (err) {
+                      const message =
+                        err instanceof Error ? err.message : "Could not delete category";
+                      toast.error(message);
+                    }
                   }}
                   aria-label="Delete category"
                 >

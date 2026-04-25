@@ -22,6 +22,7 @@ import { LogoUpload } from "@/components/business/LogoUpload";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { CURRENCIES, INDIAN_STATES, MONTHS, type Business } from "@/types/business";
 import { businessFormSchema, type BusinessFormValues } from "@/lib/businessSchema";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
 import { getJwt } from "@/lib/auth";
@@ -32,6 +33,15 @@ type Mode = "new" | "edit";
 interface Props {
   mode: Mode;
   businessId?: string;
+}
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [meta, b64] = dataUrl.split(",", 2);
+  if (!meta || !b64) throw new Error("Invalid image data");
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mime = mimeMatch?.[1] || "image/png";
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return new File([bytes], filename, { type: mime });
 }
 
 export function BusinessForm({ mode, businessId }: Props) {
@@ -95,6 +105,27 @@ export function BusinessForm({ mode, businessId }: Props) {
             return;
           }
           const billing = values.billingAddress ?? {};
+          let logoUrl = values.logoUrl?.trim() || undefined;
+
+          // Auto-migrate any legacy base64 logo to Cloudinary before submit.
+          if (logoUrl?.startsWith("data:")) {
+            try {
+              const file = dataUrlToFile(logoUrl, `business-logo-${Date.now()}.png`);
+              const uploaded = await uploadImageToCloudinary(file);
+              logoUrl = uploaded.secureUrl;
+              setValue("logoUrl", logoUrl, { shouldDirty: true });
+            } catch (err) {
+              const message =
+                err instanceof Error ? err.message : "Failed to upload business logo";
+              toast.error(message);
+              return;
+            }
+          }
+
+          if (logoUrl && logoUrl.length > 1024) {
+            toast.error("Business logo URL is too long. Please re-upload the logo.");
+            return;
+          }
 
           if (USE_BACKEND) {
             const nowIso = new Date().toISOString();
@@ -104,7 +135,7 @@ export function BusinessForm({ mode, businessId }: Props) {
               ownerName: values.ownerName || null,
               mobile: values.mobile,
               email: values.email || null,
-              logoUrl: values.logoUrl || null,
+              logoUrl: logoUrl || null,
               gstNumber: values.gstNumber || null,
               panNumber: values.panNumber || null,
               city: billing.city ?? existing?.city ?? "",
@@ -155,7 +186,7 @@ export function BusinessForm({ mode, businessId }: Props) {
               ownerName: values.ownerName,
               mobile: values.mobile,
               email: values.email,
-              logoUrl: values.logoUrl,
+              logoUrl,
               gstNumber: values.gstNumber,
               panNumber: values.panNumber,
               billingAddress: billing,

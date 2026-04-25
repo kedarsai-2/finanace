@@ -425,9 +425,10 @@ export function usePurchases(businessId?: string | null) {
         return;
       }
 
+      const before = purchasesRef.current.find((x) => x.id === p.id);
       const dto = purchaseToDto(p);
       const isUpdate = toNumId(p.id) != null;
-      if (!isUpdate) dto.createdAt = dto.createdAt ?? new Date().toISOString();
+      dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
       const saved = isUpdate
         ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, {
             method: "PUT",

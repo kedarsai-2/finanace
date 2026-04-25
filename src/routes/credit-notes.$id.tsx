@@ -64,15 +64,25 @@ function CreditNoteDetailPage() {
   const editable = canEditInvoice(cn);
   const currency = business?.currency ?? "INR";
 
-  const handleCancel = () => {
-    cancel(cn.id);
-    toast.success(`Credit note ${cn.number} cancelled`);
+  const handleCancel = async () => {
+    try {
+      await cancel(cn.id);
+      toast.success(`Credit note ${cn.number} cancelled`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not cancel credit note";
+      toast.error(message);
+    }
   };
 
-  const handleDelete = () => {
-    remove(cn.id);
-    toast.success(`Credit note ${cn.number} deleted`);
-    navigate({ to: "/credit-notes" });
+  const handleDelete = async () => {
+    try {
+      await remove(cn.id);
+      toast.success(`Credit note ${cn.number} deleted`);
+      navigate({ to: "/credit-notes" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete credit note";
+      toast.error(message);
+    }
   };
 
   return (

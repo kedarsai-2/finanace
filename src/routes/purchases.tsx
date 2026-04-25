@@ -119,20 +119,30 @@ function PurchasesPage() {
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
     const n = deleting.number;
-    remove(deleting.id);
-    setDeleting(null);
-    toast.success(`Deleted ${n}`);
+    try {
+      await remove(deleting.id);
+      setDeleting(null);
+      toast.success(`Deleted ${n}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete purchase";
+      toast.error(message);
+    }
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!cancelling) return;
     const n = cancelling.number;
-    cancel(cancelling.id);
-    setCancelling(null);
-    toast.success(`Cancelled ${n}`);
+    try {
+      await cancel(cancelling.id);
+      setCancelling(null);
+      toast.success(`Cancelled ${n}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not cancel purchase";
+      toast.error(message);
+    }
   };
 
   const currency = activeBusiness?.currency ?? "INR";

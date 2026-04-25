@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Business } from "@/types/business";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import { getJwt, subscribeAuth } from "@/lib/auth";
 
 const STORAGE_KEY = "bm.businesses";
@@ -207,11 +207,37 @@ export function useBusinesses() {
   }, []);
 
   const remove = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const token = getJwt();
       if (USE_BACKEND && token) {
-        // Backend mode: deleting businesses should be done via API (not implemented yet).
-        return;
+        const before = businessesRef.current.find((p) => p.id === id);
+        try {
+          await apiFetch<void>(`/api/businesses/${id}`, { method: "DELETE" });
+          setBusinesses((prev) => prev.filter((p) => p.id !== id));
+          setActiveId((prev) => {
+            if (prev !== id) return prev;
+            const next = businessesRef.current.find((b) => b.id !== id);
+            return next?.id ?? null;
+          });
+          if (before) {
+            logAudit({
+              module: "business",
+              action: "delete",
+              recordId: id,
+              reference: before.name,
+              businessId: id,
+              before: snapshot(before),
+            });
+          }
+          return;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 500) {
+            throw new Error(
+              "This business cannot be deleted because it still has related data (parties, invoices, purchases, etc.).",
+            );
+          }
+          throw err;
+        }
       }
       const before = businessesRef.current.find((p) => p.id === id);
       setBusinesses((prev) => prev.filter((p) => p.id !== id));

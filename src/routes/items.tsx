@@ -94,12 +94,17 @@ function ItemsPage() {
   const setType = (next: Filter) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, type: next }) });
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
     const name = deleting.name;
-    remove(deleting.id);
-    setDeleting(null);
-    toast.success(`Deleted ${name}`);
+    try {
+      await remove(deleting.id);
+      setDeleting(null);
+      toast.success(`Deleted ${name}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete item";
+      toast.error(message);
+    }
   };
 
   const currency = activeBusiness?.currency ?? "INR";

@@ -95,15 +95,25 @@ function PurchaseDetailsPage() {
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
 
-  const handleCancel = () => {
-    cancel(purchase.id);
-    toast.success(`Purchase ${purchase.number} cancelled`);
+  const handleCancel = async () => {
+    try {
+      await cancel(purchase.id);
+      toast.success(`Purchase ${purchase.number} cancelled`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not cancel purchase";
+      toast.error(message);
+    }
   };
 
-  const handleDelete = () => {
-    remove(purchase.id);
-    toast.success(`Purchase ${purchase.number} deleted`);
-    navigate({ to: "/purchases", search: LIST_SEARCH });
+  const handleDelete = async () => {
+    try {
+      await remove(purchase.id);
+      toast.success(`Purchase ${purchase.number} deleted`);
+      navigate({ to: "/purchases", search: LIST_SEARCH });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete purchase";
+      toast.error(message);
+    }
   };
 
   return (

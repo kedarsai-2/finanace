@@ -154,10 +154,11 @@ export function useExpenses(businessId?: string | null) {
     if (USE_BACKEND && token) {
       return (async (): Promise<Expense> => {
         const isUpdate = /^\d+$/.test(e.id);
+        const before = expensesRef.current.find((x) => x.id === e.id);
         const dto = expenseToDto(e);
+        dto.createdAt = dto.createdAt ?? before?.createdAt ?? new Date().toISOString();
         if (!isUpdate) {
           delete dto.id;
-          dto.createdAt = dto.createdAt ?? new Date().toISOString();
         }
         const saved = await apiFetch<ExpenseDTO>(
           isUpdate ? `/api/expenses/${e.id}` : "/api/expenses",
@@ -208,18 +209,12 @@ export function useExpenses(businessId?: string | null) {
     return Promise.resolve(e);
   }, []);
 
-  const remove = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
     const before = expensesRef.current.find((x) => x.id === id);
     const token = getJwt();
     if (USE_BACKEND && token) {
-      (async () => {
-        try {
-          await apiFetch<void>(`/api/expenses/${id}`, { method: "DELETE" });
-          setExpenses((prev) => prev.filter((x) => x.id !== id));
-        } catch {
-          // ignore
-        }
-      })();
+      await apiFetch<void>(`/api/expenses/${id}`, { method: "DELETE" });
+      setExpenses((prev) => prev.filter((x) => x.id !== id));
       return;
     }
     setExpenses((prev) =>
@@ -237,6 +232,7 @@ export function useExpenses(businessId?: string | null) {
         before: snapshot(before),
       });
     }
+    return;
   }, []);
 
   const scoped = useMemo(

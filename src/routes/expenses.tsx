@@ -207,7 +207,12 @@ function ExpensesPage() {
         </div>
       </div>
 
-      {(q || typeFilter !== "all" || categoryFilter !== "all" || accountFilter !== "all" || from || to) && (
+      {(q ||
+        typeFilter !== "all" ||
+        categoryFilter !== "all" ||
+        accountFilter !== "all" ||
+        from ||
+        to) && (
         <div className="mb-3 flex justify-end">
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Clear filters
@@ -300,9 +305,15 @@ function ExpensesPage() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => {
-                              remove(e.id);
-                              toast.success("Expense deleted");
+                            onClick={async () => {
+                              try {
+                                await remove(e.id);
+                                toast.success("Expense deleted");
+                              } catch (err) {
+                                const message =
+                                  err instanceof Error ? err.message : "Could not delete expense";
+                                toast.error(message);
+                              }
                             }}
                           >
                             Delete

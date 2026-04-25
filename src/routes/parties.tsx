@@ -108,12 +108,17 @@ function PartiesPage() {
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
     const name = deleting.name;
-    remove(deleting.id);
-    setDeleting(null);
-    toast.success(`Deleted ${name}`);
+    try {
+      await remove(deleting.id);
+      setDeleting(null);
+      toast.success(`Deleted ${name}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete party";
+      toast.error(message);
+    }
   };
 
   return (

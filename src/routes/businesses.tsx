@@ -56,12 +56,17 @@ function BusinessesPage() {
     toast.success(`Switched to ${b.name}`);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleting) return;
-    const name = deleting.name;
-    remove(deleting.id);
-    setDeleting(null);
-    toast.success(`Deleted ${name}`);
+    const { id, name } = deleting;
+    try {
+      await remove(id);
+      setDeleting(null);
+      toast.success(`Deleted ${name}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete business";
+      toast.error(message);
+    }
   };
 
   return (
