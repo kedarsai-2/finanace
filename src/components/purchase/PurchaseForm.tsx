@@ -176,7 +176,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   // -------- Validation ----------------------------------------------------
   const validate = (): string | null => {
     if (!activeId) return "Select an active business first";
-    if (!partyId) return "Please select a supplier";
+    if (!partyId) return "Please select a party";
     if (!number.trim()) return "Purchase number is required";
     if (
       allPurchases.some(
@@ -317,11 +317,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           </div>
         )}
 
-        {/* 1. Supplier ------------------------------------------------------ */}
-        <FormSection step={1} title="Supplier" description="Who are you buying from?">
+        {/* 1. Party --------------------------------------------------------- */}
+        <FormSection step={1} title="Party" description="Who are you buying from?">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <Label>Supplier *</Label>
+              <Label>Party *</Label>
               <Popover open={partyOpen} onOpenChange={setPartyOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -332,15 +332,15 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                       !party && "text-muted-foreground",
                     )}
                   >
-                    {party ? party.name : "Select supplier…"}
+                    {party ? party.name : "Select party…"}
                     <SearchIcon className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search suppliers…" />
+                    <CommandInput placeholder="Search parties…" />
                     <CommandList>
-                      <CommandEmpty>No suppliers found.</CommandEmpty>
+                      <CommandEmpty>No parties found.</CommandEmpty>
                       <CommandGroup>
                         {suppliers.map((p) => (
                           <CommandItem
@@ -378,7 +378,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               className="gap-2"
             >
               <UserPlus className="h-4 w-4" />
-              Add Supplier
+              Add Party
             </Button>
           </div>
         </FormSection>

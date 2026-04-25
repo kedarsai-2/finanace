@@ -86,8 +86,8 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         </div>
       </header>
 
-      <div className="border-b border-slate-300 py-1.5 text-center">
-        <p className="text-[40px] font-bold leading-none text-[#8a86cf] [transform:scaleX(0.11)] [transform-origin:center]">
+      <div className="py-1.5 text-center">
+        <p className="text-[38px] font-bold leading-none tracking-[0.2px] text-[#8a86cf]">
           Tax Invoice
         </p>
       </div>
@@ -271,9 +271,11 @@ function SnickrLogo() {
 
 function SmallStamp() {
   return (
-    <div className="rounded-full border border-slate-400 px-4 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-600">
-      Approved
-    </div>
+    <img
+      src="/snickr-stamp.png"
+      alt="Authorized stamp"
+      style={{ height: "24mm", width: "auto", objectFit: "contain" }}
+    />
   );
 }
 
