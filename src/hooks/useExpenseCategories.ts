@@ -103,7 +103,7 @@ export function useExpenseCategories(businessId?: string | null) {
           `/api/expense-categories?businessId.equals=${biz}&size=200&sort=id,asc`,
         );
         if (cancelled) return;
-        setCategories(list.map(dtoToCategory));
+        setCategories(list.filter((dto) => !dto.deleted).map(dtoToCategory));
       } catch {
         if (cancelled) return;
         setCategories([]);

@@ -196,7 +196,7 @@ export function useItems(businessId?: string | null) {
           `/api/items?businessId.equals=${biz}&size=500&sort=id,desc`,
         );
         if (cancelled) return;
-        setItems(list.map(dtoToItem));
+        setItems(list.filter((dto) => !dto.deleted).map(dtoToItem));
       } catch {
         if (cancelled) return;
         setItems([]);

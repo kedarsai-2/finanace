@@ -380,7 +380,7 @@ export function usePurchases(businessId?: string | null) {
     const list = await apiFetch<PurchaseDTO[]>(
       `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
     );
-    setPurchases(normalizePurchases(list.map(dtoToPurchase)));
+    setPurchases(normalizePurchases(list.filter((dto) => !dto.deleted).map(dtoToPurchase)));
   }, [businessId]);
 
   useEffect(() => {

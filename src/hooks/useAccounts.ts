@@ -167,7 +167,12 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
           `/api/accounts?businessId.equals=${biz}&size=200&sort=id,desc`,
         );
         if (cancelled) return;
-        setAccounts(list.map(dtoToAccount).filter((a) => !!a.id));
+        setAccounts(
+          list
+            .filter((dto) => !dto.deleted)
+            .map(dtoToAccount)
+            .filter((a) => !!a.id),
+        );
       } catch {
         if (cancelled) return;
         setAccounts([]);

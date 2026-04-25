@@ -238,7 +238,7 @@ export function useParties(businessId?: string | null) {
           if (chunk.length < pageSize) break;
         }
         if (cancelled) return;
-        setParties(all.map(dtoToParty));
+        setParties(all.filter((dto) => !dto.deleted).map(dtoToParty));
       } catch {
         if (cancelled) return;
         setParties([]);

@@ -133,7 +133,7 @@ export function useExpenses(businessId?: string | null) {
           `/api/expenses?businessId.equals=${biz}&size=300&sort=date,desc`,
         );
         if (cancelled) return;
-        setExpenses(list.map(dtoToExpense));
+        setExpenses(list.filter((dto) => !dto.deleted).map(dtoToExpense));
       } catch {
         if (cancelled) return;
         setExpenses([]);

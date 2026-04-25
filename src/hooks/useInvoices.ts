@@ -389,7 +389,7 @@ export function useInvoices(businessId?: string | null) {
     const list = await apiFetch<InvoiceDTO[]>(
       `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
     );
-    setInvoices(list.map(dtoToInvoice));
+    setInvoices(list.filter((dto) => !dto.deleted).map(dtoToInvoice));
     setHydrated(true);
   }, [businessId]);
 
