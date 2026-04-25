@@ -37,7 +37,7 @@ function CreditNoteDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
-  const { allInvoices, cancel, remove, ensureLines } = useInvoices(activeId);
+  const { allInvoices, hydrated, cancel, remove, ensureLines } = useInvoices(activeId);
   const cn = allInvoices.find((i) => i.id === id && i.kind === "credit-note");
   const business = businesses.find((b) => b.id === cn?.businessId);
   const { parties } = useParties(cn?.businessId);
@@ -48,6 +48,10 @@ function CreditNoteDetailPage() {
     if (!cn) return;
     if (cn.lines.length === 0) void ensureLines(cn.id).catch(() => {});
   }, [cn, ensureLines]);
+
+  if (!hydrated) {
+    return <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
 
   if (!cn) {
     return (
