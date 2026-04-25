@@ -219,7 +219,10 @@ export function useItems(businessId?: string | null) {
         const before = itemsRef.current.find((x) => x.id === it.id);
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
-        if (!isUpdate) delete dto.id;
+        if (!isUpdate) {
+          delete dto.id;
+          dto.createdAt = dto.createdAt ?? new Date().toISOString();
+        }
         const saved = await apiFetch<ItemDTO>(isUpdate ? `/api/items/${it.id}` : "/api/items", {
           method: isUpdate ? "PUT" : "POST",
           body: JSON.stringify(dto),

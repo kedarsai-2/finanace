@@ -64,6 +64,7 @@ function transferToDto(t: Transfer): TransferDTO {
     notes: t.notes ?? null,
     proofDataUrl: t.proofDataUrl ?? null,
     proofName: t.proofName ?? null,
+    createdAt: t.createdAt ?? null,
     business: businessRefFromId(t.businessId),
     fromAccount: t.fromAccountId ? { id: parseInt(t.fromAccountId, 10) } : null,
     toAccount: t.kind === "transfer" && t.toAccountId ? { id: parseInt(t.toAccountId, 10) } : null,
@@ -133,6 +134,7 @@ export function useTransfers(businessId?: string | null) {
       return (async () => {
         const dto = transferToDto(t);
         delete dto.id;
+        dto.createdAt = dto.createdAt ?? new Date().toISOString();
         const saved = await apiFetch<TransferDTO>("/api/transfers", {
           method: "POST",
           body: JSON.stringify(dto),

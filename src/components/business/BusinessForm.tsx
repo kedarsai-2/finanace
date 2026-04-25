@@ -97,6 +97,7 @@ export function BusinessForm({ mode, businessId }: Props) {
           const billing = values.billingAddress ?? {};
 
           if (USE_BACKEND) {
+            const nowIso = new Date().toISOString();
             const dto: Record<string, unknown> = {
               id: existing?.id ? parseInt(existing.id, 10) : undefined,
               name: values.name,
@@ -131,7 +132,8 @@ export function BusinessForm({ mode, businessId }: Props) {
                 : (values.shippingAddress?.pincode ?? null),
               currency: values.currency || null,
               fyStartMonth: values.fyStartMonth ?? null,
-              createdAt: existing?.createdAt ?? null,
+              // Backend validates createdAt as required on POST.
+              createdAt: existing?.createdAt ?? nowIso,
               hasData: existing?.hasData ?? null,
             };
             if (!dto.city || !dto.state) {

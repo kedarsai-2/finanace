@@ -50,6 +50,7 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useAccounts } from "@/hooks/useAccounts";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import {
   computeTotals,
@@ -889,8 +890,9 @@ function PaymentSplitsEditor({
 }) {
   const paid = splits.reduce((s, p) => s + (p.amount || 0), 0);
   const remaining = Math.max(0, invoiceTotal - paid);
+  const [uploadingProofIds, setUploadingProofIds] = useState<Record<string, boolean>>({});
 
-  const handleProof = (id: string, file: File | null) => {
+  const handleProof = async (id: string, file: File | null) => {
     if (!file) {
       onChange(id, { proofDataUrl: undefined, proofName: undefined });
       return;
@@ -903,14 +905,24 @@ function PaymentSplitsEditor({
       toast.error("Proof image must be under 2 MB");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
+    setUploadingProofIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      const uploaded = await uploadImageToCloudinary(file);
       onChange(id, {
-        proofDataUrl: typeof reader.result === "string" ? reader.result : undefined,
-        proofName: file.name,
+        proofDataUrl: uploaded.secureUrl,
+        proofName: uploaded.originalFilename,
       });
-    };
-    reader.readAsDataURL(file);
+      toast.success("Proof image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload proof image";
+      toast.error(message);
+    } finally {
+      setUploadingProofIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
   };
 
   return (
@@ -922,6 +934,7 @@ function PaymentSplitsEditor({
         </p>
       )}
       {splits.map((s) => {
+        const uploadingProof = Boolean(uploadingProofIds[s.id]);
         const requiresAccount = s.mode !== "cash";
         const requiresProof = s.mode !== "cash";
         const accountOptions = accounts.filter((a) => {
@@ -1034,6 +1047,7 @@ function PaymentSplitsEditor({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => handleProof(s.id, null)}
+                      disabled={disabled || uploadingProof}
                       aria-label="Remove proof"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1052,9 +1066,15 @@ function PaymentSplitsEditor({
                       type="file"
                       accept="image/*"
                       className="hidden"
+                      disabled={disabled || uploadingProof}
                       onChange={(e) => handleProof(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
+                )}
+                {uploadingProof && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Uploading image to Cloudinary...
+                  </p>
                 )}
               </div>
             </div>

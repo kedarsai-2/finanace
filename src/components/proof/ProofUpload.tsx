@@ -1,8 +1,10 @@
-import { Upload, X } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 
 const MAX_PROOF_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -19,7 +21,7 @@ interface Props {
 }
 
 /**
- * Reusable proof image uploader. Stores the file as a base64 data URL.
+ * Reusable proof image uploader. Uploads to Cloudinary and stores secure URL.
  * Shared by Invoices / Purchases / Payments / Expenses.
  */
 export function ProofUpload({
@@ -31,7 +33,9 @@ export function ProofUpload({
   disabled,
   id,
 }: Props) {
-  const handleFile = (file: File | null) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (file: File | null) => {
     if (!file) {
       onChange({ proofDataUrl: undefined, proofName: undefined });
       return;
@@ -44,14 +48,20 @@ export function ProofUpload({
       toast.error("Proof image must be under 2 MB");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
+    setUploading(true);
+    try {
+      const uploaded = await uploadImageToCloudinary(file);
       onChange({
-        proofDataUrl: typeof reader.result === "string" ? reader.result : undefined,
-        proofName: file.name,
+        proofDataUrl: uploaded.secureUrl,
+        proofName: uploaded.originalFilename,
       });
-    };
-    reader.readAsDataURL(file);
+      toast.success("Proof image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload proof image";
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -71,7 +81,7 @@ export function ProofUpload({
             variant="ghost"
             className="h-7 w-7"
             onClick={() => handleFile(null)}
-            disabled={disabled}
+            disabled={disabled || uploading}
             aria-label="Remove proof"
           >
             <X className="h-3.5 w-3.5" />
@@ -92,10 +102,16 @@ export function ProofUpload({
             type="file"
             accept="image/*"
             className="hidden"
-            disabled={disabled}
+            disabled={disabled || uploading}
             onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
           />
         </label>
+      )}
+      {uploading && (
+        <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Uploading image to Cloudinary...
+        </div>
       )}
     </div>
   );

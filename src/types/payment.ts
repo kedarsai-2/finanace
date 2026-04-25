@@ -17,8 +17,8 @@ export interface Payment {
   reference?: string;
   notes?: string;
   /**
-   * Optional proof image as a base64 data URL (e.g. cheque photo or transfer
-   * screenshot). Required client-side for non-cash modes.
+   * Optional proof image URL (Cloudinary secure URL), e.g. cheque photo or
+   * transfer screenshot. Required client-side for non-cash modes.
    */
   proofDataUrl?: string;
   /** Original filename for display purposes. */

@@ -82,6 +82,7 @@ function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
     notes: p.notes ?? null,
     proofDataUrl: p.proofDataUrl ?? null,
     proofName: p.proofName ?? null,
+    createdAt: new Date().toISOString(),
     business: businessRefFromId(businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
     account: p.accountId && toNumId(p.accountId) != null ? { id: toNumId(p.accountId)! } : null,

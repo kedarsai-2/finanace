@@ -439,6 +439,7 @@ export function useInvoices(businessId?: string | null) {
       const before = invoicesRef.current.find((x) => x.id === inv.id);
       const dto = invoiceToDto(inv);
       const isUpdate = toNumId(inv.id) != null;
+      if (!isUpdate) dto.createdAt = dto.createdAt ?? new Date().toISOString();
       const saved = isUpdate
         ? await apiFetch<InvoiceDTO>(`/api/invoices/${toNumId(inv.id)}`, {
             method: "PUT",

@@ -18,7 +18,7 @@ public interface PurchaseMapper extends EntityMapper<PurchaseDTO, Purchase> {
     @Mapping(target = "sourcePurchaseId", source = "sourcePurchase.id")
     PurchaseDTO toDto(Purchase s);
 
-    @Mapping(target = "sourcePurchase.id", source = "sourcePurchaseId")
+    @Mapping(target = "sourcePurchase", source = "sourcePurchaseId", qualifiedByName = "sourcePurchaseFromId")
     Purchase toEntity(PurchaseDTO dto);
 
     @Named("businessName")
@@ -32,4 +32,14 @@ public interface PurchaseMapper extends EntityMapper<PurchaseDTO, Purchase> {
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     PartyDTO toDtoPartyName(Party party);
+
+    @Named("sourcePurchaseFromId")
+    default Purchase sourcePurchaseFromId(Long sourcePurchaseId) {
+        if (sourcePurchaseId == null) {
+            return null;
+        }
+        Purchase purchase = new Purchase();
+        purchase.setId(sourcePurchaseId);
+        return purchase;
+    }
 }

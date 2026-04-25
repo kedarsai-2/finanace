@@ -44,7 +44,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
       ? "direct"
       : "indirect";
   const category = hasEncodedType
-    ? (encodedCategory || (type === "direct" ? "Direct expense" : "Indirect expense"))
+    ? encodedCategory || (type === "direct" ? "Direct expense" : "Indirect expense")
     : rawCategory || (type === "direct" ? "Direct expense" : "Indirect expense");
   return {
     id: toStrId(dto.id),
@@ -79,6 +79,8 @@ function expenseToDto(e: Expense): ExpenseDTO {
     proofDataUrl: e.proofDataUrl ?? null,
     proofName: e.proofName ?? null,
     deleted: e.deleted ?? false,
+    createdAt: e.createdAt ?? null,
+    updatedAt: e.updatedAt ?? null,
     business: businessRefFromId(e.businessId),
     party: e.partyId ? { id: parseInt(e.partyId, 10) } : null,
     account: e.accountId ? { id: parseInt(e.accountId, 10) } : null,
@@ -153,7 +155,10 @@ export function useExpenses(businessId?: string | null) {
       return (async (): Promise<Expense> => {
         const isUpdate = /^\d+$/.test(e.id);
         const dto = expenseToDto(e);
-        if (!isUpdate) delete dto.id;
+        if (!isUpdate) {
+          delete dto.id;
+          dto.createdAt = dto.createdAt ?? new Date().toISOString();
+        }
         const saved = await apiFetch<ExpenseDTO>(
           isUpdate ? `/api/expenses/${e.id}` : "/api/expenses",
           { method: isUpdate ? "PUT" : "POST", body: JSON.stringify(dto) },

@@ -184,7 +184,9 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     total: p.total,
     paidAmount: p.paidAmount,
     purchaseKind: p.kind === "return" ? "RETURN" : "PURCHASE",
-    sourcePurchaseId: p.kind === "return" ? (toNumId(p.sourcePurchaseId) ?? null) : null,
+    // For normal purchases, omit sourcePurchaseId entirely; sending null can
+    // be interpreted as an unsaved transient relation by backend mappers.
+    sourcePurchaseId: p.kind === "return" ? (toNumId(p.sourcePurchaseId) ?? null) : undefined,
     status: toBackendPurchaseStatus(p.status),
     notes: p.notes ?? null,
     terms: p.terms ?? null,
@@ -425,6 +427,7 @@ export function usePurchases(businessId?: string | null) {
 
       const dto = purchaseToDto(p);
       const isUpdate = toNumId(p.id) != null;
+      if (!isUpdate) dto.createdAt = dto.createdAt ?? new Date().toISOString();
       const saved = isUpdate
         ? await apiFetch<PurchaseDTO>(`/api/purchases/${toNumId(p.id)}`, {
             method: "PUT",

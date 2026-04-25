@@ -57,6 +57,7 @@ function accountToDto(a: Account): AccountDTO {
     upiId: a.upiId ?? null,
     notes: a.notes ?? null,
     deleted: a.deleted ?? false,
+    createdAt: a.createdAt ?? null,
     business: businessRefFromId(a.businessId),
   };
 }
@@ -188,7 +189,10 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
       return (async () => {
         const isUpdate = /^\d+$/.test(a.id);
         const dto = accountToDto(a);
-        if (!isUpdate) delete dto.id;
+        if (!isUpdate) {
+          delete dto.id;
+          dto.createdAt = dto.createdAt ?? new Date().toISOString();
+        }
         const saved = await apiFetch<AccountDTO>(
           isUpdate ? `/api/accounts/${a.id}` : "/api/accounts",
           { method: isUpdate ? "PUT" : "POST", body: JSON.stringify(dto) },

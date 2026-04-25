@@ -321,7 +321,10 @@ export function useParties(businessId?: string | null) {
         const isUpdate = /^\d+$/.test(p.id);
         const dto = partyToDto(p);
         // For create, omit id to avoid error.idexists.
-        if (!isUpdate) delete dto.id;
+        if (!isUpdate) {
+          delete dto.id;
+          dto.createdAt = dto.createdAt ?? new Date().toISOString();
+        }
 
         const saved = await apiFetch<PartyDTO>(isUpdate ? `/api/parties/${p.id}` : "/api/parties", {
           method: isUpdate ? "PUT" : "POST",

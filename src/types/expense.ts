@@ -1,9 +1,6 @@
 import type { PaymentMode } from "./payment";
 
-export const DEFAULT_EXPENSE_TYPES = [
-  "direct",
-  "indirect",
-] as const;
+export const DEFAULT_EXPENSE_TYPES = ["direct", "indirect"] as const;
 
 /** Expense type is fixed to direct/indirect. */
 export type ExpenseType = (typeof DEFAULT_EXPENSE_TYPES)[number];
@@ -31,7 +28,7 @@ export interface Expense {
   reference?: string;
   notes?: string;
   /**
-   * Proof image as a base64 data URL (e.g. bill/receipt photo).
+   * Proof image URL (Cloudinary secure URL), e.g. bill/receipt photo.
    * Required client-side for non-cash payment modes.
    */
   proofDataUrl?: string;

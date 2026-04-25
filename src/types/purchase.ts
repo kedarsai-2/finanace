@@ -43,8 +43,8 @@ export interface Purchase {
   paidAmount: number;
   status: PurchaseStatus;
   /**
-   * Bill / invoice proof image as a base64 data URL. Required client-side
-   * when finalising a purchase.
+   * Bill / invoice proof image URL (Cloudinary secure URL). Required
+   * client-side when finalising a purchase.
    */
   proofDataUrl?: string;
   /** Original filename for display purposes. */

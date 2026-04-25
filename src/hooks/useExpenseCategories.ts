@@ -34,6 +34,7 @@ function categoryToDto(c: ExpenseCategoryRecord): ExpenseCategoryDTO {
     id: toNumId(c.id) ?? undefined,
     name: c.name,
     deleted: c.deleted ?? false,
+    createdAt: c.createdAt ?? null,
     business: businessRefFromId(c.businessId),
   };
 }
@@ -124,7 +125,10 @@ export function useExpenseCategories(businessId?: string | null) {
       return (async () => {
         const isUpdate = /^\d+$/.test(c.id);
         const dto = categoryToDto(c);
-        if (!isUpdate) delete dto.id;
+        if (!isUpdate) {
+          delete dto.id;
+          dto.createdAt = dto.createdAt ?? new Date().toISOString();
+        }
         const saved = await apiFetch<ExpenseCategoryDTO>(
           isUpdate ? `/api/expense-categories/${c.id}` : "/api/expense-categories",
           { method: isUpdate ? "PUT" : "POST", body: JSON.stringify(dto) },
