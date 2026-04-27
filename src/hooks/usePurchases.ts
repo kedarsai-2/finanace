@@ -397,13 +397,10 @@ export function usePurchases(businessId?: string | null) {
 
   const refresh = useCallback(async () => {
     if (!USE_BACKEND) return;
-    if (!businessId) {
-      setPurchases([]);
-      return;
-    }
-    const list = await apiFetch<PurchaseDTO[]>(
-      `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
-    );
+    const query = businessId
+      ? `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`
+      : "/api/purchases?size=500";
+    const list = await apiFetch<PurchaseDTO[]>(query);
     setPurchases(normalizePurchases(list.filter((dto) => !dto.deleted).map(dtoToPurchase)));
   }, [businessId]);
 

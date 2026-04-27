@@ -71,12 +71,26 @@ const LIST_SEARCH = {
 function PurchaseDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { businesses, activeId } = useBusinesses();
-  const { allPurchases, cancel, remove, ensureLines, convertToReturn } = usePurchases(activeId);
+  const { businesses, scopedBusinessId } = useBusinesses();
+  const { allPurchases, cancel, remove, ensureLines, convertToReturn } =
+    usePurchases(scopedBusinessId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
+  const purchaseId = purchase?.id ?? "";
+  const purchaseTotal = purchase?.total ?? 0;
+  const alreadyReturned = useMemo(() => {
+    if (!purchaseId) return 0;
+    return allPurchases.reduce((sum, p) => {
+      if (p.deleted || p.kind !== "return" || p.status === "cancelled") return sum;
+      if (p.sourcePurchaseId !== purchaseId) return sum;
+      return sum + Math.max(0, Number(p.total ?? 0));
+    }, 0);
+  }, [allPurchases, purchaseId]);
+  const remainingReturn = Math.max(0, purchaseTotal - alreadyReturned);
+  const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
+  const [returnPaymentMode, setReturnPaymentMode] = useState<"cash" | "bank">("cash");
 
   useEffect(() => {
     if (!purchase) return;
@@ -84,6 +98,10 @@ function PurchaseDetailsPage() {
       void ensureLines(purchase.id).catch(() => {});
     }
   }, [purchase, ensureLines]);
+
+  useEffect(() => {
+    setReturnAmount(remainingReturn);
+  }, [remainingReturn]);
 
   if (!purchase) {
     return (
@@ -105,22 +123,6 @@ function PurchaseDetailsPage() {
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
   const attachments = parseProofAttachments(purchase.proofDataUrl, purchase.proofName);
-  const alreadyReturned = useMemo(
-    () =>
-      allPurchases.reduce((sum, p) => {
-        if (p.deleted || p.kind !== "return" || p.status === "cancelled") return sum;
-        if (p.sourcePurchaseId !== purchase.id) return sum;
-        return sum + Math.max(0, Number(p.total ?? 0));
-      }, 0),
-    [allPurchases, purchase.id],
-  );
-  const remainingReturn = Math.max(0, purchase.total - alreadyReturned);
-  const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
-  const [returnPaymentMode, setReturnPaymentMode] = useState<"cash" | "bank">("cash");
-
-  useEffect(() => {
-    setReturnAmount(remainingReturn);
-  }, [remainingReturn]);
 
   const handleCancel = async () => {
     try {
@@ -229,8 +231,8 @@ function PurchaseDetailsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Create purchase return</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Enter return amount and payment type. You can create multiple returns until the
-                      original purchase total is exhausted.
+                      Enter return amount and payment type. You can create multiple returns until
+                      the original purchase total is exhausted.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <div className="space-y-2">
