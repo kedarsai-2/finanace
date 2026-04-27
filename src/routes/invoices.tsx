@@ -467,7 +467,7 @@ function InvoicesTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[140px_110px_1.6fr_130px_130px_130px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[120px_100px_1.6fr_110px_110px_110px_180px] items-center gap-3 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Invoice</span>
         <span>Date</span>
         <span>Party / Type</span>
@@ -485,7 +485,7 @@ function InvoicesTable({
           return (
             <li
               key={inv.id}
-              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[140px_110px_1.6fr_130px_130px_130px_220px]"
+              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[120px_100px_1.6fr_110px_110px_110px_180px] sm:gap-3"
             >
               <Link
                 to="/invoices/$id"
@@ -497,20 +497,22 @@ function InvoicesTable({
               <span className="text-sm text-muted-foreground">
                 {format(new Date(inv.date), "dd MMM yyyy")}
               </span>
-              <Link
-                to="/parties/$id"
-                params={{ id: inv.partyId }}
-                className="truncate text-sm font-medium text-foreground hover:text-primary"
-              >
-                {inv.partyName}
-              </Link>
-              <p className="mt-0.5 text-xs capitalize text-muted-foreground">
-                {(inv.invoiceType ?? "standard") === "subscription"
-                  ? "Subscription"
-                  : (inv.invoiceType ?? "standard") === "advance"
-                    ? "Advance"
-                    : "Standard"}
-              </p>
+              <div>
+                <Link
+                  to="/parties/$id"
+                  params={{ id: inv.partyId }}
+                  className="truncate text-sm font-medium text-foreground hover:text-primary"
+                >
+                  {inv.partyName}
+                </Link>
+                <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                  {(inv.invoiceType ?? "standard") === "subscription"
+                    ? "Subscription"
+                    : (inv.invoiceType ?? "standard") === "advance"
+                      ? "Advance"
+                      : "Standard"}
+                </p>
+              </div>
               <span className="text-right font-semibold tabular-nums">
                 {formatCurrency(inv.total, currency)}
               </span>
@@ -528,27 +530,29 @@ function InvoicesTable({
                 {formatCurrency(balance, currency)}
               </span>
 
-              <div className="flex items-center justify-start gap-1.5 sm:justify-end">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
-                    STATUS_BADGE[inv.status],
-                  )}
-                >
-                  {STATUS_LABEL[inv.status]}
-                </span>
-                {!cancelled && (
+              <div className="flex items-start justify-start gap-2 sm:flex-col sm:items-end sm:justify-center sm:gap-1">
+                <div className="flex items-center gap-1 whitespace-nowrap">
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
-                      PAY_BADGE[pay],
+                      STATUS_BADGE[inv.status],
                     )}
                   >
-                    {pay}
+                    {STATUS_LABEL[inv.status]}
                   </span>
-                )}
+                  {!cancelled && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
+                        PAY_BADGE[pay],
+                      )}
+                    >
+                      {pay}
+                    </span>
+                  )}
+                </div>
 
-                <div className="ml-1 flex items-center gap-0.5 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                <div className="flex items-center gap-0.5 whitespace-nowrap">
                   {inv.status === "draft" && (
                     <Button
                       asChild
