@@ -27,8 +27,11 @@ interface Props {
 export function InvoicePrintLayout({ invoice, business, party, lastPayment, payToAccount }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
-  const paymentModeText = lastPayment
-    ? (lastPayment.account ?? payToAccount?.name ?? PAYMENT_MODE_LABEL[lastPayment.mode])
+  const paymentModeLabel = lastPayment ? PAYMENT_MODE_LABEL[lastPayment.mode] : "—";
+  const paymentModeValue = lastPayment
+    ? lastPayment.mode === "cash"
+      ? "CASH"
+      : (payToAccount?.name ?? lastPayment.account ?? PAYMENT_MODE_LABEL[lastPayment.mode]).toUpperCase()
     : "—";
 
   return (
@@ -99,16 +102,16 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         <div>
           <p className="text-[13px] font-bold">Bill To</p>
           <p className="mt-1 text-[13px] font-semibold">{invoice.partyName}</p>
-          {party?.mobile && <p className="mt-0.5">Contact No.: {party.mobile}</p>}
+          {party?.mobile && <p className="mt-0.5">Contact No. : {party.mobile}</p>}
         </div>
         <div>
           <p className="text-[13px] font-bold">Invoice Details</p>
           <div className="mt-1 space-y-0.5">
             <p>
-              Invoice No.: <span className="font-semibold">{invoice.number}</span>
+              Invoice No. : <span className="font-semibold">{invoice.number}</span>
             </p>
             <p>
-              Date:{" "}
+              Date :{" "}
               <span className="font-semibold">{format(new Date(invoice.date), "dd-MM-yyyy")}</span>
             </p>
           </div>
@@ -159,6 +162,12 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
 
       {/* ---------- Amount in words ---------- */}
       <section className="mt-3 text-[11px]">
+        <p className="font-semibold">Description</p>
+        <p className="mt-1 whitespace-pre-wrap">{(invoice.notes ?? "").trim() || "—"}</p>
+      </section>
+
+      {/* ---------- Amount in words ---------- */}
+      <section className="mt-3 text-[11px]">
         <p className="font-semibold">Invoice Amount In Words</p>
         <p className="mt-1">{sentenceCase(amountInWords(invoice.total, currency))}</p>
       </section>
@@ -167,7 +176,7 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
       <section className="mt-4 grid grid-cols-[1.6fr_1fr] gap-8 text-[11px]">
         <div className="space-y-3">
           <div>
-            <p className="font-semibold">Terms And Conditions</p>
+            <p className="font-semibold">Terms and Conditions</p>
             <ol className="mt-1 list-decimal space-y-0.5 pl-4 leading-relaxed">
               {termsList(invoice.terms).map((t, i) => (
                 <li key={`${i}-${t}`}>{t}</li>
@@ -180,19 +189,19 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           <KV label="Total" value={formatCurrency(invoice.total, currency)} highlight />
           <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
           <KV label="Balance" value={formatCurrency(balance, currency)} />
-          <KV label="Payment Mode" value={paymentModeText} />
+          <KV label={paymentModeLabel === "—" ? "Payment mode" : "Payment mode"} value={paymentModeValue} />
           <KV label="Previous Balance" value={formatCurrency(0, currency)} />
           <KV label="Current Balance" value={formatCurrency(0, currency)} />
           <div className="pt-2" />
           <p className="font-semibold">Pay To:</p>
-          {payToAccount ? (
+          {lastPayment?.mode === "cash" ? (
+            <div className="text-slate-700">Cash</div>
+          ) : payToAccount ? (
             <div className="space-y-0.5 leading-relaxed">
-              <div>Bank Name: {payToAccount.name}</div>
-              {payToAccount.accountNumber && (
-                <div>Bank Account No.: {payToAccount.accountNumber}</div>
-              )}
-              {payToAccount.ifsc && <div>Bank IFSC code: {payToAccount.ifsc}</div>}
-              <div>Account Holder&apos;s Name: {business?.name ?? "—"}</div>
+              <div>Bank Name : {payToAccount.name}</div>
+              {payToAccount.accountNumber && <div>Bank Account No. : {payToAccount.accountNumber}</div>}
+              {payToAccount.ifsc && <div>Bank IFSC code : {payToAccount.ifsc}</div>}
+              <div>Account holder&apos;s name : {business?.name ?? "—"}</div>
             </div>
           ) : (
             <div className="text-slate-600">—</div>
@@ -203,7 +212,7 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
       {/* ---------- Signature ---------- */}
       <section className="mt-10 text-[11px]">
         <div className="ml-auto w-[72mm] text-left">
-          <p className="font-medium">For: {business?.name ?? "Your Business"}</p>
+          <p className="font-medium">For :{business?.name ?? "Your Business"}</p>
           <div className="flex h-[22mm] items-center justify-center">
             <SmallStamp />
           </div>
@@ -223,12 +232,18 @@ function KV({ label, value, highlight }: { label: string; value: string; highlig
     <div
       className={
         highlight
-          ? "flex items-baseline justify-between gap-6 bg-[#8a86cf] px-1.5 py-0.5 text-white"
-          : "flex items-baseline justify-between gap-6"
+          ? "flex items-baseline justify-between gap-4 bg-[#8a86cf] px-1.5 py-0.5 text-white"
+          : "flex items-baseline justify-between gap-4"
       }
     >
       <span className={highlight ? "text-white" : "text-slate-700"}>{label}</span>
-      <span className={highlight ? "tabular-nums text-white" : "tabular-nums text-slate-900"}>
+      <span
+        className={
+          highlight
+            ? "min-w-[92px] text-right tabular-nums text-white"
+            : "min-w-[92px] text-right tabular-nums text-slate-900"
+        }
+      >
         {value}
       </span>
     </div>
