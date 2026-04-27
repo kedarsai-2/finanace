@@ -9,6 +9,7 @@ import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 import { composeNotesWithMeta, extractMetaFromNotes } from "@/lib/documentMeta";
+import type { ReturnPaymentMode } from "@/types/purchase";
 
 const STORAGE_KEY = "bm.purchases";
 
@@ -136,6 +137,7 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     proofDataUrl: dto.proofDataUrl ?? undefined,
     proofName: dto.proofName ?? undefined,
     purchaseCategory: dbCategory ?? parsed.meta.purchaseCategory,
+    purchasePaymentMode: parsed.meta.purchasePaymentMode,
     returnPaymentMode: parsed.meta.returnPaymentMode,
   };
 }
@@ -175,6 +177,7 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
   const categoryMeta = p.kind === "return" ? undefined : p.purchaseCategory;
   const notes = composeNotesWithMeta(p.notes, {
     purchaseCategory: categoryMeta,
+    purchasePaymentMode: p.kind !== "return" ? p.purchasePaymentMode : undefined,
     returnPaymentMode: p.kind === "return" ? p.returnPaymentMode : undefined,
   });
   return {
@@ -591,7 +594,7 @@ export function usePurchases(businessId?: string | null) {
     async (
       sourceId: string,
       returnAmount?: number,
-      paymentMode?: "cash" | "bank",
+      paymentMode?: ReturnPaymentMode,
     ): Promise<Purchase | null> => {
       const src = purchasesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;

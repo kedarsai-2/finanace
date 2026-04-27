@@ -1,10 +1,15 @@
-import type { PurchaseCategory, ReturnPaymentMode } from "@/types/purchase";
+import type {
+  PurchaseCategory,
+  PurchasePaymentMode,
+  ReturnPaymentMode,
+} from "@/types/purchase";
 
 export type CreditNotePaymentMode = "cash" | "bank";
 
 export interface DocumentMeta {
   cnPaymentMode?: CreditNotePaymentMode;
   purchaseCategory?: PurchaseCategory;
+  purchasePaymentMode?: PurchasePaymentMode;
   returnPaymentMode?: ReturnPaymentMode;
 }
 
@@ -35,9 +40,15 @@ export function composeNotesWithMeta(
   const payload: DocumentMeta = {};
   if (meta.cnPaymentMode) payload.cnPaymentMode = meta.cnPaymentMode;
   if (meta.purchaseCategory) payload.purchaseCategory = meta.purchaseCategory;
+  if (meta.purchasePaymentMode) payload.purchasePaymentMode = meta.purchasePaymentMode;
   if (meta.returnPaymentMode) payload.returnPaymentMode = meta.returnPaymentMode;
   const note = (cleanNotes ?? "").trim();
-  if (!payload.cnPaymentMode && !payload.purchaseCategory && !payload.returnPaymentMode) {
+  if (
+    !payload.cnPaymentMode &&
+    !payload.purchaseCategory &&
+    !payload.purchasePaymentMode &&
+    !payload.returnPaymentMode
+  ) {
     return note || undefined;
   }
   const metaLine = `${META_PREFIX}${JSON.stringify(payload)}`;

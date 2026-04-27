@@ -44,7 +44,7 @@ import { usePurchases } from "@/hooks/usePurchases";
 import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
-import { canEditPurchase, type Purchase } from "@/types/purchase";
+import { canEditPurchase, type Purchase, type ReturnPaymentMode } from "@/types/purchase";
 import { parseProofAttachments } from "@/lib/proofAttachments";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
@@ -90,7 +90,7 @@ function PurchaseDetailsPage() {
   }, [allPurchases, purchaseId]);
   const remainingReturn = Math.max(0, purchaseTotal - alreadyReturned);
   const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
-  const [returnPaymentMode, setReturnPaymentMode] = useState<"cash" | "bank">("cash");
+  const [returnPaymentMode, setReturnPaymentMode] = useState<ReturnPaymentMode>("cash");
 
   useEffect(() => {
     if (!purchase) return;
@@ -254,7 +254,7 @@ function PurchaseDetailsPage() {
                       <label className="text-sm font-medium">Payment type *</label>
                       <Select
                         value={returnPaymentMode}
-                        onValueChange={(v) => setReturnPaymentMode(v as "cash" | "bank")}
+                        onValueChange={(v) => setReturnPaymentMode(v as ReturnPaymentMode)}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Select payment type" />
@@ -262,6 +262,7 @@ function PurchaseDetailsPage() {
                         <SelectContent>
                           <SelectItem value="cash">Cash</SelectItem>
                           <SelectItem value="bank">Bank</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -361,6 +362,16 @@ function PurchaseDetailsPage() {
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     Category:{" "}
                     {purchase.purchaseCategory === "long-term" ? "Long-term" : "Short-term"}
+                  </p>
+                )}
+                {purchase.purchasePaymentMode && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Payment type:{" "}
+                    {purchase.purchasePaymentMode === "cash"
+                      ? "Cash"
+                      : purchase.purchasePaymentMode === "bank"
+                        ? "Bank"
+                        : "Cheque"}
                   </p>
                 )}
                 {business?.state && (

@@ -218,7 +218,12 @@ function PurchaseReturnDetailPage() {
               <p className="mt-1 text-base font-semibold">{business?.name ?? "—"}</p>
               {ret.returnPaymentMode && (
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  Payment type: {ret.returnPaymentMode === "cash" ? "Cash" : "Bank"}
+                  Payment type:{" "}
+                  {ret.returnPaymentMode === "cash"
+                    ? "Cash"
+                    : ret.returnPaymentMode === "bank"
+                      ? "Bank"
+                      : "Cheque"}
                 </p>
               )}
             </div>

@@ -11,7 +11,8 @@ export type PurchaseStatus = "draft" | "final" | "cancelled";
  */
 export type PurchaseKind = "purchase" | "return";
 export type PurchaseCategory = "short-term" | "long-term";
-export type ReturnPaymentMode = "cash" | "bank";
+export type ReturnPaymentMode = "cash" | "bank" | "cheque";
+export type PurchasePaymentMode = "cash" | "bank" | "cheque";
 
 /** Same shape as InvoiceLine — purchases reuse the line/tax math helpers. */
 export type PurchaseLine = InvoiceLine;
@@ -63,6 +64,8 @@ export interface Purchase {
   sourcePurchaseId?: string;
   /** Mandatory category for standard purchases. */
   purchaseCategory?: PurchaseCategory;
+  /** Payment mode captured while creating/editing standard purchases. */
+  purchasePaymentMode?: PurchasePaymentMode;
   /** Required for purchase returns to capture settlement mode. */
   returnPaymentMode?: ReturnPaymentMode;
 }
