@@ -231,6 +231,7 @@ public class InvoiceResource {
     private void validateInvoicePayload(InvoiceDTO invoiceDTO, Long pathId) {
         boolean isCreditNote = isCreditNote(invoiceDTO.getNumber());
         String mode = invoiceDTO.getCnPaymentMode();
+        String invoiceType = invoiceDTO.getInvoiceType();
         if (isCreditNote) {
             if (mode == null || mode.isBlank()) {
                 throw new BadRequestAlertException("cnPaymentMode is required for credit notes", ENTITY_NAME, "cnpaymentmoderequired");
@@ -240,12 +241,36 @@ public class InvoiceResource {
                 throw new BadRequestAlertException("cnPaymentMode must be CASH or BANK", ENTITY_NAME, "cnpaymentmodeinvalid");
             }
             invoiceDTO.setCnPaymentMode(normalized);
+            if (invoiceType != null && !invoiceType.isBlank()) {
+                throw new BadRequestAlertException(
+                    "invoiceType is allowed only for standard invoices",
+                    ENTITY_NAME,
+                    "invoicetypeunexpected"
+                );
+            }
         } else if (mode != null && !mode.isBlank()) {
             throw new BadRequestAlertException(
                 "cnPaymentMode is allowed only for credit notes",
                 ENTITY_NAME,
                 "cnpaymentmodeunexpected"
             );
+        } else {
+            if (invoiceType == null || invoiceType.isBlank()) {
+                throw new BadRequestAlertException(
+                    "invoiceType is required for standard invoices",
+                    ENTITY_NAME,
+                    "invoicetyperequired"
+                );
+            }
+            String normalizedType = invoiceType.trim().toUpperCase();
+            if (!"STANDARD".equals(normalizedType) && !"SUBSCRIPTION".equals(normalizedType) && !"ADVANCE".equals(normalizedType)) {
+                throw new BadRequestAlertException(
+                    "invoiceType must be STANDARD, SUBSCRIPTION or ADVANCE",
+                    ENTITY_NAME,
+                    "invoicetypeinvalid"
+                );
+            }
+            invoiceDTO.setInvoiceType(normalizedType);
         }
     }
 
@@ -253,6 +278,7 @@ public class InvoiceResource {
         String effectiveNumber = invoiceDTO.getNumber() != null ? invoiceDTO.getNumber() : existing.getNumber();
         boolean isCreditNote = isCreditNote(effectiveNumber);
         String effectiveMode = invoiceDTO.getCnPaymentMode() != null ? invoiceDTO.getCnPaymentMode() : existing.getCnPaymentMode();
+        String effectiveInvoiceType = invoiceDTO.getInvoiceType() != null ? invoiceDTO.getInvoiceType() : existing.getInvoiceType();
         if (isCreditNote) {
             if (effectiveMode == null || effectiveMode.isBlank()) {
                 throw new BadRequestAlertException("cnPaymentMode is required for credit notes", ENTITY_NAME, "cnpaymentmoderequired");
@@ -264,12 +290,38 @@ public class InvoiceResource {
             if (invoiceDTO.getCnPaymentMode() != null) {
                 invoiceDTO.setCnPaymentMode(normalized);
             }
+            if (effectiveInvoiceType != null && !effectiveInvoiceType.isBlank()) {
+                throw new BadRequestAlertException(
+                    "invoiceType is allowed only for standard invoices",
+                    ENTITY_NAME,
+                    "invoicetypeunexpected"
+                );
+            }
         } else if (effectiveMode != null && !effectiveMode.isBlank()) {
             throw new BadRequestAlertException(
                 "cnPaymentMode is allowed only for credit notes",
                 ENTITY_NAME,
                 "cnpaymentmodeunexpected"
             );
+        } else {
+            if (effectiveInvoiceType == null || effectiveInvoiceType.isBlank()) {
+                throw new BadRequestAlertException(
+                    "invoiceType is required for standard invoices",
+                    ENTITY_NAME,
+                    "invoicetyperequired"
+                );
+            }
+            String normalizedType = effectiveInvoiceType.trim().toUpperCase();
+            if (!"STANDARD".equals(normalizedType) && !"SUBSCRIPTION".equals(normalizedType) && !"ADVANCE".equals(normalizedType)) {
+                throw new BadRequestAlertException(
+                    "invoiceType must be STANDARD, SUBSCRIPTION or ADVANCE",
+                    ENTITY_NAME,
+                    "invoicetypeinvalid"
+                );
+            }
+            if (invoiceDTO.getInvoiceType() != null) {
+                invoiceDTO.setInvoiceType(normalizedType);
+            }
         }
     }
 

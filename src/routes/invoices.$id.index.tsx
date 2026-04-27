@@ -416,6 +416,14 @@ function InvoiceDetailsPage() {
                     ? ` • Due ${format(new Date(invoice.dueDate), "dd MMM yyyy")}`
                     : ""}
                 </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Type:{" "}
+                  {invoice.invoiceType === "subscription"
+                    ? "Subscription"
+                    : invoice.invoiceType === "advance"
+                      ? "Advance"
+                      : "Standard"}
+                </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <StatusBadge status={invoice.status} />

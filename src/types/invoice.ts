@@ -11,6 +11,7 @@ export type DiscountKind = "percent" | "amount";
  */
 export type InvoiceKind = "invoice" | "credit-note";
 export type CreditNotePaymentMode = "cash" | "bank";
+export type InvoiceType = "standard" | "subscription" | "advance";
 
 export interface InvoiceLine {
   id: string;
@@ -33,6 +34,7 @@ export interface Invoice {
   date: string; // ISO
   dueDate?: string; // ISO
   paymentTermsDays?: number;
+  invoiceType?: InvoiceType;
   partyId: string;
   partyName: string; // denormalised for fast list rendering
   /** Cached at save time; used for GST type (intra/inter-state). */

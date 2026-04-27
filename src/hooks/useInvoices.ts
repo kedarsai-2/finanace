@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Invoice, InvoiceLine } from "@/types/invoice";
+import type { Invoice, InvoiceLine, InvoiceType } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
 import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
@@ -47,6 +47,7 @@ type InvoiceDTO = {
   date: string;
   dueDate?: string | null;
   paymentTermsDays?: number | null;
+  invoiceType?: "STANDARD" | "SUBSCRIPTION" | "ADVANCE" | null;
   partyName: string;
   partyState?: string | null;
   businessState?: string | null;
@@ -116,6 +117,12 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
   const parsed = extractMetaFromNotes(dto.notes ?? undefined);
   const dbMode =
     dto.cnPaymentMode === "BANK" ? "bank" : dto.cnPaymentMode === "CASH" ? "cash" : undefined;
+  const invoiceType =
+    dto.invoiceType === "SUBSCRIPTION"
+      ? "subscription"
+      : dto.invoiceType === "ADVANCE"
+        ? "advance"
+        : "standard";
   return {
     id: toStrId(dto.id),
     createdAt: dto.createdAt ?? undefined,
@@ -125,6 +132,7 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     date: dto.date,
     dueDate: dto.dueDate ?? undefined,
     paymentTermsDays: dto.paymentTermsDays ?? undefined,
+    invoiceType,
     partyId,
     partyName: dto.partyName ?? "",
     partyState: dto.partyState ?? undefined,
@@ -176,6 +184,12 @@ function invoiceToDto(inv: Invoice): InvoiceDTO {
     date: inv.date,
     dueDate: inv.dueDate ?? null,
     paymentTermsDays: inv.paymentTermsDays ?? null,
+    invoiceType:
+      inv.invoiceType === "subscription"
+        ? "SUBSCRIPTION"
+        : inv.invoiceType === "advance"
+          ? "ADVANCE"
+          : "STANDARD",
     partyName: inv.partyName,
     partyState: inv.partyState ?? null,
     businessState: inv.businessState ?? null,
@@ -235,6 +249,7 @@ function seedInvoice(args: {
   paidAmount: number;
   status: Invoice["status"];
   finalizedAt?: string;
+  invoiceType?: InvoiceType;
 }): Invoice {
   const lines: InvoiceLine[] = args.lines.map((l) => ({
     ...l,
@@ -255,6 +270,8 @@ function seedInvoice(args: {
     number: args.number,
     date: args.date,
     dueDate: args.dueDate,
+    paymentTermsDays: undefined,
+    invoiceType: args.invoiceType ?? "standard",
     partyId: args.partyId,
     partyName: args.partyName,
     partyState: args.partyState,
@@ -697,6 +714,7 @@ export function useInvoices(businessId?: string | null) {
         paidAmount: 0,
         deleted: false,
         kind: "credit-note",
+        invoiceType: undefined,
         sourceInvoiceId: src.id,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
         cnPaymentMode: paymentMode,

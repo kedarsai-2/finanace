@@ -29,6 +29,9 @@ public class InvoiceDTO implements Serializable {
     @Max(value = 3650)
     private Integer paymentTermsDays;
 
+    @Size(max = 20)
+    private String invoiceType;
+
     @NotNull
     @Size(max = 200)
     private String partyName;
@@ -148,6 +151,14 @@ public class InvoiceDTO implements Serializable {
 
     public void setPaymentTermsDays(Integer paymentTermsDays) {
         this.paymentTermsDays = paymentTermsDays;
+    }
+
+    public String getInvoiceType() {
+        return invoiceType;
+    }
+
+    public void setInvoiceType(String invoiceType) {
+        this.invoiceType = invoiceType;
     }
 
     public String getPartyName() {
@@ -380,6 +391,7 @@ public class InvoiceDTO implements Serializable {
             ", date='" + getDate() + "'" +
             ", dueDate='" + getDueDate() + "'" +
             ", paymentTermsDays=" + getPaymentTermsDays() +
+            ", invoiceType='" + getInvoiceType() + "'" +
             ", partyName='" + getPartyName() + "'" +
             ", partyState='" + getPartyState() + "'" +
             ", businessState='" + getBusinessState() + "'" +

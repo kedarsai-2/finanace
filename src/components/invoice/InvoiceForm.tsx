@@ -63,6 +63,7 @@ import {
   nextInvoiceNumber,
   canEditInvoice,
   type Invoice,
+  type InvoiceType,
   type InvoiceLine,
   type DiscountKind,
 } from "@/types/invoice";
@@ -74,8 +75,6 @@ interface Props {
   mode: "new" | "edit";
   invoiceId?: string;
 }
-
-const PAYMENT_TERMS = [0, 7, 15, 30, 45, 60, 90] as const;
 
 type PaymentSplit = {
   id: string;
@@ -119,7 +118,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const [partyId, setPartyId] = useState("");
   const [number, setNumber] = useState("");
   const [date, setDate] = useState<Date>(new Date());
-  const [terms, setTerms] = useState<number>(30);
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>("standard");
   const [lines, setLines] = useState<InvoiceLine[]>([emptyLine()]);
   const [overallDiscountKind, setOverallDiscountKind] = useState<DiscountKind>("percent");
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
@@ -149,7 +148,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setPartyId(existing.partyId);
       setNumber(existing.number);
       setDate(new Date(existing.date));
-      setTerms(existing.paymentTermsDays ?? 30);
+      setInvoiceType(existing.invoiceType ?? "standard");
       setLines(existing.lines.length ? existing.lines : [emptyLine()]);
       setOverallDiscountKind(existing.overallDiscountKind);
       setOverallDiscountValue(existing.overallDiscountValue);
@@ -162,7 +161,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const party = parties.find((p) => p.id === partyId);
 
-  const dueDate = useMemo(() => addDays(date, terms || 0), [date, terms]);
+  const dueDate = useMemo(() => addDays(date, 0), [date]);
 
   const totals = useMemo(
     () =>
@@ -288,7 +287,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       number: number.trim(),
       date: date.toISOString(),
       dueDate: dueDate.toISOString(),
-      paymentTermsDays: terms,
+      paymentTermsDays: undefined,
+      invoiceType,
       partyId,
       partyName: party?.name ?? "",
       partyState: party?.state,
@@ -485,6 +485,22 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               </p>
             </div>
             <div>
+              <Label htmlFor="invoiceType">Invoice type *</Label>
+              <Select
+                value={invoiceType}
+                onValueChange={(v) => setInvoiceType(v as InvoiceType)}
+              >
+                <SelectTrigger id="invoiceType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="subscription">Subscription</SelectItem>
+                  <SelectItem value="advance">Advance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Sale date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -503,21 +519,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-            <div>
-              <Label htmlFor="terms">Payment terms</Label>
-              <Select value={String(terms)} onValueChange={(v) => setTerms(Number(v))}>
-                <SelectTrigger id="terms">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TERMS.map((d) => (
-                    <SelectItem key={d} value={String(d)}>
-                      {d === 0 ? "Due on receipt" : `Net ${d} days`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <Label>Due date</Label>

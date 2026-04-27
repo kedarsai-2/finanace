@@ -35,20 +35,24 @@ import { formatCurrency } from "@/hooks/useParties";
 import {
   paymentStatusOf,
   type Invoice,
+  type InvoiceType,
   type InvoiceStatus,
   type PaymentStatus,
 } from "@/types/invoice";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
+const TYPE_FILTERS = ["all", "standard", "subscription", "advance"] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
+type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
   status: z.enum(STATUS_FILTERS).catch("all").default("all"),
   payment: z.enum(PAY_FILTERS).catch("all").default("all"),
+  type: z.enum(TYPE_FILTERS).catch("all").default("all"),
   from: z.string().catch("").default(""),
   to: z.string().catch("").default(""),
 });
@@ -96,7 +100,7 @@ function InvoicesRouteLayout() {
 
 function InvoicesPage() {
   const navigate = useNavigate({ from: "/invoices" });
-  const { q, status, payment, from, to } = Route.useSearch();
+  const { q, status, payment, type, from, to } = Route.useSearch();
   const { activeId, scopedBusinessId, isAll, businesses } = useBusinesses();
   const { invoices, hydrated, remove, cancel } = useInvoices(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
@@ -113,6 +117,7 @@ function InvoicesPage() {
       .filter((inv) => {
         if (status !== "all" && inv.status !== status) return false;
         if (payment !== "all" && paymentStatusOf(inv) !== payment) return false;
+        if (type !== "all" && (inv.invoiceType ?? "standard") !== type) return false;
         const d = new Date(inv.date).getTime();
         if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
         if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
@@ -122,7 +127,7 @@ function InvoicesPage() {
         );
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [invoices, q, status, payment, fromDate, toDate]);
+  }, [invoices, q, status, payment, type, fromDate, toDate]);
 
   const totals = useMemo(() => {
     let total = 0;
@@ -239,6 +244,15 @@ function InvoicesPage() {
                     onClick={() => setSearch({ payment: f })}
                   >
                     <span className="capitalize">{f}</span>
+                  </FilterChip>
+                ))}
+              </FilterGroup>
+              <FilterGroup label="Type">
+                {TYPE_FILTERS.map((f) => (
+                  <FilterChip key={f} active={type === f} onClick={() => setSearch({ type: f })}>
+                    <span className="capitalize">
+                      {f === "all" ? "All" : f === "subscription" ? "Subscription" : f}
+                    </span>
                   </FilterChip>
                 ))}
               </FilterGroup>
@@ -456,7 +470,7 @@ function InvoicesTable({
       <div className="hidden grid-cols-[140px_110px_1.6fr_130px_130px_130px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Invoice</span>
         <span>Date</span>
-        <span>Party</span>
+        <span>Party / Type</span>
         <span className="text-right">Total</span>
         <span className="text-right">Paid</span>
         <span className="text-right">Balance</span>
@@ -490,6 +504,13 @@ function InvoicesTable({
               >
                 {inv.partyName}
               </Link>
+              <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                {(inv.invoiceType ?? "standard") === "subscription"
+                  ? "Subscription"
+                  : (inv.invoiceType ?? "standard") === "advance"
+                    ? "Advance"
+                    : "Standard"}
+              </p>
               <span className="text-right font-semibold tabular-nums">
                 {formatCurrency(inv.total, currency)}
               </span>
