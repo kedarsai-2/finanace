@@ -235,6 +235,7 @@ function AssetsTable({
                 variant="ghost"
                 className="h-8 w-8"
                 aria-label={`Edit ${it.name}`}
+                title="Edit"
               >
                 <Link to="/assets/$id/edit" params={{ id: it.id }}>
                   <Pencil className="h-4 w-4" />
@@ -246,6 +247,7 @@ function AssetsTable({
                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => onDelete(it)}
                 aria-label={`Delete ${it.name}`}
+                title="Delete"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

@@ -452,6 +452,7 @@ function PurchasesTable({
                       variant="ghost"
                       className="h-8 w-8"
                       aria-label={`Edit ${p.number}`}
+                      title="Edit"
                     >
                       <Link to="/purchases/$id/edit" params={{ id: p.id }}>
                         <Pencil className="h-4 w-4" />
@@ -475,6 +476,7 @@ function PurchasesTable({
                     className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => onDelete(p)}
                     aria-label={`Delete ${p.number}`}
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -491,7 +493,7 @@ function PurchasesTable({
 function EmptyState({ filtered }: { filtered: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
         <ShoppingCart className="h-8 w-8" />
       </div>
       <h2 className="mt-6 text-xl font-semibold">

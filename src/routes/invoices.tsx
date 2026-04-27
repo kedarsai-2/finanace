@@ -533,6 +533,7 @@ function InvoicesTable({
                       variant="ghost"
                       className="h-8 w-8"
                       aria-label={`Edit ${inv.number}`}
+                      title="Edit"
                     >
                       <Link to="/invoices/$id/edit" params={{ id: inv.id }}>
                         <Pencil className="h-4 w-4" />
@@ -556,6 +557,7 @@ function InvoicesTable({
                     className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => onDelete(inv)}
                     aria-label={`Delete ${inv.number}`}
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

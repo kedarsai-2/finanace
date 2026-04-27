@@ -227,7 +227,7 @@ function ItemsTable({
               params={{ id: it.id }}
               className="flex min-w-0 items-center gap-3 text-left"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
                 <Package className="h-4 w-4" />
               </div>
               <div className="min-w-0">
@@ -286,6 +286,7 @@ function ItemsTable({
                 variant="ghost"
                 className="h-8 w-8"
                 aria-label={`Edit ${it.name}`}
+                title="Edit"
               >
                 <Link to="/items/$id/edit" params={{ id: it.id }}>
                   <Pencil className="h-4 w-4" />
@@ -297,6 +298,7 @@ function ItemsTable({
                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => onDelete(it)}
                 aria-label={`Delete ${it.name}`}
+                title="Delete"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -311,7 +313,7 @@ function ItemsTable({
 function EmptyState({ filtered }: { filtered: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary-glow text-primary-foreground">
         <Package className="h-8 w-8" />
       </div>
       <h2 className="mt-6 text-xl font-semibold">

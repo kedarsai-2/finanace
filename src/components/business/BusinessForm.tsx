@@ -177,6 +177,29 @@ export function BusinessForm({ mode, businessId }: Props) {
               { method: existing ? "PUT" : "POST", body: JSON.stringify(dto) },
             );
             const savedId = String(saved.id);
+            const business: Business = {
+              id: savedId,
+              createdAt: existing?.createdAt,
+              name: values.name,
+              ownerName: values.ownerName,
+              mobile: values.mobile,
+              email: values.email,
+              logoUrl,
+              gstNumber: values.gstNumber,
+              panNumber: values.panNumber,
+              billingAddress: billing,
+              shippingSameAsBilling: values.shippingSameAsBilling,
+              shippingAddress: values.shippingSameAsBilling
+                ? billing
+                : (values.shippingAddress ?? {}),
+              city: (billing.city ?? existing?.city ?? "").trim(),
+              state: (billing.state ?? existing?.state ?? "").trim(),
+              currency: values.currency,
+              fyStartMonth: values.fyStartMonth,
+              hasData: existing?.hasData,
+            };
+            // Keep UI in sync immediately after API save (e.g. logo remove/replace).
+            upsert(business);
             if (setActive) setActiveId(savedId);
           } else {
             const business: Business = {

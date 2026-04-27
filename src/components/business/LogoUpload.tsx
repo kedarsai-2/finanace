@@ -93,7 +93,10 @@ export function LogoUpload({ value, onChange }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onChange(undefined)}
+              onClick={() => {
+                onChange(undefined);
+                toast.success("Logo removed. Save business to apply.");
+              }}
               disabled={uploading}
               className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             >

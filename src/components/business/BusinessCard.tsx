@@ -56,7 +56,7 @@ export function BusinessCard({ business, active, onSelect, onEdit, onDelete }: P
             className="h-14 w-14 rounded-xl object-cover ring-1 ring-border"
           />
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-lg font-semibold text-primary-foreground">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary-glow text-lg font-semibold text-primary-foreground">
             {initials(business.name)}
           </div>
         )}
@@ -102,6 +102,7 @@ export function BusinessCard({ business, active, onSelect, onEdit, onDelete }: P
               onEdit();
             }}
             aria-label={`Edit ${business.name}`}
+            title="Edit"
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -114,6 +115,7 @@ export function BusinessCard({ business, active, onSelect, onEdit, onDelete }: P
               onDelete();
             }}
             aria-label={`Delete ${business.name}`}
+            title="Delete"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

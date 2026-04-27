@@ -79,6 +79,7 @@ export function AppHeader() {
                     variant="ghost"
                     size="icon"
                     aria-label="Logout"
+                    title="Logout"
                     onClick={() => {
                       logout();
                       navigate({ to: "/login" });

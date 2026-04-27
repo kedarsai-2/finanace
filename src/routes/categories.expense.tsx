@@ -116,6 +116,7 @@ function ExpenseCategoriesPage() {
                     }
                   }}
                   aria-label="Delete category"
+                  title="Delete"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

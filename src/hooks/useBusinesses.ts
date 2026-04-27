@@ -210,17 +210,15 @@ export function useBusinesses() {
   }, [businesses]);
 
   const upsert = useCallback((b: Business) => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
-      // Backend mode: businesses are managed by the API (not localStorage).
-      // Keeping this as a no-op avoids breaking existing UI calls.
-      return;
-    }
     const before = businessesRef.current.find((p) => p.id === b.id);
     setBusinesses((prev) => {
       const exists = prev.some((p) => p.id === b.id);
       return exists ? prev.map((p) => (p.id === b.id ? b : p)) : [...prev, b];
     });
+    const token = getJwt();
+    if (USE_BACKEND && token) {
+      return;
+    }
     logAudit({
       module: "business",
       action: before ? "edit" : "create",
