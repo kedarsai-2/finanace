@@ -219,10 +219,9 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
 
         <div className="ml-auto w-[72mm] text-left">
           <p className="font-medium">For :{business?.name ?? "Your Business"}</p>
-          <div className="flex h-[20mm] items-center justify-center">
+          <div className="mt-1 flex h-[14mm] items-end justify-center overflow-hidden">
             <SmallStamp />
           </div>
-          <p className="font-semibold">Authorized Signatory</p>
         </div>
       </section>
 
@@ -297,7 +296,7 @@ function SmallStamp() {
     <img
       src="/snickr-stamp.png"
       alt="Authorized stamp"
-      style={{ height: "24mm", width: "auto", objectFit: "contain" }}
+      style={{ height: "14mm", width: "auto", objectFit: "contain" }}
     />
   );
 }
