@@ -27,12 +27,16 @@ interface Props {
 export function InvoicePrintLayout({ invoice, business, party, lastPayment, payToAccount }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
-  const paymentModeLabel = lastPayment ? PAYMENT_MODE_LABEL[lastPayment.mode] : "—";
-  const paymentModeValue = lastPayment
-    ? lastPayment.mode === "cash"
+  const resolvedMode =
+    lastPayment?.mode ??
+    (payToAccount?.type === "cash" ? "cash" : payToAccount ? "bank" : invoice.paidAmount > 0 ? "cash" : undefined);
+  const paymentModeLabel = resolvedMode ? PAYMENT_MODE_LABEL[resolvedMode] : "—";
+  const paymentModeValue =
+    resolvedMode === "cash"
       ? "CASH"
-      : (payToAccount?.name ?? lastPayment.account ?? PAYMENT_MODE_LABEL[lastPayment.mode]).toUpperCase()
-    : "—";
+      : resolvedMode
+        ? (payToAccount?.name ?? lastPayment?.account ?? PAYMENT_MODE_LABEL[resolvedMode]).toUpperCase()
+        : "—";
 
   return (
     <div
@@ -172,7 +176,7 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         <p className="mt-1">{sentenceCase(amountInWords(invoice.total, currency))}</p>
       </section>
 
-      {/* ---------- Terms / Totals / Pay To ---------- */}
+      {/* ---------- Terms / Totals ---------- */}
       <section className="mt-4 grid grid-cols-[1.6fr_1fr] gap-8 text-[11px]">
         <div className="space-y-3">
           <div>
@@ -192,28 +196,30 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           <KV label={paymentModeLabel === "—" ? "Payment mode" : "Payment mode"} value={paymentModeValue} />
           <KV label="Previous Balance" value={formatCurrency(0, currency)} />
           <KV label="Current Balance" value={formatCurrency(0, currency)} />
-          <div className="pt-2" />
+        </div>
+      </section>
+
+      {/* ---------- Pay To + Signature ---------- */}
+      <section className="mt-6 grid grid-cols-[1.1fr_1fr] gap-8 text-[11px]">
+        <div>
           <p className="font-semibold">Pay To:</p>
-          {lastPayment?.mode === "cash" ? (
-            <div className="text-slate-700">Cash</div>
+          {resolvedMode === "cash" ? (
+            <div className="mt-1 text-slate-700">Cash</div>
           ) : payToAccount ? (
-            <div className="space-y-0.5 leading-relaxed">
+            <div className="mt-1 space-y-0.5 leading-relaxed">
               <div>Bank Name : {payToAccount.name}</div>
               {payToAccount.accountNumber && <div>Bank Account No. : {payToAccount.accountNumber}</div>}
               {payToAccount.ifsc && <div>Bank IFSC code : {payToAccount.ifsc}</div>}
               <div>Account holder&apos;s name : {business?.name ?? "—"}</div>
             </div>
           ) : (
-            <div className="text-slate-600">—</div>
+            <div className="mt-1 text-slate-600">—</div>
           )}
         </div>
-      </section>
 
-      {/* ---------- Signature ---------- */}
-      <section className="mt-10 text-[11px]">
         <div className="ml-auto w-[72mm] text-left">
           <p className="font-medium">For :{business?.name ?? "Your Business"}</p>
-          <div className="flex h-[22mm] items-center justify-center">
+          <div className="flex h-[20mm] items-center justify-center">
             <SmallStamp />
           </div>
           <p className="font-semibold">Authorized Signatory</p>
