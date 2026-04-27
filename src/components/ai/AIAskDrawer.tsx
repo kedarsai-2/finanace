@@ -4,6 +4,7 @@ import { Sparkles, Send, X } from "lucide-react";
 import { aiAsk } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -49,17 +50,24 @@ export function AIAskDrawer({ snapshot }: { snapshot: unknown }) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full primary-gradient primary-glow text-white shadow-lg animate-pulse-primary hover:scale-105 transition-transform"
-        aria-label="Ask AI"
-      >
-        <Sparkles className="h-6 w-6" />
-      </button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setOpen(true)}
+              className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full primary-gradient primary-glow text-white shadow-lg animate-pulse-primary hover:scale-105 transition-transform"
+              aria-label="Ask AI"
+            >
+              <Sparkles className="h-6 w-6" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Ask AI</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="flex w-full max-w-md flex-col p-0 sm:max-w-md">
-          <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-primary/10 via-accent/10 to-transparent px-5 py-4">
+          <div className="flex items-center justify-between border-b border-border/60 bg-linear-to-r from-primary/10 via-accent/10 to-transparent px-5 py-4">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl primary-gradient primary-glow">
                 <Sparkles className="h-4 w-4 text-white" />

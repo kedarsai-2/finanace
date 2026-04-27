@@ -5,6 +5,7 @@ import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,17 +72,24 @@ export function AppHeader() {
           <NotificationBell />
           <BusinessSwitcher />
           {USE_BACKEND && isAuthed ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Logout"
-              onClick={() => {
-                logout();
-                navigate({ to: "/login" });
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Logout"
+                    onClick={() => {
+                      logout();
+                      navigate({ to: "/login" });
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Logout</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : null}
         </div>
       </div>

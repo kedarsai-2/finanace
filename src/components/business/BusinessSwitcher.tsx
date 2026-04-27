@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import type { Business } from "@/types/business";
@@ -34,7 +35,7 @@ function Avatar({ business, size = 32 }: { business?: Business; size?: number })
   return (
     <div
       style={dim}
-      className="flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-[11px] font-semibold text-primary-foreground"
+      className="flex shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary-glow text-[11px] font-semibold text-primary-foreground"
     >
       {business ? initials(business.name) : <Building2 className="h-4 w-4" />}
     </div>
@@ -86,42 +87,49 @@ export function BusinessSwitcher() {
         if (!next) setQuery("");
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-label="Switch business"
-          className="h-12 w-full justify-between gap-3 px-3 sm:w-[280px]"
-        >
-          <div className="flex min-w-0 items-center gap-2.5">
-            {isAll ? (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground">
-                <Layers className="h-4 w-4" />
-              </div>
-            ) : (
-              <Avatar business={active} />
-            )}
-            <div className="min-w-0 text-left">
-              <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Active business
-              </p>
-              <p className="truncate text-sm font-semibold leading-tight">
-                {hydrated
-                  ? isAll
-                    ? "All Companies"
-                    : (active?.name ?? "Select a business")
-                  : "Loading…"}
-              </p>
-            </div>
-          </div>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                aria-label="Switch business"
+                className="h-12 w-full justify-between gap-3 px-3 sm:w-[280px]"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {isAll ? (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
+                      <Layers className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <Avatar business={active} />
+                  )}
+                  <div className="min-w-0 text-left">
+                    <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Active business
+                    </p>
+                    <p className="truncate text-sm font-semibold leading-tight">
+                      {hydrated
+                        ? isAll
+                          ? "All Companies"
+                          : (active?.name ?? "Select a business")
+                        : "Loading…"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Switch</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0"
+        className="w-(--radix-popover-trigger-width) min-w-[280px] p-0"
       >
         <div className="border-b border-border p-2">
           <div className="relative">
@@ -146,7 +154,7 @@ export function BusinessSwitcher() {
               isAll && "bg-primary/5",
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-primary-foreground">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
               <Layers className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
