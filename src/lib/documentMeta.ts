@@ -1,8 +1,4 @@
-import type {
-  PurchaseCategory,
-  PurchasePaymentMode,
-  ReturnPaymentMode,
-} from "@/types/purchase";
+import type { PurchaseCategory, PurchasePaymentMode, ReturnPaymentMode } from "@/types/purchase";
 
 export type CreditNotePaymentMode = "cash" | "bank";
 

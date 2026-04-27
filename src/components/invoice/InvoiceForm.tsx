@@ -486,10 +486,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             </div>
             <div>
               <Label htmlFor="invoiceType">Invoice type *</Label>
-              <Select
-                value={invoiceType}
-                onValueChange={(v) => setInvoiceType(v as InvoiceType)}
-              >
+              <Select value={invoiceType} onValueChange={(v) => setInvoiceType(v as InvoiceType)}>
                 <SelectTrigger id="invoiceType">
                   <SelectValue />
                 </SelectTrigger>

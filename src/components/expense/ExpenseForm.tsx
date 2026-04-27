@@ -98,7 +98,9 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!type) return toast.error("Select expense type");
     const normalizedCategory = category.trim().toLowerCase();
-    const isKnownCategory = categories.some((c) => c.name.trim().toLowerCase() === normalizedCategory);
+    const isKnownCategory = categories.some(
+      (c) => c.name.trim().toLowerCase() === normalizedCategory,
+    );
     if (!normalizedCategory) return toast.error("Select expense category");
     if (!isKnownCategory) return toast.error("Select a valid expense category");
     if (mode !== "cash" && !proofDataUrl)
@@ -212,9 +214,9 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
               </SelectTrigger>
               <SelectContent>
                 {category &&
-                  !categories.some((c) => c.name.trim().toLowerCase() === category.trim().toLowerCase()) && (
-                    <SelectItem value={category}>{category} (legacy)</SelectItem>
-                  )}
+                  !categories.some(
+                    (c) => c.name.trim().toLowerCase() === category.trim().toLowerCase(),
+                  ) && <SelectItem value={category}>{category} (legacy)</SelectItem>}
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.name}>
                     {c.name}

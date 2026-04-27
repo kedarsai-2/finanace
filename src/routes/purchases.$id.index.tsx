@@ -284,11 +284,7 @@ function PurchaseDetailsPage() {
                           return;
                         }
                         try {
-                          const ret = await convertToReturn(
-                            purchase.id,
-                            raw,
-                            returnPaymentMode,
-                          );
+                          const ret = await convertToReturn(purchase.id, raw, returnPaymentMode);
                           if (ret) {
                             toast.success(`Return ${ret.number} created`);
                             navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
@@ -493,7 +489,9 @@ function PurchaseDetailsPage() {
           )}
 
           {/* Proof */}
-          {(attachments.imageUrl || attachments.documentUrl || attachments.additionalDocumentUrl) && (
+          {(attachments.imageUrl ||
+            attachments.documentUrl ||
+            attachments.additionalDocumentUrl) && (
             <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <h2 className="text-base font-semibold">Attachments</h2>
               <Separator className="my-4" />
