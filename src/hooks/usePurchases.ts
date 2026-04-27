@@ -136,6 +136,7 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     proofDataUrl: dto.proofDataUrl ?? undefined,
     proofName: dto.proofName ?? undefined,
     purchaseCategory: dbCategory ?? parsed.meta.purchaseCategory,
+    returnPaymentMode: parsed.meta.returnPaymentMode,
   };
 }
 
@@ -172,7 +173,10 @@ function normalizePurchases(list: Purchase[]): Purchase[] {
 
 function purchaseToDto(p: Purchase): PurchaseDTO {
   const categoryMeta = p.kind === "return" ? undefined : p.purchaseCategory;
-  const notes = composeNotesWithMeta(p.notes, { purchaseCategory: categoryMeta });
+  const notes = composeNotesWithMeta(p.notes, {
+    purchaseCategory: categoryMeta,
+    returnPaymentMode: p.kind === "return" ? p.returnPaymentMode : undefined,
+  });
   return {
     id: toNumId(p.id) ?? undefined,
     createdAt: p.createdAt ?? null,
@@ -587,13 +591,51 @@ export function usePurchases(businessId?: string | null) {
    * lines. The user can edit before finalising.
    */
   const convertToReturn = useCallback(
-    async (sourceId: string): Promise<Purchase | null> => {
+    async (
+      sourceId: string,
+      returnAmount?: number,
+      paymentMode?: "cash" | "bank",
+    ): Promise<Purchase | null> => {
       const src = purchasesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
+      const alreadyReturned = purchasesRef.current.reduce((sum, x) => {
+        if (x.deleted || x.kind !== "return" || x.status === "cancelled") return sum;
+        if (x.sourcePurchaseId !== src.id) return sum;
+        return sum + Math.max(0, Number(x.total ?? 0));
+      }, 0);
+      const remaining = Math.max(0, src.total - alreadyReturned);
+      if (remaining <= 0) {
+        throw new Error(`Return limit reached for ${src.number}.`);
+      }
+      const hasAmount = typeof returnAmount === "number" && Number.isFinite(returnAmount);
+      const safeAmount = hasAmount ? Math.max(0, Math.min(returnAmount!, remaining)) : remaining;
+      if (safeAmount <= 0) {
+        throw new Error("Return amount must be greater than zero.");
+      }
+      if (!paymentMode) {
+        throw new Error("Purchase return payment mode is required.");
+      }
       const allRet = purchasesRef.current.filter((x) => x.kind === "return");
       const number = nextDocNumber(allRet, src.businessId, "PRET-");
       const id = `pret_${Date.now()}`;
       const now = new Date().toISOString();
+      const lines: PurchaseLine[] = [
+        {
+          id: `pretl_${id}_0`,
+          name: `Purchase return against ${src.number}`,
+          qty: 1,
+          unit: "pcs",
+          rate: safeAmount,
+          discountKind: "percent",
+          discountValue: 0,
+          taxPercent: 0,
+        },
+      ];
+      const totals = computeTotals({
+        lines,
+        overallDiscountKind: "percent",
+        overallDiscountValue: 0,
+      });
       const ret: Purchase = {
         ...src,
         id,
@@ -605,8 +647,12 @@ export function usePurchases(businessId?: string | null) {
         deleted: false,
         kind: "return",
         sourcePurchaseId: src.id,
+        returnPaymentMode: paymentMode,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
-        lines: src.lines.map((l, i) => ({ ...l, id: `pretl_${id}_${i}` })),
+        lines,
+        ...totals,
+        overallDiscountKind: "percent",
+        overallDiscountValue: 0,
       };
       await upsert(ret);
       return ret;

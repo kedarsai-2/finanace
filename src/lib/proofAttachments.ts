@@ -3,6 +3,8 @@ export interface ProofAttachments {
   imageName?: string;
   documentUrl?: string;
   documentName?: string;
+  additionalDocumentUrl?: string;
+  additionalDocumentName?: string;
 }
 
 const JSON_PREFIX = "proofv2:";
@@ -41,6 +43,8 @@ export function parseProofAttachments(proofDataUrl?: string, proofName?: string)
       imageName: parsed.imageName,
       documentUrl: parsed.documentUrl,
       documentName: parsed.documentName,
+      additionalDocumentUrl: parsed.additionalDocumentUrl,
+      additionalDocumentName: parsed.additionalDocumentName,
     };
   } catch {
     // Graceful fallback for corrupted payloads.
@@ -54,12 +58,13 @@ export function stringifyProofAttachments(attachments: ProofAttachments): {
 } {
   const hasImage = !!attachments.imageUrl;
   const hasDocument = !!attachments.documentUrl;
-  if (!hasImage && !hasDocument) {
+  const hasAdditionalDocument = !!attachments.additionalDocumentUrl;
+  if (!hasImage && !hasDocument && !hasAdditionalDocument) {
     return { proofDataUrl: undefined, proofName: undefined };
   }
 
   // Preserve legacy shape when only image exists.
-  if (hasImage && !hasDocument) {
+  if (hasImage && !hasDocument && !hasAdditionalDocument) {
     return {
       proofDataUrl: attachments.imageUrl,
       proofName: attachments.imageName,
@@ -71,21 +76,27 @@ export function stringifyProofAttachments(attachments: ProofAttachments): {
     imageName: attachments.imageName,
     documentUrl: attachments.documentUrl,
     documentName: attachments.documentName,
+    additionalDocumentUrl: attachments.additionalDocumentUrl,
+    additionalDocumentName: attachments.additionalDocumentName,
   };
   return {
     proofDataUrl: `${JSON_PREFIX}${toBase64(JSON.stringify(payload))}`,
-    proofName: attachments.imageName ?? attachments.documentName ?? "attachments",
+    proofName:
+      attachments.imageName ??
+      attachments.documentName ??
+      attachments.additionalDocumentName ??
+      "attachments",
   };
 }
 
 export function hasAnyProof(proofDataUrl?: string, proofName?: string) {
   const parsed = parseProofAttachments(proofDataUrl, proofName);
-  return !!parsed.imageUrl || !!parsed.documentUrl;
+  return !!parsed.imageUrl || !!parsed.documentUrl || !!parsed.additionalDocumentUrl;
 }
 
 export function primaryProofUrl(proofDataUrl?: string, proofName?: string) {
   const parsed = parseProofAttachments(proofDataUrl, proofName);
-  return parsed.imageUrl ?? parsed.documentUrl;
+  return parsed.imageUrl ?? parsed.documentUrl ?? parsed.additionalDocumentUrl;
 }
 
 export function fileToDataUrl(file: File): Promise<string> {

@@ -245,6 +245,7 @@ function PaymentsPage() {
                           download={
                             parseProofAttachments(p.proofDataUrl, p.proofName).imageName ||
                             parseProofAttachments(p.proofDataUrl, p.proofName).documentName ||
+                            parseProofAttachments(p.proofDataUrl, p.proofName).additionalDocumentName ||
                             "proof"
                           }
                           title="View attachment"

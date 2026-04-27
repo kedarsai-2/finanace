@@ -174,7 +174,7 @@ function ExpenseDetailPage() {
           </Detail>
         </dl>
 
-        {(attachments.imageUrl || attachments.documentUrl) && (
+        {(attachments.imageUrl || attachments.documentUrl || attachments.additionalDocumentUrl) && (
           <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Attachments
@@ -200,6 +200,17 @@ function ExpenseDetailPage() {
                   className="text-sm font-medium text-primary hover:underline"
                 >
                   View document
+                </a>
+              )}
+              {attachments.additionalDocumentUrl && (
+                <a
+                  href={attachments.additionalDocumentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={attachments.additionalDocumentName || "document-proof-2"}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  View additional document
                 </a>
               )}
             </div>

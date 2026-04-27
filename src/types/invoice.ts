@@ -83,7 +83,8 @@ export function lineMath(line: InvoiceLine) {
       ? (gross * (line.discountValue || 0)) / 100
       : Math.min(line.discountValue || 0, gross);
   const taxable = Math.max(0, gross - discount);
-  const tax = (taxable * (line.taxPercent || 0)) / 100;
+  // GST is removed from calculations globally.
+  const tax = 0;
   return { gross, discount, taxable, tax, total: taxable + tax };
 }
 

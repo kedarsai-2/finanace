@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { usePurchases } from "@/hooks/usePurchases";
@@ -121,6 +122,7 @@ function PurchasesPage() {
 
   const confirmDelete = async () => {
     if (!deleting) return;
+    if (!verifyActionPassword()) return;
     const n = deleting.number;
     try {
       await remove(deleting.id);

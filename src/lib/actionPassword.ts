@@ -1,4 +1,6 @@
 const ACTION_PASSWORD_KEY = "bm.action.password.4digit";
+const ACTION_PASSWORD_VERIFIED_UNTIL_KEY = "bm.action.password.verifiedUntil";
+const ACTION_PASSWORD_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function isFourDigit(value: string) {
   return /^\d{4}$/.test(value);
@@ -6,6 +8,13 @@ function isFourDigit(value: string) {
 
 export function verifyActionPassword(): boolean {
   if (typeof window === "undefined") return false;
+
+  const now = Date.now();
+  const verifiedUntilRaw = window.sessionStorage.getItem(ACTION_PASSWORD_VERIFIED_UNTIL_KEY);
+  const verifiedUntil = verifiedUntilRaw ? Number(verifiedUntilRaw) : 0;
+  if (Number.isFinite(verifiedUntil) && verifiedUntil > now) {
+    return true;
+  }
 
   let saved = window.localStorage.getItem(ACTION_PASSWORD_KEY) ?? "";
   if (!saved) {
@@ -34,6 +43,10 @@ export function verifyActionPassword(): boolean {
     window.alert("Invalid password.");
     return false;
   }
+  window.sessionStorage.setItem(
+    ACTION_PASSWORD_VERIFIED_UNTIL_KEY,
+    String(Date.now() + ACTION_PASSWORD_TTL_MS),
+  );
   return true;
 }
 
@@ -67,6 +80,7 @@ export function changeActionPassword(): boolean {
   }
 
   window.localStorage.setItem(ACTION_PASSWORD_KEY, next);
+  window.sessionStorage.removeItem(ACTION_PASSWORD_VERIFIED_UNTIL_KEY);
   window.alert("Security password changed successfully.");
   return true;
 }

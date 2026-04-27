@@ -989,6 +989,53 @@ function PaymentSplitsEditor({
     }
   };
 
+  const handleAdditionalDocument = async (id: string, file: File | null) => {
+    const current = splits.find((x) => x.id === id);
+    const parsed = parseProofAttachments(current?.proofDataUrl, current?.proofName);
+    if (!file) {
+      onChange(
+        id,
+        stringifyProofAttachments({
+          ...parsed,
+          additionalDocumentUrl: undefined,
+          additionalDocumentName: undefined,
+        }),
+      );
+      return;
+    }
+    if (!/\.(pdf|doc|docx|xls|xlsx|txt)$/i.test(file.name)) {
+      toast.error("Document must be PDF, DOC, DOCX, XLS, XLSX or TXT");
+      return;
+    }
+    if (file.size > MAX_PROOF_BYTES) {
+      toast.error("Attachment document must be under 2 MB");
+      return;
+    }
+    setUploadingProofIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      onChange(
+        id,
+        stringifyProofAttachments({
+          ...parsed,
+          additionalDocumentUrl: dataUrl,
+          additionalDocumentName: file.name,
+        }),
+      );
+      toast.success("Additional attachment document stored in database");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to upload additional attachment document";
+      toast.error(message);
+    } finally {
+      setUploadingProofIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-3">
       {splits.length === 0 && (
@@ -1138,6 +1185,9 @@ function PaymentSplitsEditor({
                 )}
                 {proof.documentUrl ? (
                   <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Document 1
+                    </span>
                     <span className="flex-1 truncate text-xs text-muted-foreground">
                       {proof.documentName ?? "Attachment document"}
                     </span>
@@ -1169,13 +1219,59 @@ function PaymentSplitsEditor({
                     )}
                   >
                     <Upload className="h-3.5 w-3.5" />
-                    Upload document (one)
+                    Upload document 1
                     <input
                       type="file"
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
                       className="hidden"
                       disabled={disabled || uploadingProof}
                       onChange={(e) => handleDocument(s.id, e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+                {proof.additionalDocumentUrl ? (
+                  <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Document 2
+                    </span>
+                    <span className="flex-1 truncate text-xs text-muted-foreground">
+                      {proof.additionalDocumentName ?? "Additional attachment document"}
+                    </span>
+                    <a
+                      href={proof.additionalDocumentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      View
+                    </a>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleAdditionalDocument(s.id, null)}
+                      disabled={disabled || uploadingProof}
+                      aria-label="Remove additional document"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label
+                    className={cn(
+                      "mt-2 flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
+                      disabled && "pointer-events-none opacity-50",
+                    )}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload document 2
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      className="hidden"
+                      disabled={disabled || uploadingProof}
+                      onChange={(e) => handleAdditionalDocument(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
                 )}

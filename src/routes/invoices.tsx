@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -141,6 +142,7 @@ function InvoicesPage() {
 
   const confirmDelete = async () => {
     if (!deleting) return;
+    if (!verifyActionPassword()) return;
     const n = deleting.number;
     try {
       await remove(deleting.id);

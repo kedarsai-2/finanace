@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -29,6 +29,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -97,6 +105,22 @@ function PurchaseDetailsPage() {
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
   const attachments = parseProofAttachments(purchase.proofDataUrl, purchase.proofName);
+  const alreadyReturned = useMemo(
+    () =>
+      allPurchases.reduce((sum, p) => {
+        if (p.deleted || p.kind !== "return" || p.status === "cancelled") return sum;
+        if (p.sourcePurchaseId !== purchase.id) return sum;
+        return sum + Math.max(0, Number(p.total ?? 0));
+      }, 0),
+    [allPurchases, purchase.id],
+  );
+  const remainingReturn = Math.max(0, purchase.total - alreadyReturned);
+  const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
+  const [returnPaymentMode, setReturnPaymentMode] = useState<"cash" | "bank">("cash");
+
+  useEffect(() => {
+    setReturnAmount(remainingReturn);
+  }, [remainingReturn]);
 
   const handleCancel = async () => {
     try {
@@ -194,21 +218,90 @@ function PurchaseDetailsPage() {
               </Button>
             )}
             {purchase.status === "final" && purchase.kind !== "return" && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={async () => {
-                  if (!verifyActionPassword()) return;
-                  const ret = await convertToReturn(purchase.id);
-                  if (ret) {
-                    toast.success(`Return ${ret.number} created`);
-                    navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
-                  }
-                }}
-              >
-                <Undo2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Return</span>
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Undo2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Return</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Create purchase return</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Enter return amount and payment type. You can create multiple returns until the
+                      original purchase total is exhausted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Return amount</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={remainingReturn}
+                      step="0.01"
+                      value={returnAmount}
+                      onChange={(e) => setReturnAmount(Number(e.target.value))}
+                      className="tabular-nums"
+                    />
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>Already returned: {formatCurrency(alreadyReturned, currency)}</p>
+                      <p>Remaining max: {formatCurrency(remainingReturn, currency)}</p>
+                    </div>
+                    <div className="pt-1">
+                      <label className="text-sm font-medium">Payment type *</label>
+                      <Select
+                        value={returnPaymentMode}
+                        onValueChange={(v) => setReturnPaymentMode(v as "cash" | "bank")}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select payment type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="bank">Bank</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        if (!verifyActionPassword()) return;
+                        const raw = Number(returnAmount) || 0;
+                        if (raw <= 0) {
+                          toast.error("Return amount must be greater than zero.");
+                          return;
+                        }
+                        if (raw > remainingReturn) {
+                          toast.error(
+                            `You can return at most ${formatCurrency(remainingReturn, currency)}.`,
+                          );
+                          return;
+                        }
+                        try {
+                          const ret = await convertToReturn(
+                            purchase.id,
+                            raw,
+                            returnPaymentMode,
+                          );
+                          if (ret) {
+                            toast.success(`Return ${ret.number} created`);
+                            navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
+                          }
+                        } catch (err) {
+                          const message =
+                            err instanceof Error ? err.message : "Could not create purchase return";
+                          toast.error(message);
+                        }
+                      }}
+                    >
+                      Create return
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
@@ -387,7 +480,7 @@ function PurchaseDetailsPage() {
           )}
 
           {/* Proof */}
-          {(attachments.imageUrl || attachments.documentUrl) && (
+          {(attachments.imageUrl || attachments.documentUrl || attachments.additionalDocumentUrl) && (
             <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <h2 className="text-base font-semibold">Attachments</h2>
               <Separator className="my-4" />
@@ -412,6 +505,17 @@ function PurchaseDetailsPage() {
                     className="font-medium text-primary hover:underline"
                   >
                     View document
+                  </a>
+                )}
+                {attachments.additionalDocumentUrl && (
+                  <a
+                    href={attachments.additionalDocumentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={attachments.additionalDocumentName || "purchase-document-2"}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    View additional document
                   </a>
                 )}
               </div>

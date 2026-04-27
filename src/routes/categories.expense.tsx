@@ -38,6 +38,9 @@ function ExpenseCategoriesPage() {
     const trimmed = name.trim();
     if (!activeId) return toast.error("Select business first");
     if (!trimmed) return toast.error("Enter category name");
+    if (/^\d+(\.\d+)?$/.test(trimmed)) {
+      return toast.error("Category name cannot be only numbers");
+    }
     const exists = categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase());
     if (exists) return toast.error("Category already exists");
     await upsert({
