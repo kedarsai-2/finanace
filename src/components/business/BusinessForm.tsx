@@ -46,7 +46,7 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
 
 export function BusinessForm({ mode, businessId }: Props) {
   const navigate = useNavigate();
-  const { businesses, upsert, setActiveId, hydrated } = useBusinesses();
+  const { businesses, activeId, upsert, setActiveId, hydrated } = useBusinesses();
   const existing = useMemo(
     () => (businessId ? businesses.find((b) => b.id === businessId) : undefined),
     [businessId, businesses],
@@ -97,6 +97,7 @@ export function BusinessForm({ mode, businessId }: Props) {
     handleSubmit(
       async (values) => {
         setSubmitting(setActive ? "save-active" : "save");
+        const previousActiveId = activeId;
         try {
           const token = getJwt();
           if (USE_BACKEND && !token) {
@@ -201,6 +202,7 @@ export function BusinessForm({ mode, businessId }: Props) {
             // Keep UI in sync immediately after API save (e.g. logo remove/replace).
             upsert(business);
             if (setActive) setActiveId(savedId);
+            else if (previousActiveId) setActiveId(previousActiveId);
           } else {
             const business: Business = {
               id: existing?.id ?? `b_${Date.now()}`,
@@ -224,6 +226,7 @@ export function BusinessForm({ mode, businessId }: Props) {
             };
             upsert(business);
             if (setActive) setActiveId(business.id);
+            else if (previousActiveId) setActiveId(previousActiveId);
           }
           toast.success("Business saved successfully");
           navigate({ to: "/" });
