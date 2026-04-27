@@ -112,7 +112,7 @@ function PurchaseReturnDetailPage() {
             {ret.status !== "cancelled" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="gap-2 text-destructive">
+                  <Button variant="outline" className="gap-2 text-destructive" title="Cancel">
                     <Ban className="h-4 w-4" />
                     <span className="hidden sm:inline">Cancel</span>
                   </Button>
@@ -127,7 +127,10 @@ function PurchaseReturnDetailPage() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Keep</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleCancel}
+                      onClick={() => {
+                        if (!verifyActionPassword()) return;
+                        void handleCancel();
+                      }}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Cancel return

@@ -547,6 +547,7 @@ function InvoicesTable({
                       className="h-8 w-8 text-warning hover:bg-warning/10"
                       onClick={() => onCancel(inv)}
                       aria-label={`Cancel ${inv.number}`}
+                      title="Cancel"
                     >
                       <Ban className="h-4 w-4" />
                     </Button>

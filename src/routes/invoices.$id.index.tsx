@@ -260,7 +260,7 @@ function InvoiceDetailsPage() {
             {invoice.status !== "cancelled" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="gap-2 text-destructive">
+                  <Button variant="outline" className="gap-2 text-destructive" title="Cancel">
                     <Ban className="h-4 w-4" />
                     <span className="hidden sm:inline">Cancel</span>
                   </Button>
@@ -364,6 +364,7 @@ function InvoiceDetailsPage() {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={async () => {
+                        if (!verifyActionPassword()) return;
                         const raw = Number(cnAmount) || 0;
                         if (raw <= 0) {
                           toast.error("Credit amount must be greater than zero.");
