@@ -37,6 +37,8 @@ import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase, type Purchase } from "@/types/purchase";
+import { parseProofAttachments } from "@/lib/proofAttachments";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/purchases/$id/")({
   head: () => ({
@@ -94,6 +96,7 @@ function PurchaseDetailsPage() {
 
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
+  const attachments = parseProofAttachments(purchase.proofDataUrl, purchase.proofName);
 
   const handleCancel = async () => {
     try {
@@ -173,7 +176,13 @@ function PurchaseDetailsPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/purchases/$id/edit" params={{ id: purchase.id }}>
+                <Link
+                  to="/purchases/$id/edit"
+                  params={{ id: purchase.id }}
+                  onClick={(e) => {
+                    if (!verifyActionPassword()) e.preventDefault();
+                  }}
+                >
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -252,6 +261,12 @@ function PurchaseDetailsPage() {
                   Billed to
                 </p>
                 <p className="mt-1 text-base font-semibold">{business?.name ?? "—"}</p>
+                {purchase.purchaseCategory && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Category:{" "}
+                    {purchase.purchaseCategory === "long-term" ? "Long-term" : "Short-term"}
+                  </p>
+                )}
                 {business?.state && (
                   <p className="mt-0.5 text-sm text-muted-foreground">{business.state}</p>
                 )}
@@ -371,23 +386,31 @@ function PurchaseDetailsPage() {
           )}
 
           {/* Proof */}
-          {(purchase.proofDataUrl || purchase.proofName) && (
+          {(attachments.imageUrl || attachments.documentUrl) && (
             <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <h2 className="text-base font-semibold">Proof</h2>
+              <h2 className="text-base font-semibold">Attachments</h2>
               <Separator className="my-4" />
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className={cn("font-medium", !purchase.proofName && "text-muted-foreground")}>
-                  {purchase.proofName ?? "Proof attached"}
-                </span>
-                {purchase.proofDataUrl && (
+                {attachments.imageUrl && (
                   <a
-                    href={purchase.proofDataUrl}
+                    href={attachments.imageUrl}
                     target="_blank"
                     rel="noreferrer"
-                    download={purchase.proofName || "proof"}
+                    download={attachments.imageName || "purchase-image"}
                     className="font-medium text-primary hover:underline"
                   >
-                    View / Download
+                    View image
+                  </a>
+                )}
+                {attachments.documentUrl && (
+                  <a
+                    href={attachments.documentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={attachments.documentName || "purchase-document"}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    View document
                   </a>
                 )}
               </div>
@@ -417,7 +440,10 @@ function PurchaseDetailsPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleDelete}
+                    onClick={() => {
+                      if (!verifyActionPassword()) return;
+                      void handleDelete();
+                    }}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Delete

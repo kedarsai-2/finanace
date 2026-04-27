@@ -97,7 +97,10 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     if (mode !== "cash" && !accountId) return toast.error("Bank account is required");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!type) return toast.error("Select expense type");
-    if (!category.trim()) return toast.error("Enter expense category");
+    const normalizedCategory = category.trim().toLowerCase();
+    const isKnownCategory = categories.some((c) => c.name.trim().toLowerCase() === normalizedCategory);
+    if (!normalizedCategory) return toast.error("Select expense category");
+    if (!isKnownCategory) return toast.error("Select a valid expense category");
     if (mode !== "cash" && !proofDataUrl)
       return toast.error(`Upload a proof image for the ${PAYMENT_MODE_LABEL[mode]} expense`);
 
@@ -199,18 +202,26 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
             <Label htmlFor="exp-category">
               Expense category <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="exp-category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              list="expense-categories-list"
-              placeholder="e.g. Travel, Rent, Utilities"
-            />
-            <datalist id="expense-categories-list">
-              {categories.map((c) => (
-                <option key={c.id} value={c.name} />
-              ))}
-            </datalist>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="exp-category">
+                <SelectValue
+                  placeholder={
+                    categories.length ? "Select a category" : "Create an expense category first"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {category &&
+                  !categories.some((c) => c.name.trim().toLowerCase() === category.trim().toLowerCase()) && (
+                    <SelectItem value={category}>{category} (legacy)</SelectItem>
+                  )}
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="sm:col-span-3">
             <Label htmlFor="exp-acc">
@@ -316,11 +327,11 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
 
           <Section
             title="Proof"
-            description="Bill, receipt or transfer screenshot. Required for Bank and Cheque modes."
+            description="Attach one image and one document (bill, receipt, transfer proof). Required for non-cash modes."
           >
             <ProofUpload
               id="exp-proof"
-              label="Proof image"
+              label="Attachments"
               required={mode !== "cash"}
               proofDataUrl={proofDataUrl}
               proofName={proofName}

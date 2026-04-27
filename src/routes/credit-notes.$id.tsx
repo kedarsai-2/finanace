@@ -22,6 +22,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { canEditInvoice, lineMath } from "@/types/invoice";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/credit-notes/$id")({
   head: () => ({
@@ -138,7 +139,13 @@ function CreditNoteDetailPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/invoices/$id/edit" params={{ id: cn.id }}>
+                <Link
+                  to="/invoices/$id/edit"
+                  params={{ id: cn.id }}
+                  onClick={(e) => {
+                    if (!verifyActionPassword()) e.preventDefault();
+                  }}
+                >
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -207,6 +214,11 @@ function CreditNoteDetailPage() {
                 From
               </p>
               <p className="mt-1 text-base font-semibold">{business?.name ?? "—"}</p>
+              {cn.cnPaymentMode && (
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Payment type: {cn.cnPaymentMode === "cash" ? "Cash" : "Bank"}
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -275,7 +287,10 @@ function CreditNoteDetailPage() {
               <AlertDialogFooter>
                 <AlertDialogCancel>Keep</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={handleDelete}
+                  onClick={() => {
+                    if (!verifyActionPassword()) return;
+                    void handleDelete();
+                  }}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Delete

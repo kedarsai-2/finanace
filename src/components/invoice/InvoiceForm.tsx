@@ -50,7 +50,12 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useAccounts } from "@/hooks/useAccounts";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { uploadFileToCloudinary } from "@/lib/cloudinary";
+import {
+  fileToDataUrl,
+  parseProofAttachments,
+  stringifyProofAttachments,
+} from "@/lib/proofAttachments";
 import { cn } from "@/lib/utils";
 import {
   computeTotals,
@@ -266,7 +271,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (s.mode !== "cash" && !s.accountId)
         return `Select a ${PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
       if (s.mode !== "cash" && !s.proofDataUrl)
-        return `Upload a proof image for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
+        return `Upload an attachment for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
       paySum += s.amount;
     }
     if (paySum - 0.001 > totals.total)
@@ -892,29 +897,88 @@ function PaymentSplitsEditor({
   const remaining = Math.max(0, invoiceTotal - paid);
   const [uploadingProofIds, setUploadingProofIds] = useState<Record<string, boolean>>({});
 
-  const handleProof = async (id: string, file: File | null) => {
+  const handleImage = async (id: string, file: File | null) => {
+    const current = splits.find((x) => x.id === id);
+    const parsed = parseProofAttachments(current?.proofDataUrl, current?.proofName);
     if (!file) {
-      onChange(id, { proofDataUrl: undefined, proofName: undefined });
+      onChange(id, {
+        ...stringifyProofAttachments({
+          ...parsed,
+          imageUrl: undefined,
+          imageName: undefined,
+        }),
+      });
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("Proof must be an image");
+      toast.error("Attachment image must be an image file");
       return;
     }
     if (file.size > MAX_PROOF_BYTES) {
-      toast.error("Proof image must be under 2 MB");
+      toast.error("Attachment image must be under 2 MB");
       return;
     }
     setUploadingProofIds((prev) => ({ ...prev, [id]: true }));
     try {
-      const uploaded = await uploadImageToCloudinary(file);
-      onChange(id, {
-        proofDataUrl: uploaded.secureUrl,
-        proofName: uploaded.originalFilename,
-      });
-      toast.success("Proof image uploaded");
+      const uploaded = await uploadFileToCloudinary(file, "image");
+      onChange(
+        id,
+        stringifyProofAttachments({
+          ...parsed,
+          imageUrl: uploaded.secureUrl,
+          imageName: uploaded.originalFilename,
+        }),
+      );
+      toast.success("Attachment image uploaded");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to upload proof image";
+      const message = error instanceof Error ? error.message : "Failed to upload attachment image";
+      toast.error(message);
+    } finally {
+      setUploadingProofIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
+  const handleDocument = async (id: string, file: File | null) => {
+    const current = splits.find((x) => x.id === id);
+    const parsed = parseProofAttachments(current?.proofDataUrl, current?.proofName);
+    if (!file) {
+      onChange(
+        id,
+        stringifyProofAttachments({
+          ...parsed,
+          documentUrl: undefined,
+          documentName: undefined,
+        }),
+      );
+      return;
+    }
+    if (!/\.(pdf|doc|docx|xls|xlsx|txt)$/i.test(file.name)) {
+      toast.error("Document must be PDF, DOC, DOCX, XLS, XLSX or TXT");
+      return;
+    }
+    if (file.size > MAX_PROOF_BYTES) {
+      toast.error("Attachment document must be under 2 MB");
+      return;
+    }
+    setUploadingProofIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      onChange(
+        id,
+        stringifyProofAttachments({
+          ...parsed,
+          documentUrl: dataUrl,
+          documentName: file.name,
+        }),
+      );
+      toast.success("Attachment document stored in database");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to upload attachment document";
       toast.error(message);
     } finally {
       setUploadingProofIds((prev) => {
@@ -935,6 +999,7 @@ function PaymentSplitsEditor({
       )}
       {splits.map((s) => {
         const uploadingProof = Boolean(uploadingProofIds[s.id]);
+        const proof = parseProofAttachments(s.proofDataUrl, s.proofName);
         const requiresAccount = s.mode !== "cash";
         const requiresProof = s.mode !== "cash";
         const accountOptions = accounts.filter((a) => {
@@ -1030,23 +1095,23 @@ function PaymentSplitsEditor({
                 />
               </div>
               <div>
-                <Label>Proof {requiresProof ? "*" : "(optional)"}</Label>
-                {s.proofDataUrl ? (
+                <Label>Attachments {requiresProof ? "*" : "(optional)"}</Label>
+                {proof.imageUrl ? (
                   <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
                     <img
-                      src={s.proofDataUrl}
+                      src={proof.imageUrl}
                       alt="proof"
                       className="h-9 w-9 rounded object-cover"
                     />
                     <span className="flex-1 truncate text-xs text-muted-foreground">
-                      {s.proofName ?? "Proof image"}
+                      {proof.imageName ?? "Attachment image"}
                     </span>
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      onClick={() => handleProof(s.id, null)}
+                      onClick={() => handleImage(s.id, null)}
                       disabled={disabled || uploadingProof}
                       aria-label="Remove proof"
                     >
@@ -1061,19 +1126,62 @@ function PaymentSplitsEditor({
                     )}
                   >
                     <Upload className="h-3.5 w-3.5" />
-                    {requiresProof ? "Upload proof image (required)" : "Upload proof image"}
+                    {requiresProof ? "Upload image (required)" : "Upload image"}
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
                       disabled={disabled || uploadingProof}
-                      onChange={(e) => handleProof(s.id, e.target.files?.[0] ?? null)}
+                      onChange={(e) => handleImage(s.id, e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+                {proof.documentUrl ? (
+                  <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+                    <span className="flex-1 truncate text-xs text-muted-foreground">
+                      {proof.documentName ?? "Attachment document"}
+                    </span>
+                    <a
+                      href={proof.documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      View
+                    </a>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => handleDocument(s.id, null)}
+                      disabled={disabled || uploadingProof}
+                      aria-label="Remove document"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label
+                    className={cn(
+                      "mt-2 flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
+                      disabled && "pointer-events-none opacity-50",
+                    )}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload document (one)
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      className="hidden"
+                      disabled={disabled || uploadingProof}
+                      onChange={(e) => handleDocument(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
                 )}
                 {uploadingProof && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Uploading image to Cloudinary...
+                    Uploading attachment to Cloudinary...
                   </p>
                 )}
               </div>

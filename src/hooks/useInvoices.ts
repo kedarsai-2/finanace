@@ -7,6 +7,11 @@ import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
+import {
+  composeNotesWithMeta,
+  extractMetaFromNotes,
+  type CreditNotePaymentMode,
+} from "@/lib/documentMeta";
 
 const STORAGE_KEY = "bm.invoices";
 
@@ -61,6 +66,7 @@ type InvoiceDTO = {
   notes?: string | null;
   terms?: string | null;
   finalizedAt?: string | null;
+  cnPaymentMode?: "CASH" | "BANK" | null;
   deleted?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -107,6 +113,9 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
   const partyId = toStrId(dto.party?.id);
   const number = dto.number ?? "";
   const kind = number.toUpperCase().startsWith("CN-") ? "credit-note" : "invoice";
+  const parsed = extractMetaFromNotes(dto.notes ?? undefined);
+  const dbMode =
+    dto.cnPaymentMode === "BANK" ? "bank" : dto.cnPaymentMode === "CASH" ? "cash" : undefined;
   return {
     id: toStrId(dto.id),
     createdAt: dto.createdAt ?? undefined,
@@ -135,10 +144,11 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     paidAmount: Number(dto.paidAmount ?? 0),
     status: fromBackendInvoiceStatus(dto.status),
     deleted: dto.deleted ?? undefined,
-    notes: dto.notes ?? undefined,
+    notes: parsed.cleanNotes,
     terms: dto.terms ?? undefined,
     finalizedAt: dto.finalizedAt ?? undefined,
     kind,
+    cnPaymentMode: dbMode ?? parsed.meta.cnPaymentMode,
   };
 }
 
@@ -157,6 +167,7 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
 }
 
 function invoiceToDto(inv: Invoice): InvoiceDTO {
+  const notes = composeNotesWithMeta(inv.notes, { cnPaymentMode: inv.cnPaymentMode });
   return {
     id: toNumId(inv.id) ?? undefined,
     createdAt: inv.createdAt ?? null,
@@ -181,9 +192,10 @@ function invoiceToDto(inv: Invoice): InvoiceDTO {
     total: inv.total,
     paidAmount: inv.paidAmount,
     status: toBackendInvoiceStatus(inv.status),
-    notes: inv.notes ?? null,
+    notes: notes ?? null,
     terms: inv.terms ?? null,
     finalizedAt: inv.finalizedAt ?? null,
+    cnPaymentMode: inv.cnPaymentMode ? (inv.cnPaymentMode === "bank" ? "BANK" : "CASH") : null,
     deleted: inv.deleted ?? false,
     business: businessRefFromId(inv.businessId),
     party: toNumId(inv.partyId) == null ? null : { id: toNumId(inv.partyId)! },
@@ -634,7 +646,11 @@ export function useInvoices(businessId?: string | null) {
    * lines. The user can edit qty/lines before finalising.
    */
   const convertToCreditNote = useCallback(
-    async (sourceId: string, creditAmount?: number): Promise<Invoice | null> => {
+    async (
+      sourceId: string,
+      creditAmount?: number,
+      paymentMode?: CreditNotePaymentMode,
+    ): Promise<Invoice | null> => {
       const src = invoicesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
       const alreadyCredited = creditedAmountForInvoice(src, invoicesRef.current);
@@ -647,11 +663,12 @@ export function useInvoices(businessId?: string | null) {
       const id = `cn_${Date.now()}`;
       const now = new Date().toISOString();
       const hasAmount = typeof creditAmount === "number" && Number.isFinite(creditAmount);
-      const safeAmount = hasAmount
-        ? Math.max(0, Math.min(creditAmount!, remaining))
-        : remaining;
+      const safeAmount = hasAmount ? Math.max(0, Math.min(creditAmount!, remaining)) : remaining;
       if (safeAmount <= 0) {
         throw new Error("Credit amount must be greater than zero.");
+      }
+      if (!paymentMode) {
+        throw new Error("Credit note payment mode is required.");
       }
       const lines = [
         {
@@ -682,6 +699,7 @@ export function useInvoices(businessId?: string | null) {
         kind: "credit-note",
         sourceInvoiceId: src.id,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
+        cnPaymentMode: paymentMode,
         lines,
         ...totals,
         overallDiscountKind: "percent",

@@ -249,8 +249,9 @@ export function useParties(businessId?: string | null) {
         if (cancelled) return;
         setParties([]);
       } finally {
-        if (cancelled) return;
-        setHydrated(true);
+        if (!cancelled) {
+          setHydrated(true);
+        }
       }
     })();
     return () => {

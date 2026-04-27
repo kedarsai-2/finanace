@@ -23,6 +23,7 @@ import { usePurchases } from "@/hooks/usePurchases";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase } from "@/types/purchase";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/purchase-returns/$id")({
   head: () => ({
@@ -137,7 +138,13 @@ function PurchaseReturnDetailPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/purchases/$id/edit" params={{ id: ret.id }}>
+                <Link
+                  to="/purchases/$id/edit"
+                  params={{ id: ret.id }}
+                  onClick={(e) => {
+                    if (!verifyActionPassword()) e.preventDefault();
+                  }}
+                >
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -274,7 +281,10 @@ function PurchaseReturnDetailPage() {
               <AlertDialogFooter>
                 <AlertDialogCancel>Keep</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={handleDelete}
+                  onClick={() => {
+                    if (!verifyActionPassword()) return;
+                    void handleDelete();
+                  }}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Delete

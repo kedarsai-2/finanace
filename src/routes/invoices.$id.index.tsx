@@ -26,6 +26,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -60,6 +67,7 @@ import {
   shareInvoiceOnWhatsApp,
   shareInvoiceByEmail,
 } from "@/lib/share";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/invoices/$id/")({
   head: () => ({
@@ -96,6 +104,7 @@ function InvoiceDetailsPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [cnOpen, setCnOpen] = useState(false);
   const [cnAmount, setCnAmount] = useState<number>(0);
+  const [cnPaymentMode, setCnPaymentMode] = useState<"cash" | "bank">("cash");
 
   useEffect(() => {
     if (!invoice) return;
@@ -278,7 +287,13 @@ function InvoiceDetailsPage() {
             )}
             {editable ? (
               <Button asChild className="gap-2">
-                <Link to="/invoices/$id/edit" params={{ id: invoice.id }}>
+                <Link
+                  to="/invoices/$id/edit"
+                  params={{ id: invoice.id }}
+                  onClick={(e) => {
+                    if (!verifyActionPassword()) e.preventDefault();
+                  }}
+                >
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
@@ -298,6 +313,7 @@ function InvoiceDetailsPage() {
                     disabled={remainingCredit <= 0}
                     onClick={() => {
                       setCnAmount(remainingCredit);
+                      setCnPaymentMode("cash");
                       setCnOpen(true);
                     }}
                   >
@@ -328,6 +344,21 @@ function InvoiceDetailsPage() {
                       <p>Already credited: {formatCurrency(alreadyCredited, currency)}</p>
                       <p>Remaining max: {formatCurrency(remainingCredit, currency)}</p>
                     </div>
+                    <div className="pt-1">
+                      <label className="text-sm font-medium">Payment type *</label>
+                      <Select
+                        value={cnPaymentMode}
+                        onValueChange={(v) => setCnPaymentMode(v as "cash" | "bank")}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select payment type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="bank">Bank</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -345,7 +376,7 @@ function InvoiceDetailsPage() {
                           return;
                         }
                         try {
-                          const cn = await convertToCreditNote(invoice.id, raw);
+                          const cn = await convertToCreditNote(invoice.id, raw, cnPaymentMode);
                           if (cn) {
                             toast.success(`Credit note ${cn.number} created`);
                             navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
@@ -557,7 +588,10 @@ function InvoiceDetailsPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleDelete}
+                    onClick={() => {
+                      if (!verifyActionPassword()) return;
+                      void handleDelete();
+                    }}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Delete

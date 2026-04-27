@@ -229,7 +229,7 @@ export function RecordPaymentDialog({
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode !== "cash" && !accountId) return "Select a bank account";
-    if (!proofDataUrl) return "Upload payment proof image";
+    if (!proofDataUrl) return "Upload payment attachment (image or document)";
     if (amount - totalOutstanding > 0.01)
       return `Amount exceeds outstanding ${formatCurrency(totalOutstanding, currency)}`;
     if (!rows.some((r) => r.selected && r.amount > 0))

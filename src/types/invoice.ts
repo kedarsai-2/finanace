@@ -10,6 +10,7 @@ export type DiscountKind = "percent" | "amount";
  *                   reduction) automatically.
  */
 export type InvoiceKind = "invoice" | "credit-note";
+export type CreditNotePaymentMode = "cash" | "bank";
 
 export interface InvoiceLine {
   id: string;
@@ -61,6 +62,8 @@ export interface Invoice {
   kind?: InvoiceKind;
   /** When kind = "credit-note", the source invoice id (for traceability). */
   sourceInvoiceId?: string;
+  /** Required for credit notes to capture settlement mode. */
+  cnPaymentMode?: CreditNotePaymentMode;
 }
 
 export function paymentStatusOf(

@@ -245,12 +245,33 @@ public class PurchaseResource {
                     "invalidsourcepurchase"
                 );
             }
+            if (purchaseDTO.getPurchaseCategory() != null && !purchaseDTO.getPurchaseCategory().isBlank()) {
+                throw new BadRequestAlertException(
+                    "purchaseCategory is not allowed for return documents",
+                    ENTITY_NAME,
+                    "purchasecategoryunexpected"
+                );
+            }
         } else if (purchaseDTO.getSourcePurchaseId() != null) {
             throw new BadRequestAlertException(
                 "sourcePurchaseId is allowed only for return documents",
                 ENTITY_NAME,
                 "sourcepurchaseunexpected"
             );
+        } else {
+            String category = purchaseDTO.getPurchaseCategory();
+            if (category == null || category.isBlank()) {
+                throw new BadRequestAlertException("purchaseCategory is required", ENTITY_NAME, "purchasecategoryrequired");
+            }
+            String normalized = category.trim().toUpperCase();
+            if (!"SHORT_TERM".equals(normalized) && !"LONG_TERM".equals(normalized)) {
+                throw new BadRequestAlertException(
+                    "purchaseCategory must be SHORT_TERM or LONG_TERM",
+                    ENTITY_NAME,
+                    "purchasecategoryinvalid"
+                );
+            }
+            purchaseDTO.setPurchaseCategory(normalized);
         }
     }
 
@@ -272,12 +293,42 @@ public class PurchaseResource {
                     "invalidsourcepurchase"
                 );
             }
+            String effectiveCategory =
+                purchaseDTO.getPurchaseCategory() != null
+                    ? purchaseDTO.getPurchaseCategory()
+                    : existing.getPurchaseCategory();
+            if (effectiveCategory != null && !effectiveCategory.isBlank()) {
+                throw new BadRequestAlertException(
+                    "purchaseCategory is not allowed for return documents",
+                    ENTITY_NAME,
+                    "purchasecategoryunexpected"
+                );
+            }
         } else if (effectiveSourcePurchaseId != null) {
             throw new BadRequestAlertException(
                 "sourcePurchaseId is allowed only for return documents",
                 ENTITY_NAME,
                 "sourcepurchaseunexpected"
             );
+        } else {
+            String effectiveCategory =
+                purchaseDTO.getPurchaseCategory() != null
+                    ? purchaseDTO.getPurchaseCategory()
+                    : existing.getPurchaseCategory();
+            if (effectiveCategory == null || effectiveCategory.isBlank()) {
+                throw new BadRequestAlertException("purchaseCategory is required", ENTITY_NAME, "purchasecategoryrequired");
+            }
+            String normalized = effectiveCategory.trim().toUpperCase();
+            if (!"SHORT_TERM".equals(normalized) && !"LONG_TERM".equals(normalized)) {
+                throw new BadRequestAlertException(
+                    "purchaseCategory must be SHORT_TERM or LONG_TERM",
+                    ENTITY_NAME,
+                    "purchasecategoryinvalid"
+                );
+            }
+            if (purchaseDTO.getPurchaseCategory() != null) {
+                purchaseDTO.setPurchaseCategory(normalized);
+            }
         }
     }
 }

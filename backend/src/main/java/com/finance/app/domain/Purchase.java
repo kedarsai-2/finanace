@@ -151,6 +151,10 @@ public class Purchase implements Serializable {
     @Column(name = "proof_name", length = 255)
     private String proofName;
 
+    @Size(max = 20)
+    @Column(name = "purchase_category", length = 20)
+    private String purchaseCategory;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
@@ -543,6 +547,19 @@ public class Purchase implements Serializable {
         this.proofName = proofName;
     }
 
+    public String getPurchaseCategory() {
+        return this.purchaseCategory;
+    }
+
+    public Purchase purchaseCategory(String purchaseCategory) {
+        this.setPurchaseCategory(purchaseCategory);
+        return this;
+    }
+
+    public void setPurchaseCategory(String purchaseCategory) {
+        this.purchaseCategory = purchaseCategory;
+    }
+
     public Boolean getDeleted() {
         return this.deleted;
     }
@@ -686,6 +703,7 @@ public class Purchase implements Serializable {
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +
+            ", purchaseCategory='" + getPurchaseCategory() + "'" +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

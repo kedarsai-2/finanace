@@ -195,11 +195,11 @@ function TransferPage() {
       </Button>
       <header className="mb-6">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {mode === "transfer" ? "Move money between accounts" : "Adjust account balance"}
+          {mode === "transfer" ? "Move money between accounts" : "Adjust account balance"}
         </p>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <ArrowLeftRight className="h-6 w-6 text-primary" />{" "}
-            {mode === "transfer" ? "Account Transfer" : "Account Adjustment"}
+          <ArrowLeftRight className="h-6 w-6 text-primary" />{" "}
+          {mode === "transfer" ? "Account Transfer" : "Account Adjustment"}
         </h1>
       </header>
 

@@ -254,7 +254,7 @@ function NewPaymentPage() {
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode !== "cash" && !accountId) return "Select a bank account";
-    if (!proofDataUrl) return "Upload payment proof image";
+    if (!proofDataUrl) return "Upload payment attachment (image or document)";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (partyId && rows.length > 0 && unallocated > 0.01) {
       // Allow advance if user explicitly unchecks all rows.
@@ -535,7 +535,7 @@ function NewPaymentPage() {
             <div className="sm:col-span-2">
               <ProofUpload
                 id="pay-proof-new"
-                label="Proof image"
+                label="Attachments"
                 required
                 proofDataUrl={proofDataUrl}
                 proofName={proofName}

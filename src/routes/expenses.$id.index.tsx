@@ -23,6 +23,8 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { PAYMENT_MODE_LABEL } from "@/types/payment";
+import { parseProofAttachments } from "@/lib/proofAttachments";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/expenses/$id/")({
   head: () => ({
@@ -57,6 +59,7 @@ function ExpenseDetailPage() {
 
   const account = accounts.find((a) => a.id === expense.accountId);
   const party = expense.partyId ? parties.find((p) => p.id === expense.partyId) : null;
+  const attachments = parseProofAttachments(expense.proofDataUrl, expense.proofName);
 
   const handleDelete = async () => {
     try {
@@ -79,7 +82,13 @@ function ExpenseDetailPage() {
         </Button>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="gap-2">
-            <Link to="/expenses/$id/edit" params={{ id: expense.id }}>
+            <Link
+              to="/expenses/$id/edit"
+              params={{ id: expense.id }}
+              onClick={(e) => {
+                if (!verifyActionPassword()) e.preventDefault();
+              }}
+            >
               <Pencil className="h-4 w-4" /> Edit
             </Link>
           </Button>
@@ -99,7 +108,14 @@ function ExpenseDetailPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!verifyActionPassword()) return;
+                    void handleDelete();
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -158,28 +174,32 @@ function ExpenseDetailPage() {
           </Detail>
         </dl>
 
-        {(expense.proofDataUrl || expense.proofName) && (
+        {(attachments.imageUrl || attachments.documentUrl) && (
           <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Proof
+              Attachments
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <div className="text-sm">
-                {expense.proofName ? (
-                  <span className="font-medium">{expense.proofName}</span>
-                ) : (
-                  <span className="text-muted-foreground">Proof attached</span>
-                )}
-              </div>
-              {expense.proofDataUrl && (
+              {attachments.imageUrl && (
                 <a
-                  href={expense.proofDataUrl}
+                  href={attachments.imageUrl}
                   target="_blank"
                   rel="noreferrer"
-                  download={expense.proofName || "proof"}
+                  download={attachments.imageName || "image-proof"}
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  View / Download
+                  View image
+                </a>
+              )}
+              {attachments.documentUrl && (
+                <a
+                  href={attachments.documentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={attachments.documentName || "document-proof"}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  View document
                 </a>
               )}
             </div>

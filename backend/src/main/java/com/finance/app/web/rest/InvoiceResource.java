@@ -75,6 +75,7 @@ public class InvoiceResource {
         if (invoiceDTO.getId() != null) {
             throw new BadRequestAlertException("A new invoice cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        validateInvoicePayload(invoiceDTO, null);
         invoiceDTO = invoiceService.save(invoiceDTO);
         return ResponseEntity.created(new URI("/api/invoices/" + invoiceDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, invoiceDTO.getId().toString()))
@@ -108,6 +109,7 @@ public class InvoiceResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        validateInvoicePayload(invoiceDTO, id);
         invoiceDTO = invoiceService.update(invoiceDTO);
         return ResponseEntity.ok()
             .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, invoiceDTO.getId().toString()))
@@ -142,6 +144,8 @@ public class InvoiceResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        com.finance.app.domain.Invoice existing = invoiceRepository.findById(id).orElseThrow();
+        validateInvoicePatchPayload(invoiceDTO, existing, id);
         Optional<InvoiceDTO> result = invoiceService.partialUpdate(invoiceDTO);
 
         return ResponseUtil.wrapOrNotFound(
@@ -222,5 +226,54 @@ public class InvoiceResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void validateInvoicePayload(InvoiceDTO invoiceDTO, Long pathId) {
+        boolean isCreditNote = isCreditNote(invoiceDTO.getNumber());
+        String mode = invoiceDTO.getCnPaymentMode();
+        if (isCreditNote) {
+            if (mode == null || mode.isBlank()) {
+                throw new BadRequestAlertException("cnPaymentMode is required for credit notes", ENTITY_NAME, "cnpaymentmoderequired");
+            }
+            String normalized = mode.trim().toUpperCase();
+            if (!"CASH".equals(normalized) && !"BANK".equals(normalized)) {
+                throw new BadRequestAlertException("cnPaymentMode must be CASH or BANK", ENTITY_NAME, "cnpaymentmodeinvalid");
+            }
+            invoiceDTO.setCnPaymentMode(normalized);
+        } else if (mode != null && !mode.isBlank()) {
+            throw new BadRequestAlertException(
+                "cnPaymentMode is allowed only for credit notes",
+                ENTITY_NAME,
+                "cnpaymentmodeunexpected"
+            );
+        }
+    }
+
+    private void validateInvoicePatchPayload(InvoiceDTO invoiceDTO, com.finance.app.domain.Invoice existing, Long pathId) {
+        String effectiveNumber = invoiceDTO.getNumber() != null ? invoiceDTO.getNumber() : existing.getNumber();
+        boolean isCreditNote = isCreditNote(effectiveNumber);
+        String effectiveMode = invoiceDTO.getCnPaymentMode() != null ? invoiceDTO.getCnPaymentMode() : existing.getCnPaymentMode();
+        if (isCreditNote) {
+            if (effectiveMode == null || effectiveMode.isBlank()) {
+                throw new BadRequestAlertException("cnPaymentMode is required for credit notes", ENTITY_NAME, "cnpaymentmoderequired");
+            }
+            String normalized = effectiveMode.trim().toUpperCase();
+            if (!"CASH".equals(normalized) && !"BANK".equals(normalized)) {
+                throw new BadRequestAlertException("cnPaymentMode must be CASH or BANK", ENTITY_NAME, "cnpaymentmodeinvalid");
+            }
+            if (invoiceDTO.getCnPaymentMode() != null) {
+                invoiceDTO.setCnPaymentMode(normalized);
+            }
+        } else if (effectiveMode != null && !effectiveMode.isBlank()) {
+            throw new BadRequestAlertException(
+                "cnPaymentMode is allowed only for credit notes",
+                ENTITY_NAME,
+                "cnpaymentmodeunexpected"
+            );
+        }
+    }
+
+    private boolean isCreditNote(String number) {
+        return number != null && number.trim().toUpperCase().startsWith("CN-");
     }
 }

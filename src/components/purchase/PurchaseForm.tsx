@@ -51,6 +51,7 @@ import { computeTotals, lineMath, type DiscountKind } from "@/types/invoice";
 import {
   nextPurchaseNumber,
   canEditPurchase,
+  type PurchaseCategory,
   type Purchase,
   type PurchaseLine,
 } from "@/types/purchase";
@@ -83,7 +84,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
   const { parties } = useParties(activeId);
-  const { items } = useItems(activeId);
+  const { items, upsert: upsertItem } = useItems(activeId);
   const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -105,6 +106,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
+  const [purchaseCategory, setPurchaseCategory] = useState<PurchaseCategory>("short-term");
   const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
   const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +131,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setOverallDiscountValue(existing.overallDiscountValue);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
+      setPurchaseCategory(existing.purchaseCategory ?? "short-term");
       setProofDataUrl(existing.proofDataUrl);
       setProofName(existing.proofName);
     } else if (activeId) {
@@ -178,6 +181,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     if (!activeId) return "Select an active business first";
     if (!partyId) return "Please select a party";
     if (!number.trim()) return "Purchase number is required";
+    if (!purchaseCategory) return "Select purchase category";
     if (
       allPurchases.some(
         (p) =>
@@ -224,7 +228,38 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       finalizedAt: isFinal
         ? (existing?.finalizedAt ?? new Date().toISOString())
         : existing?.finalizedAt,
+      purchaseCategory,
     };
+  };
+
+  const ensureLongTermAssets = async (purchase: Purchase) => {
+    if (purchase.kind === "return") return;
+    if (purchase.purchaseCategory !== "long-term") return;
+    const sourceTag = `[AUTO_ASSET_SOURCE:${purchase.id}]`;
+
+    for (const line of purchase.lines) {
+      const lineTag = `${sourceTag}[LINE:${line.id}]`;
+      const existingAsset = items.find(
+        (it) => it.type === "product" && (it.description ?? "").includes(lineTag),
+      );
+      const asset: Item = {
+        id: existingAsset?.id ?? "",
+        businessId: purchase.businessId,
+        name: line.name,
+        type: "product",
+        sellingPrice: line.rate,
+        purchasePrice: line.rate,
+        taxPercent: line.taxPercent,
+        unit: line.unit || "pcs",
+        active: true,
+        description: lineTag,
+        sku: existingAsset?.sku,
+        openingStock: existingAsset?.openingStock,
+        reorderLevel: existingAsset?.reorderLevel,
+        deleted: existingAsset?.deleted,
+      };
+      await upsertItem(asset);
+    }
   };
 
   const handleSave = async (status: Purchase["status"]) => {
@@ -245,6 +280,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     try {
       const p = buildPurchase(status);
       await upsert(p);
+      if (status === "final") {
+        await ensureLongTermAssets(p);
+      }
       toast.success(
         status === "final" ? `Purchase ${p.number} finalised` : `Draft ${p.number} saved`,
       );
@@ -385,7 +423,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
 
         {/* 2. Purchase meta ------------------------------------------------- */}
         <FormSection step={2} title="Purchase Details">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div>
               <Label htmlFor="number">Purchase number *</Label>
               <Input
@@ -418,6 +456,26 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+            <div>
+              <Label>Category *</Label>
+              <Select
+                value={purchaseCategory}
+                onValueChange={(v) => setPurchaseCategory(v as PurchaseCategory)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="short-term">Short-term</SelectItem>
+                  <SelectItem value="long-term">Long-term</SelectItem>
+                </SelectContent>
+              </Select>
+              {purchaseCategory === "long-term" && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Finalizing this purchase will also create asset records for each line.
+                </p>
+              )}
             </div>
             <div>
               <Label>Due date (optional)</Label>
@@ -665,11 +723,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         <FormSection
           step={6}
           title="Bill / Proof"
-          description="Upload a photo or scan of the supplier bill. Required to finalise the purchase."
+          description="Upload one image and one supporting document for this purchase. Required to finalise."
         >
           <ProofUpload
             id="pur-proof"
-            label="Bill image"
+            label="Bill attachments"
             required
             proofDataUrl={proofDataUrl}
             proofName={proofName}

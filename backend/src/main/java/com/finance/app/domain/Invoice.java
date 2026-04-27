@@ -138,6 +138,10 @@ public class Invoice implements Serializable {
     @Column(name = "finalized_at")
     private Instant finalizedAt;
 
+    @Size(max = 10)
+    @Column(name = "cn_payment_mode", length = 10)
+    private String cnPaymentMode;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
@@ -489,6 +493,19 @@ public class Invoice implements Serializable {
         this.finalizedAt = finalizedAt;
     }
 
+    public String getCnPaymentMode() {
+        return this.cnPaymentMode;
+    }
+
+    public Invoice cnPaymentMode(String cnPaymentMode) {
+        this.setCnPaymentMode(cnPaymentMode);
+        return this;
+    }
+
+    public void setCnPaymentMode(String cnPaymentMode) {
+        this.cnPaymentMode = cnPaymentMode;
+    }
+
     public Boolean getDeleted() {
         return this.deleted;
     }
@@ -632,6 +649,7 @@ public class Invoice implements Serializable {
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +
+            ", cnPaymentMode='" + getCnPaymentMode() + "'" +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

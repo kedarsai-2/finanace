@@ -177,7 +177,9 @@ export function useBusinesses() {
         // Backend mode should never fallback to seed data; use cached API list if available.
         const cached = readApi();
         setBusinesses(cached);
-        setActiveId((prev) => (prev && cached.some((b) => b.id === prev) ? prev : (cached[0]?.id ?? null)));
+        setActiveId((prev) =>
+          prev && cached.some((b) => b.id === prev) ? prev : (cached[0]?.id ?? null),
+        );
       } finally {
         setHydrated(true);
       }

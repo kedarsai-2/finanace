@@ -15,4 +15,3 @@ function EditAssetPage() {
   const { id } = Route.useParams();
   return <ItemForm mode="edit" itemId={id} context="assets" />;
 }
-

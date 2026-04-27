@@ -27,6 +27,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { PAYMENT_MODE_LABEL, type PaymentDirection } from "@/types/payment";
+import { hasAnyProof, parseProofAttachments, primaryProofUrl } from "@/lib/proofAttachments";
 
 const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
@@ -236,13 +237,17 @@ function PaymentsPage() {
                       {p.reference || p.allocations.map((a) => a.docNumber).join(", ") || "—"}
                     </td>
                     <td className="px-2 py-3 text-center">
-                      {p.proofDataUrl ? (
+                      {hasAnyProof(p.proofDataUrl, p.proofName) ? (
                         <a
-                          href={p.proofDataUrl}
+                          href={primaryProofUrl(p.proofDataUrl, p.proofName)}
                           target="_blank"
                           rel="noreferrer"
-                          download={p.proofName || "proof"}
-                          title={p.proofName || "View proof"}
+                          download={
+                            parseProofAttachments(p.proofDataUrl, p.proofName).imageName ||
+                            parseProofAttachments(p.proofDataUrl, p.proofName).documentName ||
+                            "proof"
+                          }
+                          title="View attachment"
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                           <Paperclip className="h-3.5 w-3.5" />

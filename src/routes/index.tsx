@@ -140,7 +140,10 @@ function DashboardPage() {
     let bankCount = 0;
     for (const a of accounts) {
       const bal =
-        a.openingBalance + (paySum.get(a.id) ?? 0) + (trSum.get(a.id) ?? 0) + (expSum.get(a.id) ?? 0);
+        a.openingBalance +
+        (paySum.get(a.id) ?? 0) +
+        (trSum.get(a.id) ?? 0) +
+        (expSum.get(a.id) ?? 0);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;

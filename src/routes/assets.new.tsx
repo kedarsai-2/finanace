@@ -5,9 +5,11 @@ export const Route = createFileRoute("/assets/new")({
   head: () => ({
     meta: [
       { title: "Add Asset — Products" },
-      { name: "description", content: "Create a new asset (product-only) with pricing, tax and unit." },
+      {
+        name: "description",
+        content: "Create a new asset (product-only) with pricing, tax and unit.",
+      },
     ],
   }),
   component: () => <ItemForm mode="new" context="assets" />,
 });
-

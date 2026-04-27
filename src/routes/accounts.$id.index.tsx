@@ -110,7 +110,12 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
-function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string; refNo?: string; note?: string }) {
+function txnTypeLabel(r: {
+  kind: AccountTxnKind;
+  refLink?: string;
+  refNo?: string;
+  note?: string;
+}) {
   if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
   if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
     return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";

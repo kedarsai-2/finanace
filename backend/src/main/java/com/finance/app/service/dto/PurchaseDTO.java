@@ -104,6 +104,9 @@ public class PurchaseDTO implements Serializable {
     @Size(max = 255)
     private String proofName;
 
+    @Size(max = 20)
+    private String purchaseCategory;
+
     private Boolean deleted;
 
     private Instant createdAt;
@@ -330,6 +333,14 @@ public class PurchaseDTO implements Serializable {
         this.proofName = proofName;
     }
 
+    public String getPurchaseCategory() {
+        return purchaseCategory;
+    }
+
+    public void setPurchaseCategory(String purchaseCategory) {
+        this.purchaseCategory = purchaseCategory;
+    }
+
     public Boolean getDeleted() {
         return deleted;
     }
@@ -420,6 +431,7 @@ public class PurchaseDTO implements Serializable {
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +
+            ", purchaseCategory='" + getPurchaseCategory() + "'" +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

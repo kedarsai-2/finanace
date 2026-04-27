@@ -115,8 +115,7 @@ export function BusinessForm({ mode, businessId }: Props) {
               logoUrl = uploaded.secureUrl;
               setValue("logoUrl", logoUrl, { shouldDirty: true });
             } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to upload business logo";
+              const message = err instanceof Error ? err.message : "Failed to upload business logo";
               toast.error(message);
               return;
             }

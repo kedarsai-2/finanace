@@ -79,14 +79,28 @@ function actionBadgeVariant(action: AuditAction) {
 function formatValue(v: unknown): string {
   if (v === undefined || v === null || v === "") return "—";
   if (typeof v === "boolean") return v ? "true" : "false";
-  if (typeof v === "object") {
-    try {
-      return JSON.stringify(v, null, 2);
-    } catch {
-      return String(v);
-    }
+  if (typeof v === "number") return Number.isFinite(v) ? v.toLocaleString() : String(v);
+  if (typeof v === "object" && !Array.isArray(v)) {
+    const obj = v as Record<string, unknown>;
+    const lines = Object.entries(obj)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => `${formatFieldLabel(key)}: ${formatValue(value)}`);
+    return lines.length ? lines.join("\n") : "—";
+  }
+  if (Array.isArray(v)) {
+    if (!v.length) return "—";
+    return v.map((entry) => `- ${formatValue(entry)}`).join("\n");
   }
   return String(v);
+}
+
+function formatFieldLabel(field: string): string {
+  const withSpaces = field
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+  if (!withSpaces) return field;
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
 
 function AuditPage() {
@@ -314,7 +328,9 @@ function DiffDialog({ entry, onClose }: { entry: AuditEntry | null; onClose: () 
                     <TableBody>
                       {entry.changes.map((c) => (
                         <TableRow key={c.field}>
-                          <TableCell className="align-top font-mono text-xs">{c.field}</TableCell>
+                          <TableCell className="align-top text-xs font-medium">
+                            {formatFieldLabel(c.field)}
+                          </TableCell>
                           <TableCell
                             className={cn("align-top font-mono text-xs", "text-destructive")}
                           >

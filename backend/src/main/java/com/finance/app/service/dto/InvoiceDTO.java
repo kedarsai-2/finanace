@@ -97,6 +97,9 @@ public class InvoiceDTO implements Serializable {
 
     private Instant finalizedAt;
 
+    @Size(max = 10)
+    private String cnPaymentMode;
+
     private Boolean deleted;
 
     private Instant createdAt;
@@ -299,6 +302,14 @@ public class InvoiceDTO implements Serializable {
         this.finalizedAt = finalizedAt;
     }
 
+    public String getCnPaymentMode() {
+        return cnPaymentMode;
+    }
+
+    public void setCnPaymentMode(String cnPaymentMode) {
+        this.cnPaymentMode = cnPaymentMode;
+    }
+
     public Boolean getDeleted() {
         return deleted;
     }
@@ -388,6 +399,7 @@ public class InvoiceDTO implements Serializable {
             ", notes='" + getNotes() + "'" +
             ", terms='" + getTerms() + "'" +
             ", finalizedAt='" + getFinalizedAt() + "'" +
+            ", cnPaymentMode='" + getCnPaymentMode() + "'" +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

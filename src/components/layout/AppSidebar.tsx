@@ -16,8 +16,10 @@ import {
   FileMinus,
   Undo2,
   Banknote,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { changeActionPassword } from "@/lib/actionPassword";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -58,7 +60,7 @@ export function AppSidebar() {
           return (
             <Link
               key={l.to}
-              to={l.to as any}
+              to={l.to}
               activeOptions={{ exact: l.to === "/" }}
               className={cn(
                 "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -76,7 +78,17 @@ export function AppSidebar() {
       </nav>
 
       <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
-        © {new Date().getFullYear()} QOBOX
+        <button
+          type="button"
+          onClick={() => {
+            changeActionPassword();
+          }}
+          className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-sidebar-foreground/20 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <KeyRound className="h-3 w-3" />
+          Change security PIN
+        </button>
+        <br />© {new Date().getFullYear()} QOBOX
       </div>
     </aside>
   );

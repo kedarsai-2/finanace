@@ -168,7 +168,8 @@ function CashBalancePage() {
       if (!kindMatches(t.kind, kind)) return false;
       if (accountFilter !== "all" && t.accountId !== accountFilter) return false;
       if (!q) return true;
-      const hay = `${t.accountName} ${txnTypeLabel(t)} ${t.refNo ?? ""} ${t.note ?? ""}`.toLowerCase();
+      const hay =
+        `${t.accountName} ${txnTypeLabel(t)} ${t.refNo ?? ""} ${t.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [previousTransactions, from, to, kind, accountFilter, query]);
@@ -268,7 +269,12 @@ function CashBalancePage() {
               </div>
               <div>
                 <Label htmlFor="cash-txn-to">To</Label>
-                <Input id="cash-txn-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                <Input
+                  id="cash-txn-to"
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Type</Label>
@@ -344,7 +350,9 @@ function CashBalancePage() {
                         ) : (
                           t.refNo
                         )}
-                        {t.note && <span className="ml-2 text-xs text-muted-foreground">{t.note}</span>}
+                        {t.note && (
+                          <span className="ml-2 text-xs text-muted-foreground">{t.note}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
                         {t.amount < 0 ? formatCurrency(t.amount, currency) : ""}

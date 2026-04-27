@@ -218,7 +218,7 @@ function AccountCard({
   const Icon = TYPE_ICON[account.type];
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
-      <Link to="/accounts/$id" params={{ id: account.id }} className="block p-5">
+      <Link to="/accounts/$id" params={{ id: account.id }} className="block p-5 pr-24">
         <div className="mb-3 flex items-center gap-3">
           <div
             className={cn(
@@ -229,7 +229,7 @@ function AccountCard({
             <Icon className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold leading-tight">{account.name}</p>
+            <p className="wrap-break-word font-semibold leading-tight">{account.name}</p>
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
               {ACCOUNT_TYPE_LABEL[account.type]}
             </p>

@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ExpenseForm } from "@/components/expense/ExpenseForm";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useExpenses } from "@/hooks/useExpenses";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/expenses/$id/edit")({
   head: () => ({
@@ -20,6 +22,11 @@ function EditExpensePage() {
   const { allExpenses } = useExpenses(activeId);
 
   const expense = allExpenses.find((e) => e.id === id);
+
+  useEffect(() => {
+    if (verifyActionPassword()) return;
+    navigate({ to: "/expenses/$id", params: { id } });
+  }, [navigate, id]);
 
   if (!expense) {
     return (

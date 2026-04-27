@@ -7,6 +7,7 @@ import com.finance.app.repository.AccountRepository;
 import com.finance.app.repository.BusinessRepository;
 import com.finance.app.web.rest.errors.BadRequestAlertException;
 import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +26,12 @@ public class CashLedgerAccountService {
     }
 
     public Account getOrCreateCashAccount(Long businessId) {
-        return accountRepository
-            .findActiveByBusinessIdAndType(businessId, AccountType.CASH)
-            .orElseGet(() -> createCashAccount(businessId));
+        List<Account> cashAccounts = accountRepository.findAllActiveByBusinessIdAndType(businessId, AccountType.CASH);
+        if (cashAccounts.isEmpty()) {
+            return createCashAccount(businessId);
+        }
+        // Support legacy data with multiple active cash accounts by choosing a deterministic primary.
+        return cashAccounts.stream().filter(a -> "Cash".equalsIgnoreCase(a.getName())).findFirst().orElse(cashAccounts.get(0));
     }
 
     private Account createCashAccount(Long businessId) {

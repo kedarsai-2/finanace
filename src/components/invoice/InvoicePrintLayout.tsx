@@ -57,7 +57,9 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
             </div>
           )}
           <div>
-            <h1 className="text-[18px] font-bold leading-tight">{business?.name ?? "Your Business"}</h1>
+            <h1 className="text-[18px] font-bold leading-tight">
+              {business?.name ?? "Your Business"}
+            </h1>
             <div className="mt-1 text-[11px] leading-relaxed text-slate-700">
               {[business?.billingAddress?.line1, business?.billingAddress?.line2]
                 .filter(Boolean)

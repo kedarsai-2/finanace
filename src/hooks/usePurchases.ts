@@ -8,6 +8,7 @@ import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
 import { apiFetch } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
+import { composeNotesWithMeta, extractMetaFromNotes } from "@/lib/documentMeta";
 
 const STORAGE_KEY = "bm.purchases";
 
@@ -48,6 +49,7 @@ type PurchaseDTO = {
   finalizedAt?: string | null;
   proofDataUrl?: string | null;
   proofName?: string | null;
+  purchaseCategory?: "SHORT_TERM" | "LONG_TERM" | null;
   deleted?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -92,6 +94,13 @@ function fromBackendPurchaseStatus(
 }
 
 function dtoToPurchase(dto: PurchaseDTO): Purchase {
+  const parsed = extractMetaFromNotes(dto.notes ?? undefined);
+  const dbCategory =
+    dto.purchaseCategory === "LONG_TERM"
+      ? "long-term"
+      : dto.purchaseCategory === "SHORT_TERM"
+        ? "short-term"
+        : undefined;
   return {
     id: toStrId(dto.id),
     createdAt: dto.createdAt ?? undefined,
@@ -121,11 +130,12 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     sourcePurchaseId: toStrId(dto.sourcePurchaseId),
     status: fromBackendPurchaseStatus(dto.status),
     deleted: dto.deleted ?? undefined,
-    notes: dto.notes ?? undefined,
+    notes: parsed.cleanNotes,
     terms: dto.terms ?? undefined,
     finalizedAt: dto.finalizedAt ?? undefined,
     proofDataUrl: dto.proofDataUrl ?? undefined,
     proofName: dto.proofName ?? undefined,
+    purchaseCategory: dbCategory ?? parsed.meta.purchaseCategory,
   };
 }
 
@@ -161,6 +171,7 @@ function normalizePurchases(list: Purchase[]): Purchase[] {
 }
 
 function purchaseToDto(p: Purchase): PurchaseDTO {
+  const notes = composeNotesWithMeta(p.notes, { purchaseCategory: p.purchaseCategory });
   return {
     id: toNumId(p.id) ?? undefined,
     createdAt: p.createdAt ?? null,
@@ -188,11 +199,17 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     // be interpreted as an unsaved transient relation by backend mappers.
     sourcePurchaseId: p.kind === "return" ? (toNumId(p.sourcePurchaseId) ?? null) : undefined,
     status: toBackendPurchaseStatus(p.status),
-    notes: p.notes ?? null,
+    notes: notes ?? null,
     terms: p.terms ?? null,
     finalizedAt: p.finalizedAt ?? null,
     proofDataUrl: p.proofDataUrl ?? null,
     proofName: p.proofName ?? null,
+    purchaseCategory:
+      p.purchaseCategory === "long-term"
+        ? "LONG_TERM"
+        : p.purchaseCategory === "short-term"
+          ? "SHORT_TERM"
+          : null,
     deleted: p.deleted ?? false,
     business: businessRefFromId(p.businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },

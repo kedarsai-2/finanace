@@ -10,6 +10,7 @@ export type PurchaseStatus = "draft" | "final" | "cancelled";
  *                the ledger mirror reduces the supplier payable automatically.
  */
 export type PurchaseKind = "purchase" | "return";
+export type PurchaseCategory = "short-term" | "long-term";
 
 /** Same shape as InvoiceLine — purchases reuse the line/tax math helpers. */
 export type PurchaseLine = InvoiceLine;
@@ -59,6 +60,8 @@ export interface Purchase {
   kind?: PurchaseKind;
   /** When kind = "return", the source purchase id (for traceability). */
   sourcePurchaseId?: string;
+  /** Mandatory category for standard purchases. */
+  purchaseCategory?: PurchaseCategory;
 }
 
 const NUMBER_REGEX = /^([A-Z]+-?)(\d+)$/i;
