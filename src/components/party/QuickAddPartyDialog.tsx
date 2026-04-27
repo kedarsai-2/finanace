@@ -74,7 +74,7 @@ export function QuickAddPartyDialog({ open, onOpenChange, onCreated }: QuickAddP
   };
 
   const handleSave = () => {
-    if (!activeId) {
+    if (!activeId || activeId === "__all__") {
       toast.error("Select an active business first");
       return;
     }

@@ -85,7 +85,7 @@ export function PartyForm({ mode, partyId }: Props) {
 
   const onSubmit = handleSubmit(
     async (values) => {
-      if (!activeId) {
+      if (!activeId || activeId === "__all__") {
         toast.error("Select an active business first");
         return;
       }

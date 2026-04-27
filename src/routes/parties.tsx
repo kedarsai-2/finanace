@@ -64,7 +64,7 @@ function PartiesRouteLayout() {
 function PartiesPage() {
   const navigate = useNavigate({ from: "/parties" });
   const { q } = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
+  const { activeId, isAll, businesses } = useBusinesses();
   const { parties, hydrated, remove } = useParties(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
   const { allInvoices } = useInvoices(activeId);
@@ -137,7 +137,17 @@ function PartiesPage() {
                   : "Loading…"}
               </p>
             </div>
-            <Button asChild size="lg" className="gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2"
+              onClick={(e) => {
+                if (isAll) {
+                  e.preventDefault();
+                  toast.error("Switch to a specific business to add parties");
+                }
+              }}
+            >
               <Link to="/parties/new" search={{ q: "", type: "all" }}>
                 <Plus className="h-4 w-4" />
                 Add Party
