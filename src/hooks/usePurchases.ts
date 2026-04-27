@@ -171,7 +171,8 @@ function normalizePurchases(list: Purchase[]): Purchase[] {
 }
 
 function purchaseToDto(p: Purchase): PurchaseDTO {
-  const notes = composeNotesWithMeta(p.notes, { purchaseCategory: p.purchaseCategory });
+  const categoryMeta = p.kind === "return" ? undefined : p.purchaseCategory;
+  const notes = composeNotesWithMeta(p.notes, { purchaseCategory: categoryMeta });
   return {
     id: toNumId(p.id) ?? undefined,
     createdAt: p.createdAt ?? null,
@@ -205,11 +206,13 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     proofDataUrl: p.proofDataUrl ?? null,
     proofName: p.proofName ?? null,
     purchaseCategory:
-      p.purchaseCategory === "long-term"
-        ? "LONG_TERM"
-        : p.purchaseCategory === "short-term"
-          ? "SHORT_TERM"
-          : null,
+      p.kind === "return"
+        ? null
+        : p.purchaseCategory === "long-term"
+          ? "LONG_TERM"
+          : p.purchaseCategory === "short-term"
+            ? "SHORT_TERM"
+            : null,
     deleted: p.deleted ?? false,
     business: businessRefFromId(p.businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
