@@ -38,8 +38,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "authorities")
     Optional<User> findFirstByAuthorities_NameOrderByIdAsc(String authorityName);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update User u set u.mobileHiddenTabs = :mobileHiddenTabs where u.id = :userId")
+    @Modifying
+    @Query(value = "update jhi_user set mobile_hidden_tabs = :mobileHiddenTabs where id = :userId", nativeQuery = true)
     int updateMobileHiddenTabsById(@Param("userId") Long userId, @Param("mobileHiddenTabs") String mobileHiddenTabs);
 
     Page<User> findAllByIdNotNullAndActivatedIsTrue(Pageable pageable);
