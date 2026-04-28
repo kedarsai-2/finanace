@@ -310,28 +310,40 @@ public class UserService {
     public Optional<List<String>> getCurrentUserMobileHiddenTabs() {
         return SecurityUtils.getCurrentUserLogin()
             .flatMap(userRepository::findOneByLogin)
-            .map(user -> {
-                List<String> userTabs = deserializeTabs(user.getMobileHiddenTabs());
-                if (!userTabs.isEmpty()) {
-                    return userTabs;
-                }
-                // Admin-controlled default: if user has no personal setting, inherit primary admin tabs.
-                return userRepository
-                    .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
-                    .map(admin -> deserializeTabs(admin.getMobileHiddenTabs()))
-                    .orElse(List.of());
-            });
+            .map(user -> getPrimaryAdminHiddenTabs().orElseGet(() -> deserializeTabs(user.getMobileHiddenTabs())));
     }
 
     public Optional<List<String>> updateCurrentUserMobileHiddenTabs(List<String> hiddenTabs) {
         return SecurityUtils.getCurrentUserLogin()
             .flatMap(userRepository::findOneByLogin)
             .map(user -> {
-                user.setMobileHiddenTabs(serializeTabs(hiddenTabs));
-                userRepository.save(user);
-                this.clearUserCaches(user);
-                return hiddenTabs;
+                List<String> sanitizedTabs = hiddenTabs == null ? List.of() : hiddenTabs.stream().filter(Objects::nonNull).distinct().toList();
+                if (!isAdminUser(user)) {
+                    // Non-admin users cannot override global APK tab settings.
+                    return getPrimaryAdminHiddenTabs().orElse(List.of());
+                }
+
+                String serializedTabs = serializeTabs(sanitizedTabs);
+                List<User> allUsers = userRepository.findAll();
+                for (User targetUser : allUsers) {
+                    targetUser.setMobileHiddenTabs(serializedTabs);
+                }
+                userRepository.saveAll(allUsers);
+                for (User targetUser : allUsers) {
+                    this.clearUserCaches(targetUser);
+                }
+                return sanitizedTabs;
             });
+    }
+
+    private Optional<List<String>> getPrimaryAdminHiddenTabs() {
+        return userRepository
+            .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
+            .map(admin -> deserializeTabs(admin.getMobileHiddenTabs()));
+    }
+
+    private boolean isAdminUser(User user) {
+        return user.getAuthorities().stream().anyMatch(authority -> AuthoritiesConstants.ADMIN.equals(authority.getName()));
     }
 
     private String serializeTabs(List<String> hiddenTabs) {
