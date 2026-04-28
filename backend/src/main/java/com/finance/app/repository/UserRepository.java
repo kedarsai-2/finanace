@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -34,6 +37,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @EntityGraph(attributePaths = "authorities")
     Optional<User> findFirstByAuthorities_NameOrderByIdAsc(String authorityName);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u set u.mobileHiddenTabs = :mobileHiddenTabs where u.id = :userId")
+    int updateMobileHiddenTabsById(@Param("userId") Long userId, @Param("mobileHiddenTabs") String mobileHiddenTabs);
 
     Page<User> findAllByIdNotNullAndActivatedIsTrue(Pageable pageable);
 }

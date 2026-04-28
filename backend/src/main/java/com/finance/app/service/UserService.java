@@ -326,8 +326,7 @@ public class UserService {
                 userRepository
                     .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
                     .ifPresent(admin -> {
-                        admin.setMobileHiddenTabs(serializeTabs(sanitizedTabs));
-                        userRepository.save(admin);
+                        userRepository.updateMobileHiddenTabsById(admin.getId(), serializeTabs(sanitizedTabs));
                         this.clearUserCaches(admin);
                     });
                 return sanitizedTabs;
