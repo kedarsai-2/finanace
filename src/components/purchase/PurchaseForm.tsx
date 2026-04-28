@@ -46,6 +46,8 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { usePurchases } from "@/hooks/usePurchases";
+import { usePayments } from "@/hooks/usePayments";
+import { useAccounts } from "@/hooks/useAccounts";
 import { cn } from "@/lib/utils";
 import { computeTotals, lineMath, type DiscountKind } from "@/types/invoice";
 import {
@@ -57,6 +59,7 @@ import {
   type PurchaseLine,
 } from "@/types/purchase";
 import type { Item } from "@/types/item";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 
 interface Props {
   mode: "new" | "edit";
@@ -87,7 +90,10 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { parties } = useParties(activeId);
   const { items, upsert: upsertItem, remove: removeItem } = useItems(activeId);
   const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
+  const { create: createPayment } = usePayments(activeId);
+  const { accounts } = useAccounts(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
+  const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
 
   // Show all parties (party-type concept removed).
   const suppliers = parties;
@@ -109,6 +115,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [termsText, setTermsText] = useState("");
   const [purchaseCategory, setPurchaseCategory] = useState<PurchaseCategory>("short-term");
   const [purchasePaymentMode, setPurchasePaymentMode] = useState<PurchasePaymentMode>("cash");
+  const [purchaseAccountId, setPurchaseAccountId] = useState<string>("");
   const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(undefined);
   const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
@@ -135,12 +142,23 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setTermsText(existing.terms ?? "");
       setPurchaseCategory(existing.purchaseCategory ?? "short-term");
       setPurchasePaymentMode(existing.purchasePaymentMode ?? "cash");
+      setPurchaseAccountId("");
       setProofDataUrl(existing.proofDataUrl);
       setProofName(existing.proofName);
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
     }
   }, [existing, hydrated, activeId, allPurchases, ensureLines]);
+
+  useEffect(() => {
+    if (purchasePaymentMode === "cash") {
+      setPurchaseAccountId("");
+      return;
+    }
+    if (!purchaseAccountId && bankAccounts[0]?.id) {
+      setPurchaseAccountId(bankAccounts[0].id);
+    }
+  }, [purchasePaymentMode, purchaseAccountId, bankAccounts]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -186,6 +204,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     if (!number.trim()) return "Purchase number is required";
     if (!purchaseCategory) return "Select purchase category";
     if (!purchasePaymentMode) return "Select payment type";
+    if (purchasePaymentMode !== "cash" && !purchaseAccountId) return "Select a bank account";
     if (
       allPurchases.some(
         (p) =>
@@ -208,6 +227,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
 
   const buildPurchase = (status: Purchase["status"]): Purchase => {
     const isFinal = status === "final";
+    const finalPaymentDelta =
+      status === "final" ? Math.max(0, totals.total - (existing?.paidAmount ?? 0)) : 0;
     return {
       id: existing?.id ?? `pur_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -222,7 +243,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
-      paidAmount: existing?.paidAmount ?? 0,
+      paidAmount: (existing?.paidAmount ?? 0) + finalPaymentDelta,
       status,
       proofDataUrl,
       proofName,
@@ -293,6 +314,29 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     try {
       const p = buildPurchase(status);
       await upsert(p);
+      const alreadyPaid = existing?.paidAmount ?? 0;
+      const paymentDelta = Math.max(0, p.paidAmount - alreadyPaid);
+      const selectedBankAccount = bankAccounts.find((a) => a.id === purchaseAccountId);
+      if (status === "final" && paymentDelta > 0) {
+        await createPayment({
+          businessId: p.businessId,
+          partyId: p.partyId || "_advance",
+          direction: "out",
+          date: p.date,
+          amount: paymentDelta,
+          mode: purchasePaymentMode,
+          accountId: purchasePaymentMode === "cash" ? undefined : purchaseAccountId,
+          account:
+            purchasePaymentMode === "cash"
+              ? "Cash"
+              : selectedBankAccount?.name || "Bank",
+          reference: p.number,
+          notes: `Auto payment from purchase ${p.number}`,
+          proofDataUrl,
+          proofName,
+          allocations: [{ docId: p.id, docNumber: p.number, amount: paymentDelta }],
+        });
+      }
       if (status === "final") {
         await syncAssetsForPurchaseCategory(p);
       }
@@ -505,6 +549,31 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   <SelectItem value="cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Bank account {purchasePaymentMode === "cash" ? "" : "*"}</Label>
+              {purchasePaymentMode === "cash" ? (
+                <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
+                  Uses Cash balance (no bank account)
+                </div>
+              ) : bankAccounts.length === 0 ? (
+                <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  No bank accounts yet. Add one in Accounts first.
+                </p>
+              ) : (
+                <Select value={purchaseAccountId} onValueChange={setPurchaseAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select bank account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label>Due date (optional)</Label>

@@ -50,6 +50,7 @@ import { useParties, formatCurrency } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useAccounts } from "@/hooks/useAccounts";
+import { usePayments } from "@/hooks/usePayments";
 import { uploadFileToCloudinary } from "@/lib/cloudinary";
 import {
   fileToDataUrl,
@@ -107,6 +108,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
   const { accounts } = useAccounts(activeId);
+  const { create: createPayment } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -280,7 +282,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const buildInvoice = (status: Invoice["status"]): Invoice => {
     const isFinal = status === "final";
-    const newPaidAmount = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const newPaidAmount = status === "final" ? payments.reduce((s, p) => s + (p.amount || 0), 0) : 0;
     return {
       id: existing?.id ?? `inv_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -322,6 +324,29 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     try {
       const inv = buildInvoice(status);
       await upsert(inv);
+      if (status === "final") {
+        const validSplits = payments.filter((p) => p.amount > 0);
+        for (const split of validSplits) {
+          const selectedAccount = split.accountId
+            ? accounts.find((a) => a.id === split.accountId)
+            : undefined;
+          await createPayment({
+            businessId: inv.businessId,
+            partyId: inv.partyId || "_advance",
+            direction: "in",
+            date: inv.date,
+            amount: split.amount,
+            mode: split.mode,
+            accountId: split.mode === "cash" ? undefined : split.accountId,
+            account: split.mode === "cash" ? "Cash" : selectedAccount?.name,
+            reference: split.reference?.trim() || undefined,
+            notes: split.notes?.trim() || undefined,
+            proofDataUrl: split.proofDataUrl,
+            proofName: split.proofName,
+            allocations: [{ docId: inv.id, docNumber: inv.number, amount: split.amount }],
+          });
+        }
+      }
       toast.success(
         status === "final" ? `Sale ${inv.number} finalised` : `Draft ${inv.number} saved`,
       );

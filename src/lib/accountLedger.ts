@@ -15,6 +15,9 @@ export function buildAccountTxns(args: {
 }): AccountTxn[] {
   const { account, payments, transfers, expenses, accountsById } = args;
   const txns: AccountTxn[] = [];
+  const allAccounts = Object.values(accountsById);
+  const cashAccounts = allAccounts.filter((a) => a.type === "cash");
+  const bankAccounts = allAccounts.filter((a) => a.type === "bank");
 
   txns.push({
     id: `open_${account.id}`,
@@ -29,10 +32,26 @@ export function buildAccountTxns(args: {
   for (const p of payments) {
     const paymentAccountName = p.account?.trim().toLowerCase();
     const accountName = account.name.trim().toLowerCase();
+    const inferredByText =
+      !p.accountId &&
+      !!paymentAccountName &&
+      (paymentAccountName === accountName ||
+        // Legacy generic labels ("cash"/"bank") map only when unambiguous.
+        (paymentAccountName === "cash" && account.type === "cash" && cashAccounts.length === 1) ||
+        (paymentAccountName === "bank" && account.type === "bank" && bankAccounts.length === 1));
+    const inferredByMode =
+      !p.accountId &&
+      !paymentAccountName &&
+      ((p.mode === "cash" && account.type === "cash" && cashAccounts.length === 1) ||
+        ((p.mode === "bank" || p.mode === "cheque") &&
+          account.type === "bank" &&
+          bankAccounts.length === 1));
     const belongsToAccount =
       p.accountId === account.id ||
       // Backward-compat: older records may only have free-text account label.
-      (!p.accountId && !!paymentAccountName && paymentAccountName === accountName);
+      inferredByText ||
+      // Final fallback for legacy rows with only payment mode and no account linkage.
+      inferredByMode;
     if (!belongsToAccount) continue;
     const isIn = p.direction === "in";
     const isSales = isIn && p.allocations.length > 0;
