@@ -15,6 +15,15 @@ function parseJwtClaims(token: string | null): Record<string, unknown> | null {
   }
 }
 
+function normalizeAuthNetworkError(error: unknown): Error {
+  if (!(error instanceof TypeError)) {
+    return error instanceof Error ? error : new Error("Request failed");
+  }
+  const networkHint =
+    "Network error: cannot reach backend API. For Android, set VITE_API_BASE_URL to your public backend URL (or use emulator host 10.0.2.2 for local backend).";
+  return new Error(networkHint);
+}
+
 export function useAuth() {
   const token = useSyncExternalStore(subscribeAuth, getJwt, () => null);
   const isAuthed = !!token;
@@ -27,11 +36,16 @@ export function useAuth() {
   const isAdmin = authorities.includes("ROLE_ADMIN");
 
   const login = useCallback(async (username: string, password: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/authenticate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, rememberMe: true }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE_URL}/api/authenticate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, rememberMe: true }),
+      });
+    } catch (error) {
+      throw normalizeAuthNetworkError(error);
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new Error(text || `Login failed (${res.status})`);
@@ -54,11 +68,16 @@ export function useAuth() {
       firstName?: string;
       lastName?: string;
     }) => {
-      const res = await fetch(`${API_BASE_URL}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        throw normalizeAuthNetworkError(error);
+      }
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(text || `Register failed (${res.status})`);
