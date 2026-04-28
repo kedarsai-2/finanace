@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
   LayoutGrid,
   LayoutDashboard,
@@ -17,9 +18,12 @@ import {
   Undo2,
   Banknote,
   KeyRound,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { changeActionPassword } from "@/lib/actionPassword";
+
+const SIDEBAR_PREFS_KEY = "bm.sidebar.hiddenTabs";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -40,6 +44,34 @@ const navLinks = [
 ] as const;
 
 export function AppSidebar() {
+  const [hiddenTabs, setHiddenTabs] = useState<Record<string, true>>({});
+  const [showCustomize, setShowCustomize] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_PREFS_KEY);
+      setHiddenTabs(raw ? (JSON.parse(raw) as Record<string, true>) : {});
+    } catch {
+      setHiddenTabs({});
+    }
+  }, []);
+
+  const visibleLinks = useMemo(
+    () => navLinks.filter((l) => !hiddenTabs[l.to]),
+    [hiddenTabs],
+  );
+
+  const toggleTab = (to: string) => {
+    if (to === "/") return;
+    setHiddenTabs((prev) => {
+      const next = { ...prev };
+      if (next[to]) delete next[to];
+      else next[to] = true;
+      localStorage.setItem(SIDEBAR_PREFS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
       <Link to="/" className="flex items-center gap-2.5 px-4 py-5">
@@ -55,7 +87,7 @@ export function AppSidebar() {
       </Link>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4">
-        {navLinks.map((l) => {
+        {visibleLinks.map((l) => {
           const Icon = l.icon;
           return (
             <Link
@@ -78,6 +110,38 @@ export function AppSidebar() {
       </nav>
 
       <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
+        <button
+          type="button"
+          onClick={() => setShowCustomize((v) => !v)}
+          className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-sidebar-foreground/20 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <SlidersHorizontal className="h-3 w-3" />
+          Customize tabs
+        </button>
+        {showCustomize ? (
+          <div className="mb-2 rounded-md border border-sidebar-foreground/20 bg-sidebar-accent/40 p-2">
+            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
+              Show in sidebar
+            </p>
+            <div className="space-y-1">
+              {navLinks.map((l) => (
+                <label
+                  key={`pref-${l.to}`}
+                  className="flex items-center gap-1.5 text-[11px] text-sidebar-foreground/80"
+                >
+                  <input
+                    type="checkbox"
+                    checked={!hiddenTabs[l.to]}
+                    onChange={() => toggleTab(l.to)}
+                    disabled={l.to === "/"}
+                    className="h-3 w-3 accent-primary"
+                  />
+                  {l.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => {
