@@ -314,33 +314,21 @@ public class UserService {
     }
 
     public Optional<List<String>> updateCurrentUserMobileHiddenTabs(List<String> hiddenTabs) {
-        return SecurityUtils.getCurrentUserLogin()
-            .flatMap(userRepository::findOneByLogin)
-            .map(user -> {
-                List<String> sanitizedTabs = hiddenTabs == null ? List.of() : hiddenTabs.stream().filter(Objects::nonNull).distinct().toList();
-                if (!isAdminUser(user)) {
-                    // Non-admin users cannot override global APK tab settings.
-                    return getPrimaryAdminHiddenTabs().orElse(List.of());
-                }
+        List<String> sanitizedTabs = hiddenTabs == null ? List.of() : hiddenTabs.stream().filter(Objects::nonNull).distinct().toList();
+        if (!SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ADMIN)) {
+            // Non-admin users cannot override global APK tab settings.
+            return Optional.of(getPrimaryAdminHiddenTabs().orElse(List.of()));
+        }
 
-                userRepository
-                    .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
-                    .ifPresent(admin -> {
-                        userRepository.updateMobileHiddenTabsById(admin.getId(), serializeTabs(sanitizedTabs));
-                        this.clearUserCaches(admin);
-                    });
-                return sanitizedTabs;
-            });
+        userRepository.updateMobileHiddenTabsForAuthority(AuthoritiesConstants.ADMIN, serializeTabs(sanitizedTabs));
+        clearUserCaches();
+        return Optional.of(sanitizedTabs);
     }
 
     private Optional<List<String>> getPrimaryAdminHiddenTabs() {
         return userRepository
             .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
             .map(admin -> deserializeTabs(admin.getMobileHiddenTabs()));
-    }
-
-    private boolean isAdminUser(User user) {
-        return user.getAuthorities().stream().anyMatch(authority -> AuthoritiesConstants.ADMIN.equals(authority.getName()));
     }
 
     private String serializeTabs(List<String> hiddenTabs) {
@@ -393,5 +381,10 @@ public class UserService {
         if (user.getEmail() != null) {
             Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE)).evictIfPresent(user.getEmail());
         }
+    }
+
+    private void clearUserCaches() {
+        Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_LOGIN_CACHE)).clear();
+        Objects.requireNonNull(cacheManager.getCache(UserRepository.USERS_BY_EMAIL_CACHE)).clear();
     }
 }

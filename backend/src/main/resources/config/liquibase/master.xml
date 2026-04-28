@@ -46,4 +46,5 @@
     <include file="config/liquibase/changelog/20260427105000_add_cn_mode_and_purchase_category.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260427153000_add_invoice_type.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260428183500_add_user_mobile_hidden_tabs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260428221300_ensure_admin_user_role.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

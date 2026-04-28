@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260428221300-1" author="cursor">
+        <comment>Ensure the default admin login is active and has ROLE_ADMIN in deployed databases.</comment>
+
+        <update tableName="jhi_user">
+            <column name="password_hash" value="$2a$10$gSAhZrxMllrbgj/kkK9UceBPpChGWJA7SYIb1Mqo.n5aNLq1/oRrC"/>
+            <column name="activated" valueBoolean="true"/>
+            <where>login = 'admin'</where>
+        </update>
+
+        <sql>
+            insert into jhi_authority (name)
+            select 'ROLE_ADMIN'
+            where not exists (
+                select 1 from jhi_authority where name = 'ROLE_ADMIN'
+            );
+        </sql>
+
+        <sql>
+            insert into jhi_user_authority (user_id, authority_name)
+            select id, 'ROLE_ADMIN'
+            from jhi_user
+            where login = 'admin'
+              and not exists (
+                  select 1
+                  from jhi_user_authority
+                  where user_id = jhi_user.id
+                    and authority_name = 'ROLE_ADMIN'
+              );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

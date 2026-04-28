@@ -39,8 +39,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findFirstByAuthorities_NameOrderByIdAsc(String authorityName);
 
     @Modifying
-    @Query(value = "update jhi_user set mobile_hidden_tabs = :mobileHiddenTabs where id = :userId", nativeQuery = true)
-    int updateMobileHiddenTabsById(@Param("userId") Long userId, @Param("mobileHiddenTabs") String mobileHiddenTabs);
+    @Query(
+        value = """
+        update jhi_user
+        set mobile_hidden_tabs = :mobileHiddenTabs
+        where id in (
+            select user_id
+            from jhi_user_authority
+            where authority_name = :authorityName
+        )
+        """,
+        nativeQuery = true
+    )
+    int updateMobileHiddenTabsForAuthority(
+        @Param("authorityName") String authorityName,
+        @Param("mobileHiddenTabs") String mobileHiddenTabs
+    );
 
     Page<User> findAllByIdNotNullAndActivatedIsTrue(Pageable pageable);
 }
