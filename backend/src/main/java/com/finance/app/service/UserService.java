@@ -327,8 +327,9 @@ public class UserService {
 
     private Optional<List<String>> getPrimaryAdminHiddenTabs() {
         return userRepository
-            .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
-            .map(admin -> deserializeTabs(admin.getMobileHiddenTabs()));
+            .findFirstMobileHiddenTabsByAuthority(AuthoritiesConstants.ADMIN)
+            .map(this::deserializeTabs)
+            .or(() -> Optional.of(List.of()));
     }
 
     private String serializeTabs(List<String> hiddenTabs) {

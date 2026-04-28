@@ -38,6 +38,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "authorities")
     Optional<User> findFirstByAuthorities_NameOrderByIdAsc(String authorityName);
 
+    @Query(
+        value = """
+        select u.mobile_hidden_tabs
+        from jhi_user u
+        join jhi_user_authority ua on ua.user_id = u.id
+        where ua.authority_name = :authorityName
+        order by u.id asc
+        limit 1
+        """,
+        nativeQuery = true
+    )
+    Optional<String> findFirstMobileHiddenTabsByAuthority(@Param("authorityName") String authorityName);
+
     @Modifying
     @Query(
         value = """
