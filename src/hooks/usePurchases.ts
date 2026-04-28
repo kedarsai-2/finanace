@@ -499,7 +499,18 @@ export function usePurchases(businessId?: string | null) {
       if (USE_BACKEND) {
         const idNum = toNumId(id);
         if (idNum == null) return;
-        await apiFetch<void>(`/api/purchases/${idNum}`, { method: "DELETE" });
+        try {
+          // Keep backend behavior consistent with UI copy: prefer soft delete.
+          const patch: Partial<PurchaseDTO> = { id: idNum, deleted: true };
+          await apiFetch<PurchaseDTO>(`/api/purchases/${idNum}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/merge-patch+json" },
+            body: JSON.stringify(patch),
+          });
+        } catch {
+          // Backward compatibility fallback where PATCH may be unavailable.
+          await apiFetch<void>(`/api/purchases/${idNum}`, { method: "DELETE" });
+        }
         setPurchases((prev) => prev.filter((x) => x.id !== id));
       } else {
         setPurchases((prev) =>
