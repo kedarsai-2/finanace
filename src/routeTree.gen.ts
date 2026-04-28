@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PurchasesRouteImport } from './routes/purchases'
 import { Route as PurchaseReturnsRouteImport } from './routes/purchase-returns'
 import { Route as PaymentsRouteImport } from './routes/payments'
@@ -66,6 +67,11 @@ import { Route as AccountsIdEditRouteImport } from './routes/accounts.$id.edit'
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PurchasesRoute = PurchasesRouteImport.update({
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/payments': typeof PaymentsRouteWithChildren
   '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
@@ -400,6 +407,7 @@ export interface FileRoutesByTo {
   '/payments': typeof PaymentsRouteWithChildren
   '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
@@ -456,6 +464,7 @@ export interface FileRoutesById {
   '/payments': typeof PaymentsRouteWithChildren
   '/purchase-returns': typeof PurchaseReturnsRouteWithChildren
   '/purchases': typeof PurchasesRouteWithChildren
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
@@ -513,6 +522,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/purchase-returns'
     | '/purchases'
+    | '/register'
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/purchase-returns'
     | '/purchases'
+    | '/register'
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
@@ -623,6 +634,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/purchase-returns'
     | '/purchases'
+    | '/register'
     | '/reports'
     | '/accounts/new'
     | '/accounts/transfer'
@@ -679,6 +691,7 @@ export interface RootRouteChildren {
   PaymentsRoute: typeof PaymentsRouteWithChildren
   PurchaseReturnsRoute: typeof PurchaseReturnsRouteWithChildren
   PurchasesRoute: typeof PurchasesRouteWithChildren
+  RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRouteWithChildren
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
   NotificationsSettingsRoute: typeof NotificationsSettingsRoute
@@ -691,6 +704,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/purchases': {
@@ -1269,6 +1289,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentsRoute: PaymentsRouteWithChildren,
   PurchaseReturnsRoute: PurchaseReturnsRouteWithChildren,
   PurchasesRoute: PurchasesRouteWithChildren,
+  RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRouteWithChildren,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
   NotificationsSettingsRoute: NotificationsSettingsRoute,

@@ -83,7 +83,7 @@ export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
     if (!USE_BACKEND) return;
     const token = getJwt();
-    if (!token && location.pathname !== "/login") {
+    if (!token && location.pathname !== "/login" && location.pathname !== "/register") {
       throw redirect({ to: "/login" });
     }
   },
@@ -146,7 +146,7 @@ function RootComponent() {
   const { isAuthed } = useAuth();
   const snapshot = useDashboardSnapshot();
 
-  const isAuthScreen = pathname === "/login";
+  const isAuthScreen = pathname === "/login" || pathname === "/register";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
 
   useEffect(() => {
@@ -161,7 +161,8 @@ function RootComponent() {
       .addListener("backButton", async () => {
         const currentPath =
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ((router as any).state?.location?.pathname as string | undefined) ?? window.location.pathname;
+          ((router as any).state?.location?.pathname as string | undefined) ??
+          window.location.pathname;
         if (currentPath !== "/") {
           window.history.back();
           return;

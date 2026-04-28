@@ -308,7 +308,19 @@ public class UserService {
     }
 
     public Optional<List<String>> getCurrentUserMobileHiddenTabs() {
-        return SecurityUtils.getCurrentUserLogin().flatMap(userRepository::findOneByLogin).map(user -> deserializeTabs(user.getMobileHiddenTabs()));
+        return SecurityUtils.getCurrentUserLogin()
+            .flatMap(userRepository::findOneByLogin)
+            .map(user -> {
+                List<String> userTabs = deserializeTabs(user.getMobileHiddenTabs());
+                if (!userTabs.isEmpty()) {
+                    return userTabs;
+                }
+                // Admin-controlled default: if user has no personal setting, inherit primary admin tabs.
+                return userRepository
+                    .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
+                    .map(admin -> deserializeTabs(admin.getMobileHiddenTabs()))
+                    .orElse(List.of());
+            });
     }
 
     public Optional<List<String>> updateCurrentUserMobileHiddenTabs(List<String> hiddenTabs) {
