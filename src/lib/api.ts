@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/flags";
 import { clearJwt, getJwt } from "@/lib/auth";
+import { httpRequest } from "@/lib/http";
 
 export class ApiError extends Error {
   status: number;
@@ -17,16 +18,15 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+  const res = await httpRequest(`${API_BASE_URL}${path}`, { ...init, headers });
   if (res.status === 401) {
     // Token is missing/expired/wrong; clear it so UI can redirect to login.
     clearJwt();
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new ApiError(text || res.statusText, res.status, text);
+    throw new ApiError(res.text || `Request failed (${res.status})`, res.status, res.text);
   }
   // Some endpoints may return empty body (204).
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  return res.json as T;
 }

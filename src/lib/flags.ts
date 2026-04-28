@@ -7,6 +7,7 @@ const cap =
     : undefined;
 const isNativeCapacitor = !!cap?.isNativePlatform?.();
 const NATIVE_DEFAULT_API_BASE_URL = "https://finanace-454d.onrender.com";
+export const IS_NATIVE_APP = isNativeCapacitor;
 
 // APK should always run against backend auth/data APIs.
 export const USE_BACKEND = envBackendEnabled || isNativeCapacitor;
@@ -22,7 +23,7 @@ function normalizeApiBaseUrl(raw: string) {
   return raw;
 }
 
-const effectiveApiBaseUrl =
-  configuredApiBase || (isNativeCapacitor ? NATIVE_DEFAULT_API_BASE_URL : "http://localhost:8080");
+// Prefer explicit env first. If missing, default to deployed backend so APK and web still work.
+const effectiveApiBaseUrl = configuredApiBase || NATIVE_DEFAULT_API_BASE_URL;
 
 export const API_BASE_URL = normalizeApiBaseUrl(effectiveApiBaseUrl);
