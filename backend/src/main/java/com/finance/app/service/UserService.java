@@ -323,15 +323,13 @@ public class UserService {
                     return getPrimaryAdminHiddenTabs().orElse(List.of());
                 }
 
-                String serializedTabs = serializeTabs(sanitizedTabs);
-                List<User> allUsers = userRepository.findAll();
-                for (User targetUser : allUsers) {
-                    targetUser.setMobileHiddenTabs(serializedTabs);
-                }
-                userRepository.saveAll(allUsers);
-                for (User targetUser : allUsers) {
-                    this.clearUserCaches(targetUser);
-                }
+                userRepository
+                    .findFirstByAuthorities_NameOrderByIdAsc(AuthoritiesConstants.ADMIN)
+                    .ifPresent(admin -> {
+                        admin.setMobileHiddenTabs(serializeTabs(sanitizedTabs));
+                        userRepository.save(admin);
+                        this.clearUserCaches(admin);
+                    });
                 return sanitizedTabs;
             });
     }
