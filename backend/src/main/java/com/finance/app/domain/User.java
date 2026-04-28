@@ -72,6 +72,10 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
     @Column(name = "image_url", length = 256)
     private String imageUrl;
 
+    @Size(max = 2000)
+    @Column(name = "mobile_hidden_tabs", length = 2000)
+    private String mobileHiddenTabs;
+
     @Size(max = 20)
     @Column(name = "activation_key", length = 20)
     @JsonIgnore
@@ -153,6 +157,14 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
         this.imageUrl = imageUrl;
     }
 
+    public String getMobileHiddenTabs() {
+        return mobileHiddenTabs;
+    }
+
+    public void setMobileHiddenTabs(String mobileHiddenTabs) {
+        this.mobileHiddenTabs = mobileHiddenTabs;
+    }
+
     public boolean isActivated() {
         return activated;
     }
@@ -227,6 +239,7 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
             ", lastName='" + lastName + '\'' +
             ", email='" + email + '\'' +
             ", imageUrl='" + imageUrl + '\'' +
+            ", mobileHiddenTabs='" + mobileHiddenTabs + '\'' +
             ", activated='" + activated + '\'' +
             ", langKey='" + langKey + '\'' +
             ", activationKey='" + activationKey + '\'' +

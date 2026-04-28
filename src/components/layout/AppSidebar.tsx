@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LayoutGrid,
   LayoutDashboard,
@@ -22,8 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { changeActionPassword } from "@/lib/actionPassword";
-
-const SIDEBAR_PREFS_KEY = "bm.sidebar.hiddenTabs";
+import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -44,32 +45,26 @@ const navLinks = [
 ] as const;
 
 export function AppSidebar() {
-  const [hiddenTabs, setHiddenTabs] = useState<Record<string, true>>({});
+  const { hiddenTabs, hydrated, isNative, saveHiddenTabs } = useMobileTabSettings();
+  const { isAdmin } = useAuth();
   const [showCustomize, setShowCustomize] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SIDEBAR_PREFS_KEY);
-      setHiddenTabs(raw ? (JSON.parse(raw) as Record<string, true>) : {});
-    } catch {
-      setHiddenTabs({});
-    }
-  }, []);
-
   const visibleLinks = useMemo(
-    () => navLinks.filter((l) => !hiddenTabs[l.to]),
-    [hiddenTabs],
+    () => (isNative ? navLinks.filter((l) => !hiddenTabs[l.to]) : navLinks),
+    [hiddenTabs, isNative],
   );
 
-  const toggleTab = (to: string) => {
+  const toggleTab = async (to: string) => {
     if (to === "/") return;
-    setHiddenTabs((prev) => {
-      const next = { ...prev };
-      if (next[to]) delete next[to];
-      else next[to] = true;
-      localStorage.setItem(SIDEBAR_PREFS_KEY, JSON.stringify(next));
-      return next;
-    });
+    const next = { ...hiddenTabs };
+    if (next[to]) delete next[to];
+    else next[to] = true;
+    try {
+      await saveHiddenTabs(next);
+      toast.success("APK tabs updated");
+    } catch {
+      toast.error("Failed to update APK tabs");
+    }
   };
 
   return (
@@ -110,18 +105,21 @@ export function AppSidebar() {
       </nav>
 
       <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
-        <button
-          type="button"
-          onClick={() => setShowCustomize((v) => !v)}
-          className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-sidebar-foreground/20 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        >
-          <SlidersHorizontal className="h-3 w-3" />
-          Customize tabs
-        </button>
-        {showCustomize ? (
+        {!isNative && isAdmin ? (
+          <button
+            type="button"
+            onClick={() => setShowCustomize((v) => !v)}
+            className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-sidebar-foreground/20 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground disabled:opacity-60"
+            disabled={!hydrated}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            Customize APK tabs
+          </button>
+        ) : null}
+        {!isNative && isAdmin && showCustomize ? (
           <div className="mb-2 rounded-md border border-sidebar-foreground/20 bg-sidebar-accent/40 p-2">
             <p className="mb-1.5 text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
-              Show in sidebar
+              Show in APK sidebar
             </p>
             <div className="space-y-1">
               {navLinks.map((l) => (
@@ -132,7 +130,7 @@ export function AppSidebar() {
                   <input
                     type="checkbox"
                     checked={!hiddenTabs[l.to]}
-                    onChange={() => toggleTab(l.to)}
+                    onChange={() => void toggleTab(l.to)}
                     disabled={l.to === "/"}
                     className="h-3 w-3 accent-primary"
                   />

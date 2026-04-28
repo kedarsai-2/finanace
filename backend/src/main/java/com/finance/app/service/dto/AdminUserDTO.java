@@ -38,6 +38,9 @@ public class AdminUserDTO implements Serializable {
     @Size(max = 256)
     private String imageUrl;
 
+    @Size(max = 2000)
+    private String mobileHiddenTabs;
+
     private boolean activated = false;
 
     @Size(min = 2, max = 10)
@@ -65,6 +68,7 @@ public class AdminUserDTO implements Serializable {
         this.email = user.getEmail();
         this.activated = user.isActivated();
         this.imageUrl = user.getImageUrl();
+        this.mobileHiddenTabs = user.getMobileHiddenTabs();
         this.langKey = user.getLangKey();
         this.createdBy = user.getCreatedBy();
         this.createdDate = user.getCreatedDate();
@@ -123,6 +127,14 @@ public class AdminUserDTO implements Serializable {
 
     public boolean isActivated() {
         return activated;
+    }
+
+    public String getMobileHiddenTabs() {
+        return mobileHiddenTabs;
+    }
+
+    public void setMobileHiddenTabs(String mobileHiddenTabs) {
+        this.mobileHiddenTabs = mobileHiddenTabs;
     }
 
     public void setActivated(boolean activated) {
@@ -186,6 +198,7 @@ public class AdminUserDTO implements Serializable {
             ", lastName='" + lastName + '\'' +
             ", email='" + email + '\'' +
             ", imageUrl='" + imageUrl + '\'' +
+            ", mobileHiddenTabs='" + mobileHiddenTabs + '\'' +
             ", activated=" + activated +
             ", langKey='" + langKey + '\'' +
             ", createdBy=" + createdBy +

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fileToDataUrl } from "@/lib/proofAttachments";
 
 interface Props {
   value?: string;
@@ -29,8 +30,16 @@ export function LogoUpload({ value, onChange }: Props) {
       }
       setUploading(true);
       try {
-        const uploaded = await uploadImageToCloudinary(file);
-        onChange(uploaded.secureUrl);
+        try {
+          const uploaded = await uploadImageToCloudinary(file);
+          onChange(uploaded.secureUrl);
+        } catch {
+          // Mobile/offline fallback: keep logo locally when Cloudinary is unreachable.
+          const localDataUrl = await fileToDataUrl(file);
+          onChange(localDataUrl);
+          toast.warning("Cloud upload unavailable. Logo stored locally.");
+          return;
+        }
         toast.success("Logo uploaded");
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to upload logo";

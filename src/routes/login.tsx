@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
@@ -86,6 +86,12 @@ function LoginPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Sign in
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Need a user account?{" "}
+            <Link to="/register" className="text-primary hover:underline">
+              Register
+            </Link>
+          </p>
         </form>
       </div>
     </div>

@@ -946,13 +946,24 @@ function PaymentSplitsEditor({
     }
     setUploadingProofIds((prev) => ({ ...prev, [id]: true }));
     try {
-      const uploaded = await uploadFileToCloudinary(file, "image");
+      let imageUrl: string;
+      let imageName: string;
+      try {
+        const uploaded = await uploadFileToCloudinary(file, "image");
+        imageUrl = uploaded.secureUrl;
+        imageName = uploaded.originalFilename;
+      } catch {
+        // Mobile/offline fallback: keep attachment locally when Cloudinary is unreachable.
+        imageUrl = await fileToDataUrl(file);
+        imageName = file.name;
+        toast.warning("Cloud upload unavailable. Image stored locally.");
+      }
       onChange(
         id,
         stringifyProofAttachments({
           ...parsed,
-          imageUrl: uploaded.secureUrl,
-          imageName: uploaded.originalFilename,
+          imageUrl,
+          imageName,
         }),
       );
       toast.success("Attachment image uploaded");

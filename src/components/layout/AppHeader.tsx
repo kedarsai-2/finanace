@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
+import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 
 const navLinks = [
   { to: "/", label: "Dashboard" },
@@ -29,6 +30,8 @@ export function AppHeader() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { isAuthed, logout } = useAuth();
+  const { hiddenTabs, isNative } = useMobileTabSettings();
+  const visibleLinks = isNative ? navLinks.filter((l) => !hiddenTabs[l.to]) : navLinks;
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
@@ -50,7 +53,7 @@ export function AppHeader() {
               <span className="text-sm font-bold tracking-tight">QOBOX</span>
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">
-              {navLinks.map((l) => (
+              {visibleLinks.map((l) => (
                 <Link
                   key={l.to}
                   to={l.to}

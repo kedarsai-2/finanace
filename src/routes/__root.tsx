@@ -141,12 +141,49 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthed } = useAuth();
   const snapshot = useDashboardSnapshot();
 
   const isAuthScreen = pathname === "/login";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Capacitor Android: intercept hardware back so app navigates first.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appPlugin = (window as any).Capacitor?.Plugins?.App;
+    if (!appPlugin?.addListener) return;
+
+    let removeListener: (() => void) | undefined;
+    void appPlugin
+      .addListener("backButton", async () => {
+        const currentPath =
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((router as any).state?.location?.pathname as string | undefined) ?? window.location.pathname;
+        if (currentPath !== "/") {
+          window.history.back();
+          return;
+        }
+        // At root path, allow native app exit behavior.
+        if (typeof appPlugin.exitApp === "function") {
+          appPlugin.exitApp();
+        }
+      })
+      .then((handle: { remove: () => Promise<void> }) => {
+        removeListener = () => {
+          void handle.remove();
+        };
+      })
+      .catch(() => {
+        // Ignore if App plugin is unavailable in web context.
+      });
+
+    return () => {
+      removeListener?.();
+    };
+  }, [router]);
 
   if (shouldGate) {
     return (

@@ -9,6 +9,8 @@ import com.finance.app.security.AuthoritiesConstants;
 import com.finance.app.security.SecurityUtils;
 import com.finance.app.service.dto.AdminUserDTO;
 import com.finance.app.service.dto.UserDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -40,17 +42,20 @@ public class UserService {
     private final AuthorityRepository authorityRepository;
 
     private final CacheManager cacheManager;
+    private final ObjectMapper objectMapper;
 
     public UserService(
         UserRepository userRepository,
         PasswordEncoder passwordEncoder,
         AuthorityRepository authorityRepository,
-        CacheManager cacheManager
+        CacheManager cacheManager,
+        ObjectMapper objectMapper
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authorityRepository = authorityRepository;
         this.cacheManager = cacheManager;
+        this.objectMapper = objectMapper;
     }
 
     public Optional<User> activateRegistration(String key) {
@@ -121,6 +126,7 @@ public class UserService {
             newUser.setEmail(userDTO.getEmail().toLowerCase());
         }
         newUser.setImageUrl(userDTO.getImageUrl());
+        newUser.setMobileHiddenTabs(userDTO.getMobileHiddenTabs());
         newUser.setLangKey(userDTO.getLangKey());
         // new user is not active
         newUser.setActivated(false);
@@ -132,6 +138,15 @@ public class UserService {
         userRepository.save(newUser);
         this.clearUserCaches(newUser);
         LOG.debug("Created Information for User: {}", newUser);
+        return newUser;
+    }
+
+    public User registerPublicUser(AdminUserDTO userDTO, String password) {
+        User newUser = registerUser(userDTO, password);
+        newUser.setActivated(true);
+        newUser.setActivationKey(null);
+        userRepository.save(newUser);
+        this.clearUserCaches(newUser);
         return newUser;
     }
 
@@ -154,6 +169,7 @@ public class UserService {
             user.setEmail(userDTO.getEmail().toLowerCase());
         }
         user.setImageUrl(userDTO.getImageUrl());
+        user.setMobileHiddenTabs(userDTO.getMobileHiddenTabs());
         if (userDTO.getLangKey() == null) {
             user.setLangKey(Constants.DEFAULT_LANGUAGE); // default language
         } else {
@@ -199,6 +215,7 @@ public class UserService {
                     user.setEmail(userDTO.getEmail().toLowerCase());
                 }
                 user.setImageUrl(userDTO.getImageUrl());
+                user.setMobileHiddenTabs(userDTO.getMobileHiddenTabs());
                 user.setActivated(userDTO.isActivated());
                 user.setLangKey(userDTO.getLangKey());
                 Set<Authority> managedAuthorities = user.getAuthorities();
@@ -288,6 +305,41 @@ public class UserService {
     @Transactional(readOnly = true)
     public Optional<User> getUserWithAuthorities() {
         return SecurityUtils.getCurrentUserLogin().flatMap(userRepository::findOneWithAuthoritiesByLogin);
+    }
+
+    public Optional<List<String>> getCurrentUserMobileHiddenTabs() {
+        return SecurityUtils.getCurrentUserLogin().flatMap(userRepository::findOneByLogin).map(user -> deserializeTabs(user.getMobileHiddenTabs()));
+    }
+
+    public Optional<List<String>> updateCurrentUserMobileHiddenTabs(List<String> hiddenTabs) {
+        return SecurityUtils.getCurrentUserLogin()
+            .flatMap(userRepository::findOneByLogin)
+            .map(user -> {
+                user.setMobileHiddenTabs(serializeTabs(hiddenTabs));
+                userRepository.save(user);
+                this.clearUserCaches(user);
+                return hiddenTabs;
+            });
+    }
+
+    private String serializeTabs(List<String> hiddenTabs) {
+        try {
+            return objectMapper.writeValueAsString(hiddenTabs == null ? List.of() : hiddenTabs.stream().filter(Objects::nonNull).distinct().toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid hidden tabs payload", e);
+        }
+    }
+
+    private List<String> deserializeTabs(String mobileHiddenTabs) {
+        if (mobileHiddenTabs == null || mobileHiddenTabs.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readerForListOf(String.class).readValue(mobileHiddenTabs);
+        } catch (JsonProcessingException e) {
+            LOG.warn("Invalid mobileHiddenTabs JSON for user, returning empty list");
+            return List.of();
+        }
     }
 
     /**
