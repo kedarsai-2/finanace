@@ -27,7 +27,13 @@ export function buildAccountTxns(args: {
   });
 
   for (const p of payments) {
-    if (p.accountId !== account.id) continue;
+    const paymentAccountName = p.account?.trim().toLowerCase();
+    const accountName = account.name.trim().toLowerCase();
+    const belongsToAccount =
+      p.accountId === account.id ||
+      // Backward-compat: older records may only have free-text account label.
+      (!p.accountId && !!paymentAccountName && paymentAccountName === accountName);
+    if (!belongsToAccount) continue;
     const isIn = p.direction === "in";
     const isSales = isIn && p.allocations.length > 0;
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;

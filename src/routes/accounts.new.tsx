@@ -5,7 +5,7 @@ import { AccountForm } from "@/components/account/AccountForm";
 
 export const Route = createFileRoute("/accounts/new")({
   head: () => ({
-    meta: [{ title: "Add Account — QOBOX" }],
+    meta: [{ title: "Add Bank Account — QOBOX" }],
   }),
   component: NewAccountPage,
 });
@@ -20,9 +20,9 @@ function NewAccountPage() {
       </Button>
       <header className="mb-6">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          New account
+          New bank account
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Add Account</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Add Bank Account</h1>
       </header>
       <AccountForm mode="create" />
     </div>

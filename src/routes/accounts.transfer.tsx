@@ -47,14 +47,15 @@ export const Route = createFileRoute("/accounts/transfer")({
 function TransferPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const { activeId, businesses } = useBusinesses();
-  const { accounts, hydrated } = useAccounts(activeId, []);
+  const { activeId, scopedBusinessId, businesses } = useBusinesses();
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { accounts, hydrated } = useAccounts(effectiveBusinessId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const { payments } = usePayments(activeId);
-  const { transfers, add } = useTransfers(activeId);
-  const { expenses } = useExpenses(activeId);
+  const { payments } = usePayments(effectiveBusinessId);
+  const { transfers, add } = useTransfers(effectiveBusinessId);
+  const { expenses } = useExpenses(effectiveBusinessId);
 
-  const business = businesses.find((b) => b.id === activeId);
+  const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
   const currency = business?.currency ?? "INR";
 
   const accountsById = useMemo(
@@ -146,12 +147,12 @@ function TransferPage() {
       toast.error(err);
       return;
     }
-    if (!activeId) return;
+    if (!effectiveBusinessId) return;
     setSubmitting(true);
     try {
       await add({
         id: "",
-        businessId: activeId,
+        businessId: effectiveBusinessId,
         date: date.toISOString(),
         kind: mode,
         adjustmentDirection: mode === "adjustment" ? adjustmentDirection : undefined,

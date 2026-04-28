@@ -64,12 +64,13 @@ const TYPE_TONE: Record<AccountType, string> = {
 };
 
 function AccountsPage() {
-  const { businesses, activeId, hydrated: bHyd } = useBusinesses();
+  const { businesses, activeId, scopedBusinessId, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
-  const { accounts, hydrated, remove } = useAccounts(activeId, businessIds);
-  const { payments } = usePayments(activeId);
-  const { transfers } = useTransfers(activeId);
-  const { expenses } = useExpenses(activeId);
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { accounts, hydrated, remove } = useAccounts(effectiveBusinessId, businessIds);
+  const { payments } = usePayments(effectiveBusinessId);
+  const { transfers } = useTransfers(effectiveBusinessId);
+  const { expenses } = useExpenses(effectiveBusinessId);
 
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
@@ -92,7 +93,7 @@ function AccountsPage() {
     });
   }, [bankAccounts, payments, transfers, expenses, accountsById]);
 
-  const business = businesses.find((b) => b.id === activeId);
+  const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
   const currency = business?.currency ?? "INR";
 
   if (!bHyd || !hydrated) {
@@ -149,7 +150,7 @@ function AccountsPage() {
           </DropdownMenu>
           <Button asChild className="gap-2">
             <Link to="/accounts/new">
-              <Plus className="h-4 w-4" /> Add account
+              <Plus className="h-4 w-4" /> Add bank account
             </Link>
           </Button>
         </div>

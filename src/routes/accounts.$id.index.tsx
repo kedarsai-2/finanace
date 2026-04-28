@@ -129,14 +129,15 @@ function AccountDetailsPage() {
   const navigate = Route.useNavigate();
   const backTo = search.source === "cash" ? "/cash" : "/accounts";
 
-  const { activeId, businesses } = useBusinesses();
-  const { accounts, hydrated } = useAccounts(activeId, []);
-  const { payments } = usePayments(activeId);
-  const { transfers } = useTransfers(activeId);
-  const { expenses } = useExpenses(activeId);
+  const { scopedBusinessId, businesses } = useBusinesses();
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { accounts, hydrated } = useAccounts(effectiveBusinessId, []);
+  const { payments } = usePayments(effectiveBusinessId);
+  const { transfers } = useTransfers(effectiveBusinessId);
+  const { expenses } = useExpenses(effectiveBusinessId);
 
   const account = accounts.find((a) => a.id === id);
-  const business = businesses.find((b) => b.id === activeId);
+  const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
   const currency = business?.currency ?? "INR";
 
   const accountsById = useMemo(

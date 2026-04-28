@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
@@ -31,7 +24,7 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const { upsert } = useAccounts(activeId, []);
 
   const [name, setName] = useState(account?.name ?? "");
-  const [type, setType] = useState<AccountType>(account?.type ?? defaultType ?? "bank");
+  const [type] = useState<"cash" | "bank">(account?.type ?? defaultType ?? "bank");
   const [openingBalance, setOpeningBalance] = useState<number>(account?.openingBalance ?? 0);
   const [accountNumber, setAccountNumber] = useState(account?.accountNumber ?? "");
   const [ifsc, setIfsc] = useState(account?.ifsc ?? "");
@@ -52,6 +45,10 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
     if (!validate()) return;
     if (!activeId) {
       toast.error("Select a business first");
+      return;
+    }
+    if (mode === "create" && type !== "bank") {
+      toast.error("Only bank accounts can be created here");
       return;
     }
     setSubmitting(true);
@@ -100,18 +97,7 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
 
           <div>
             <Label htmlFor="type">Type *</Label>
-            <Select value={type} onValueChange={(v) => setType(v as AccountType)}>
-              <SelectTrigger id="type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(ACCOUNT_TYPE_LABEL) as AccountType[]).map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {ACCOUNT_TYPE_LABEL[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input id="type" value={ACCOUNT_TYPE_LABEL[type]} readOnly disabled />
           </div>
 
           <div>
