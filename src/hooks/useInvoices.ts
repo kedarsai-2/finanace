@@ -176,6 +176,8 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
 
 function invoiceToDto(inv: Invoice): InvoiceDTO {
   const notes = composeNotesWithMeta(inv.notes, { cnPaymentMode: inv.cnPaymentMode });
+  const isCreditNote =
+    inv.kind === "credit-note" || (inv.number ?? "").trim().toUpperCase().startsWith("CN-");
   return {
     id: toNumId(inv.id) ?? undefined,
     createdAt: inv.createdAt ?? null,
@@ -184,8 +186,9 @@ function invoiceToDto(inv: Invoice): InvoiceDTO {
     date: inv.date,
     dueDate: inv.dueDate ?? null,
     paymentTermsDays: inv.paymentTermsDays ?? null,
-    invoiceType:
-      inv.invoiceType === "subscription"
+    invoiceType: isCreditNote
+      ? null
+      : inv.invoiceType === "subscription"
         ? "SUBSCRIPTION"
         : inv.invoiceType === "advance"
           ? "ADVANCE"

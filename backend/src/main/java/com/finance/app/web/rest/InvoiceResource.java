@@ -241,13 +241,8 @@ public class InvoiceResource {
                 throw new BadRequestAlertException("cnPaymentMode must be CASH or BANK", ENTITY_NAME, "cnpaymentmodeinvalid");
             }
             invoiceDTO.setCnPaymentMode(normalized);
-            if (invoiceType != null && !invoiceType.isBlank()) {
-                throw new BadRequestAlertException(
-                    "invoiceType is allowed only for standard invoices",
-                    ENTITY_NAME,
-                    "invoicetypeunexpected"
-                );
-            }
+            // Be tolerant with clients: silently ignore invoiceType on credit notes.
+            invoiceDTO.setInvoiceType(null);
         } else if (mode != null && !mode.isBlank()) {
             throw new BadRequestAlertException(
                 "cnPaymentMode is allowed only for credit notes",
@@ -290,12 +285,9 @@ public class InvoiceResource {
             if (invoiceDTO.getCnPaymentMode() != null) {
                 invoiceDTO.setCnPaymentMode(normalized);
             }
-            if (effectiveInvoiceType != null && !effectiveInvoiceType.isBlank()) {
-                throw new BadRequestAlertException(
-                    "invoiceType is allowed only for standard invoices",
-                    ENTITY_NAME,
-                    "invoicetypeunexpected"
-                );
+            // Be tolerant with clients: if invoiceType is sent on credit note PATCH, ignore it.
+            if (invoiceDTO.getInvoiceType() != null) {
+                invoiceDTO.setInvoiceType(null);
             }
         } else if (effectiveMode != null && !effectiveMode.isBlank()) {
             throw new BadRequestAlertException(

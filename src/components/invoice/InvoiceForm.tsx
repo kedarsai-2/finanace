@@ -240,6 +240,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     if (!activeId) return "Select an active business first";
     if (!partyId) return "Please select a party";
     if (!number.trim()) return "Sale number is required";
+    if (number.trim().toUpperCase().startsWith("CN-")) {
+      return "Sale number cannot start with CN- (reserved for credit notes)";
+    }
     if (!/^[A-Z0-9-]{1,30}$/i.test(number.trim()))
       return "Sale number can only contain letters, numbers and dashes (max 30)";
     if (
