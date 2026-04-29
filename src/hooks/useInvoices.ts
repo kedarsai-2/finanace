@@ -490,7 +490,7 @@ export function useInvoices(businessId?: string | null) {
           before: before ? snapshot(before) : null,
           after: snapshot(inv),
         });
-        return;
+        return inv;
       }
 
       const before = invoicesRef.current.find((x) => x.id === inv.id);
@@ -546,6 +546,7 @@ export function useInvoices(businessId?: string | null) {
         before: before ? snapshot(before) : null,
         after: snapshot(after),
       });
+      return after;
     },
     [syncLedger],
   );

@@ -51,8 +51,9 @@ function EditAccountPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const backTo = search.source === "cash" ? "/cash" : "/accounts";
-  const { activeId } = useBusinesses();
-  const { accounts, hydrated } = useAccounts(activeId, []);
+  const { scopedBusinessId, businesses } = useBusinesses();
+  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { accounts, hydrated } = useAccounts(effectiveBusinessId, []);
   const account = accounts.find((a) => a.id === id);
 
   if (!hydrated) {

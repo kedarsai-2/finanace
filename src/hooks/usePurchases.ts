@@ -598,8 +598,7 @@ export function usePurchases(businessId?: string | null) {
   );
 
   /**
-   * Convert a finalised purchase into a draft purchase-return mirroring its
-   * lines. The user can edit before finalising.
+   * Convert a finalised purchase into a final purchase-return.
    */
   const convertToReturn = useCallback(
     async (
@@ -655,8 +654,8 @@ export function usePurchases(businessId?: string | null) {
         id,
         number,
         date: effectiveReturnDate,
-        finalizedAt: undefined,
-        status: "draft",
+        finalizedAt: effectiveReturnDate,
+        status: "final",
         paidAmount: 0,
         deleted: false,
         kind: "return",

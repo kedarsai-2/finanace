@@ -109,7 +109,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
   const { accounts } = useAccounts(activeId);
-  const { payments: paymentRecords, create: createPayment } = usePayments(activeId);
+  const {
+    payments: paymentRecords,
+    hydrated: paymentsHydrated,
+    create: createPayment,
+  } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -159,6 +163,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
       if (seededPaymentsForInvoiceRef.current !== existing.id) {
+        // Wait for payments hydration when invoice already has paid value,
+        // otherwise edit view may seed empty and user can accidentally duplicate payments.
+        if (existing.paidAmount > 0 && !paymentsHydrated) return;
         const linkedSplits: PaymentSplit[] = paymentRecords
           .filter((p) => p.allocations.some((a) => a.docId === existing.id))
           .map((p) => ({
@@ -184,7 +191,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         seededPaymentsForInvoiceRef.current = null;
       }
     }
-  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords]);
+  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords, paymentsHydrated]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -353,8 +360,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     }
     setSubmitting(true);
     try {
-      const inv = buildInvoice(status);
-      await upsert(inv);
+      const draftInv = buildInvoice(status);
+      const savedInv = await upsert(draftInv);
+      const inv = savedInv ?? draftInv;
       if (status === "final") {
         const validSplits = payments.filter((p) => !p.sourcePaymentId && p.amount > 0);
         for (const split of validSplits) {
