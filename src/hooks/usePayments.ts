@@ -73,6 +73,23 @@ function dtoToPayment(dto: PaymentDTO, allocations: Payment["allocations"] = [])
 }
 
 function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
+  const fallbackProofByMode: Record<Payment["mode"], { dataUrl: string; name: string }> = {
+    cash: {
+      dataUrl: "data:text/plain;base64,Q0FTSF9OT19QUk9PRg==",
+      name: "cash-no-proof.txt",
+    },
+    bank: {
+      dataUrl: "data:text/plain;base64,QkFOS19OT19QUk9PRg==",
+      name: "bank-no-proof.txt",
+    },
+    cheque: {
+      dataUrl: "data:text/plain;base64,Q0hFUVVFX05PX1BST09G",
+      name: "cheque-no-proof.txt",
+    },
+  };
+  const fallback = fallbackProofByMode[p.mode];
+  const proofDataUrl = p.proofDataUrl ?? fallback.dataUrl;
+  const proofName = p.proofName ?? fallback.name;
   return {
     direction: toBackendDirection(p.direction),
     date: p.date,
@@ -80,8 +97,8 @@ function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
     mode: toBackendMode(p.mode),
     reference: p.reference ?? null,
     notes: p.notes ?? null,
-    proofDataUrl: p.proofDataUrl ?? null,
-    proofName: p.proofName ?? null,
+    proofDataUrl,
+    proofName,
     createdAt: new Date().toISOString(),
     business: businessRefFromId(businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
