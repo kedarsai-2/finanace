@@ -30,6 +30,14 @@ import type { Item } from "@/types/item";
 import { formatCurrency } from "@/hooks/useParties";
 
 const AUTO_ASSET_SOURCE_TAG = "[AUTO_ASSET_SOURCE:";
+function unitShortLabel(unit?: string) {
+  if (unit === "number") return "bhk";
+  if (unit === "pcs") return "pcs";
+  if (unit === "kg") return "kg";
+  if (unit === "litre") return "litre";
+  if (unit === "hour") return "hour";
+  return unit || "pcs";
+}
 
 export const Route = createFileRoute("/assets")({
   head: () => ({
@@ -202,8 +210,8 @@ function AssetsTable({
             </div>
 
             <span className="text-right font-mono text-sm text-muted-foreground">
-              <span className="tabular-nums">{it.openingStock ?? 0}</span>{" "}
-              <span className="text-xs uppercase">{it.unit}</span>
+              <span className="tabular-nums">{it.openingStock ?? 1}</span>
+              <span className="text-xs"> ({unitShortLabel(it.unit)})</span>
             </span>
 
             <span className="text-right font-semibold tabular-nums">

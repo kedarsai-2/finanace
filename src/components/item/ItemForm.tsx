@@ -48,7 +48,6 @@ function labelsForContext(context: Props["context"]) {
 }
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
-  "1": "1",
   number: "Number (bhk)",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
@@ -74,7 +73,7 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
   const defaults: ItemFormValues = useMemo(() => {
     const unit = (ITEM_UNITS as readonly string[]).includes((existing?.unit ?? "").toLowerCase())
       ? (existing!.unit.toLowerCase() as ItemFormValues["unit"])
-      : "1";
+      : "pcs";
     const tax = (TAX_RATES as readonly number[]).includes(existing?.taxPercent ?? -1)
       ? (existing!.taxPercent as ItemFormValues["taxPercent"])
       : 18;
@@ -86,7 +85,7 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
       purchasePrice: existing?.purchasePrice,
       taxPercent: tax,
       unit,
-      openingStock: existing?.openingStock,
+      openingStock: existing?.openingStock ?? (forcedType === "product" ? 1 : undefined),
       reorderLevel: existing?.reorderLevel,
       description: existing?.description ?? "",
       active: existing?.active ?? true,
@@ -140,8 +139,10 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
           taxPercent: values.taxPercent,
           unit: values.unit,
           openingStock:
-            forcedType === "product" && values.openingStock && values.openingStock > 0
-              ? values.openingStock
+            forcedType === "product"
+              ? values.openingStock && values.openingStock > 0
+                ? values.openingStock
+                : 1
               : undefined,
           reorderLevel:
             forcedType === "product" && values.reorderLevel && values.reorderLevel > 0

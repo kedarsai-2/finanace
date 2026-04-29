@@ -65,6 +65,15 @@ const TYPE_BADGE: Record<ItemType, string> = {
   service: "bg-accent text-accent-foreground",
 };
 
+function unitShortLabel(unit?: string) {
+  if (unit === "number") return "bhk";
+  if (unit === "pcs") return "pcs";
+  if (unit === "kg") return "kg";
+  if (unit === "litre") return "litre";
+  if (unit === "hour") return "hour";
+  return unit || "pcs";
+}
+
 function ItemsRouteLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname !== "/items") return <Outlet />;
@@ -250,8 +259,8 @@ function ItemsTable({
             </span>
 
             <span className="text-right font-mono text-sm text-muted-foreground">
-              <span className="tabular-nums">{it.openingStock ?? 0}</span>{" "}
-              <span className="text-xs uppercase">{it.unit}</span>
+              <span className="tabular-nums">{it.openingStock ?? 1}</span>
+              <span className="text-xs"> ({unitShortLabel(it.unit)})</span>
             </span>
 
             <span className="text-right font-semibold tabular-nums">
