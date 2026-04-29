@@ -93,7 +93,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { create: createPayment } = usePayments(activeId);
   const { accounts } = useAccounts(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
+  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
   const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
+  const paymentAccounts = useMemo(
+    () => (purchasePaymentMode === "cash" ? cashAccounts : bankAccounts),
+    [purchasePaymentMode, cashAccounts, bankAccounts],
+  );
 
   // Show all parties (party-type concept removed).
   const suppliers = parties;
@@ -152,14 +157,10 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   }, [existing, hydrated, activeId, allPurchases, ensureLines]);
 
   useEffect(() => {
-    if (purchasePaymentMode === "cash") {
-      setPurchaseAccountId("");
-      return;
+    if (!purchaseAccountId && paymentAccounts[0]?.id) {
+      setPurchaseAccountId(paymentAccounts[0].id);
     }
-    if (!purchaseAccountId && bankAccounts[0]?.id) {
-      setPurchaseAccountId(bankAccounts[0].id);
-    }
-  }, [purchasePaymentMode, purchaseAccountId, bankAccounts]);
+  }, [purchasePaymentMode, purchaseAccountId, paymentAccounts]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -205,7 +206,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     if (!number.trim()) return "Purchase number is required";
     if (!purchaseCategory) return "Select purchase category";
     if (!purchasePaymentMode) return "Select payment type";
-    if (purchasePaymentMode !== "cash" && !purchaseAccountId) return "Select a bank account";
+    if (!purchaseAccountId)
+      return `Select a ${purchasePaymentMode === "cash" ? "cash" : "bank"} account`;
     if (
       allPurchases.some(
         (p) =>
@@ -292,7 +294,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       await upsert(p);
       const alreadyPaid = existing?.paidAmount ?? 0;
       const paymentDelta = Math.max(0, p.paidAmount - alreadyPaid);
-      const selectedBankAccount = bankAccounts.find((a) => a.id === purchaseAccountId);
+      const selectedPaymentAccount = paymentAccounts.find((a) => a.id === purchaseAccountId);
       if (status === "final" && paymentDelta > 0) {
         await createPayment({
           businessId: p.businessId,
@@ -301,8 +303,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           date: p.date,
           amount: paymentDelta,
           mode: purchasePaymentMode,
-          accountId: purchasePaymentMode === "cash" ? undefined : purchaseAccountId,
-          account: purchasePaymentMode === "cash" ? "Cash" : selectedBankAccount?.name || "Bank",
+          accountId: purchaseAccountId,
+          account: selectedPaymentAccount?.name,
           reference: p.number,
           notes: `Auto payment from purchase ${p.number}`,
           proofDataUrl,
@@ -524,22 +526,21 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               </Select>
             </div>
             <div>
-              <Label>Bank account {purchasePaymentMode === "cash" ? "" : "*"}</Label>
-              {purchasePaymentMode === "cash" ? (
-                <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
-                  Uses Cash balance (no bank account)
-                </div>
-              ) : bankAccounts.length === 0 ? (
+              <Label>{purchasePaymentMode === "cash" ? "Cash account" : "Bank account"} *</Label>
+              {paymentAccounts.length === 0 ? (
                 <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  No bank accounts yet. Add one in Accounts first.
+                  No {purchasePaymentMode === "cash" ? "cash" : "bank"} accounts yet. Add one in
+                  Accounts first.
                 </p>
               ) : (
                 <Select value={purchaseAccountId} onValueChange={setPurchaseAccountId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select bank account" />
+                    <SelectValue
+                      placeholder={`Select ${purchasePaymentMode === "cash" ? "cash" : "bank"} account`}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {bankAccounts.map((a) => (
+                    {paymentAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                       </SelectItem>
