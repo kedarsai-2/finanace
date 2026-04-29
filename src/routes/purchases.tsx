@@ -59,6 +59,16 @@ const searchSchema = z.object({
 
 type SearchValues = z.infer<typeof searchSchema>;
 
+function safeDateTs(value?: string) {
+  const ts = value ? new Date(value).getTime() : NaN;
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function safeFormatDate(value?: string) {
+  const d = value ? new Date(value) : null;
+  return d && Number.isFinite(d.getTime()) ? format(d, "dd MMM yyyy") : "—";
+}
+
 export const Route = createFileRoute("/purchases")({
   validateSearch: (search: Partial<SearchValues> & SearchSchemaInput): SearchValues =>
     searchSchema.parse(search),
@@ -110,13 +120,13 @@ function PurchasesPage() {
     return purchases
       .filter((p) => {
         if (status !== "all" && p.status !== status) return false;
-        const d = new Date(p.date).getTime();
+        const d = safeDateTs(p.date);
         if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
         if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
         if (!term) return true;
         return p.number.toLowerCase().includes(term) || p.partyName.toLowerCase().includes(term);
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => safeDateTs(b.date) - safeDateTs(a.date));
   }, [purchases, q, status, fromDate, toDate]);
 
   const totals = useMemo(() => {
@@ -430,9 +440,7 @@ function PurchasesTable({
               >
                 {p.number}
               </Link>
-              <span className="text-sm text-muted-foreground">
-                {format(new Date(p.date), "dd MMM yyyy")}
-              </span>
+              <span className="text-sm text-muted-foreground">{safeFormatDate(p.date)}</span>
               <div className="min-w-0">
                 <Link
                   to="/parties/$id"
