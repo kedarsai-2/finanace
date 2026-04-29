@@ -101,7 +101,7 @@ function InvoiceDetailsPage() {
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
-  const { payments } = usePayments(invoice?.businessId);
+  const { payments, create: createPayment } = usePayments(invoice?.businessId);
   const { accounts } = useAccounts(invoice?.businessId);
   const [payOpen, setPayOpen] = useState(false);
   const [cnOpen, setCnOpen] = useState(false);
@@ -428,6 +428,20 @@ function InvoiceDetailsPage() {
                             cnAccountId,
                           );
                           if (cn) {
+                            const selectedAccount = accounts.find((a) => a.id === cnAccountId);
+                            await createPayment({
+                              businessId: cn.businessId,
+                              partyId: cn.partyId || "_advance",
+                              direction: "out",
+                              date: cn.date,
+                              amount: raw,
+                              mode: cnPaymentMode,
+                              accountId: cnAccountId,
+                              account: selectedAccount?.name,
+                              reference: cn.number,
+                              notes: `Credit note settlement for ${invoice.number}`,
+                              allocations: [{ docId: cn.id, docNumber: cn.number, amount: raw }],
+                            });
                             toast.success(`Credit note ${cn.number} created`);
                             navigate({ to: "/credit-notes/$id", params: { id: cn.id } });
                           }

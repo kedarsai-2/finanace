@@ -56,11 +56,15 @@ export function buildAccountTxns(args: {
     const isIn = p.direction === "in";
     const isSales = isIn && p.allocations.length > 0;
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
-    const allocLink = singleAlloc
-      ? isIn
-        ? `/invoices/${singleAlloc.docId}`
-        : `/purchases/${singleAlloc.docId}`
-      : undefined;
+    const docRefLink = (() => {
+      const docNo = (singleAlloc?.docNumber ?? "").toUpperCase();
+      if (docNo.startsWith("INV-")) return `/invoices/${singleAlloc?.docId}`;
+      if (docNo.startsWith("CN-")) return `/credit-notes/${singleAlloc?.docId}`;
+      if (docNo.startsWith("PRET-")) return `/purchase-returns/${singleAlloc?.docId}`;
+      if (docNo.startsWith("PUR-")) return `/purchases/${singleAlloc?.docId}`;
+      return isIn ? `/invoices/${singleAlloc?.docId}` : `/purchases/${singleAlloc?.docId}`;
+    })();
+    const allocLink = singleAlloc ? docRefLink : undefined;
     const paymentsListLink = `/payments?account=${encodeURIComponent(account.id)}`;
     txns.push({
       id: `pay_${p.id}`,

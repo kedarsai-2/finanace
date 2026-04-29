@@ -42,6 +42,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useAccounts } from "@/hooks/useAccounts";
+import { usePayments } from "@/hooks/usePayments";
 import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
@@ -79,6 +80,7 @@ function PurchaseDetailsPage() {
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
   const { accounts } = useAccounts(purchase?.businessId);
+  const { create: createPayment } = usePayments(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
   const purchaseId = purchase?.id ?? "";
   const purchaseTotal = purchase?.total ?? 0;
@@ -349,6 +351,20 @@ function PurchaseDetailsPage() {
                             returnAccountId,
                           );
                           if (ret) {
+                            const selectedAccount = accounts.find((a) => a.id === returnAccountId);
+                            await createPayment({
+                              businessId: ret.businessId,
+                              partyId: ret.partyId || "_advance",
+                              direction: "in",
+                              date: ret.date,
+                              amount: raw,
+                              mode: returnPaymentMode,
+                              accountId: returnAccountId,
+                              account: selectedAccount?.name,
+                              reference: ret.number,
+                              notes: `Purchase return settlement for ${purchase.number}`,
+                              allocations: [{ docId: ret.id, docNumber: ret.number, amount: raw }],
+                            });
                             toast.success(`Return ${ret.number} created`);
                             navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });
                           }
