@@ -157,6 +157,7 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     finalizedAt: dto.finalizedAt ?? undefined,
     kind,
     cnPaymentMode: dbMode ?? parsed.meta.cnPaymentMode,
+    cnAccountId: parsed.meta.cnAccountId,
     sourceInvoiceId: parsed.meta.sourceInvoiceId,
   };
 }
@@ -178,6 +179,7 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
 function invoiceToDto(inv: Invoice): InvoiceDTO {
   const notes = composeNotesWithMeta(inv.notes, {
     cnPaymentMode: inv.cnPaymentMode,
+    cnAccountId: inv.cnAccountId,
     sourceInvoiceId: inv.sourceInvoiceId,
   });
   const isCreditNote =
@@ -676,6 +678,7 @@ export function useInvoices(businessId?: string | null) {
       creditAmount?: number,
       paymentMode?: CreditNotePaymentMode,
       creditDate?: string,
+      accountId?: string,
     ): Promise<Invoice | null> => {
       const src = invoicesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
@@ -729,6 +732,7 @@ export function useInvoices(businessId?: string | null) {
         sourceInvoiceId: src.id,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
         cnPaymentMode: paymentMode,
+        cnAccountId: accountId,
         lines,
         ...totals,
         overallDiscountKind: "percent",

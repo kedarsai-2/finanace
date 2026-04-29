@@ -4,10 +4,12 @@ export type CreditNotePaymentMode = "cash" | "bank";
 
 export interface DocumentMeta {
   cnPaymentMode?: CreditNotePaymentMode;
+  cnAccountId?: string;
   sourceInvoiceId?: string;
   purchaseCategory?: PurchaseCategory;
   purchasePaymentMode?: PurchasePaymentMode;
   returnPaymentMode?: ReturnPaymentMode;
+  returnAccountId?: string;
 }
 
 const META_PREFIX = "##META##";
@@ -36,17 +38,21 @@ export function composeNotesWithMeta(
 ): string | undefined {
   const payload: DocumentMeta = {};
   if (meta.cnPaymentMode) payload.cnPaymentMode = meta.cnPaymentMode;
+  if (meta.cnAccountId) payload.cnAccountId = meta.cnAccountId;
   if (meta.sourceInvoiceId) payload.sourceInvoiceId = meta.sourceInvoiceId;
   if (meta.purchaseCategory) payload.purchaseCategory = meta.purchaseCategory;
   if (meta.purchasePaymentMode) payload.purchasePaymentMode = meta.purchasePaymentMode;
   if (meta.returnPaymentMode) payload.returnPaymentMode = meta.returnPaymentMode;
+  if (meta.returnAccountId) payload.returnAccountId = meta.returnAccountId;
   const note = (cleanNotes ?? "").trim();
   if (
     !payload.cnPaymentMode &&
+    !payload.cnAccountId &&
     !payload.sourceInvoiceId &&
     !payload.purchaseCategory &&
     !payload.purchasePaymentMode &&
-    !payload.returnPaymentMode
+    !payload.returnPaymentMode &&
+    !payload.returnAccountId
   ) {
     return note || undefined;
   }

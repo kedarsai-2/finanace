@@ -68,6 +68,8 @@ export interface Purchase {
   purchasePaymentMode?: PurchasePaymentMode;
   /** Required for purchase returns to capture settlement mode. */
   returnPaymentMode?: ReturnPaymentMode;
+  /** Optional account selected for purchase-return settlement (cash/bank account id). */
+  returnAccountId?: string;
 }
 
 const NUMBER_REGEX = /^([A-Z]+-?)(\d+)$/i;

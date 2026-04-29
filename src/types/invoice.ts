@@ -66,6 +66,8 @@ export interface Invoice {
   sourceInvoiceId?: string;
   /** Required for credit notes to capture settlement mode. */
   cnPaymentMode?: CreditNotePaymentMode;
+  /** Optional account selected for credit-note settlement (cash/bank account id). */
+  cnAccountId?: string;
 }
 
 export function paymentStatusOf(

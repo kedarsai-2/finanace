@@ -239,6 +239,29 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     });
 
   /**
+   * Allows editing line total directly by back-calculating unit rate.
+   * Keeps existing discount kind/value behavior intact.
+   */
+  const updateLineTotal = (id: string, nextTotal: number) =>
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.id !== id) return l;
+        const safeQty = l.qty > 0 ? l.qty : 1;
+        const safeTotal = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
+        let gross = safeTotal;
+        if (l.discountKind === "percent") {
+          const pct = Math.min(100, Math.max(0, l.discountValue || 0));
+          const factor = 1 - pct / 100;
+          gross = factor > 0 ? safeTotal / factor : safeTotal;
+        } else {
+          gross = safeTotal + Math.max(0, l.discountValue || 0);
+        }
+        const nextRate = Math.max(0, gross / safeQty);
+        return { ...l, rate: Number(nextRate.toFixed(2)) };
+      }),
+    );
+
+  /**
    * Re-syncs every line that was picked from the catalog with the most recent
    * item price / unit / tax. Lines without an `itemId` (free-text) are untouched.
    */
@@ -314,8 +337,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     const outstandingLimit = Math.max(0, totals.total - existingPaidAmount);
     for (const s of payments) {
       if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
-      if (s.mode !== "cash" && !s.accountId)
-        return `Select a ${PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
+      if (!s.accountId)
+        return `Select a ${s.mode === "cash" ? "cash" : PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
       if (s.mode !== "cash" && !s.proofDataUrl)
         return `Upload an attachment for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
       paySum += s.amount;
@@ -389,8 +412,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             date: inv.date,
             amount: split.amount,
             mode: split.mode,
-            accountId: split.mode === "cash" ? undefined : split.accountId,
-            account: split.mode === "cash" ? "Cash" : selectedAccount?.name,
+            accountId: split.accountId,
+            account: selectedAccount?.name,
             reference: split.reference?.trim() || undefined,
             notes: split.notes?.trim() || undefined,
             proofDataUrl: split.proofDataUrl,
@@ -692,7 +715,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                         />
                       </td>
                       <td className="w-32 px-3 py-2 text-right font-semibold tabular-nums">
-                        {formatCurrency(m.taxable, currency)}
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={m.taxable}
+                          onChange={(e) => updateLineTotal(line.id, Number(e.target.value))}
+                          className="h-9 text-right tabular-nums font-semibold"
+                        />
                       </td>
                       <td className="w-10 px-2 py-2 text-right">
                         <Button

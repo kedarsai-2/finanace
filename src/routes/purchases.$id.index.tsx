@@ -41,6 +41,7 @@ import {
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { usePurchases } from "@/hooks/usePurchases";
+import { useAccounts } from "@/hooks/useAccounts";
 import { Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineMath } from "@/types/invoice";
@@ -77,6 +78,7 @@ function PurchaseDetailsPage() {
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
+  const { accounts } = useAccounts(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
   const purchaseId = purchase?.id ?? "";
   const purchaseTotal = purchase?.total ?? 0;
@@ -91,7 +93,15 @@ function PurchaseDetailsPage() {
   const remainingReturn = Math.max(0, purchaseTotal - alreadyReturned);
   const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
   const [returnPaymentMode, setReturnPaymentMode] = useState<ReturnPaymentMode>("cash");
+  const [returnAccountId, setReturnAccountId] = useState<string>("");
   const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const returnAccountOptions = useMemo(
+    () =>
+      accounts.filter((a) =>
+        returnPaymentMode === "cash" ? a.type === "cash" : a.type === "bank",
+      ),
+    [accounts, returnPaymentMode],
+  );
 
   useEffect(() => {
     if (!purchase) return;
@@ -226,7 +236,10 @@ function PurchaseDetailsPage() {
                   <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => setReturnDate(format(new Date(), "yyyy-MM-dd"))}
+                    onClick={() => {
+                      setReturnDate(format(new Date(), "yyyy-MM-dd"));
+                      setReturnAccountId("");
+                    }}
                   >
                     <Undo2 className="h-4 w-4" />
                     <span className="hidden sm:inline">Return</span>
@@ -272,6 +285,27 @@ function PurchaseDetailsPage() {
                       </Select>
                     </div>
                     <div className="pt-1">
+                      <label className="text-sm font-medium">Account *</label>
+                      <Select value={returnAccountId} onValueChange={setReturnAccountId}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue
+                            placeholder={
+                              returnPaymentMode === "cash"
+                                ? "Select cash account"
+                                : "Select bank account"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {returnAccountOptions.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="pt-1">
                       <label className="text-sm font-medium">Return date *</label>
                       <Input
                         type="date"
@@ -301,6 +335,10 @@ function PurchaseDetailsPage() {
                           toast.error("Return date is required.");
                           return;
                         }
+                        if (!returnAccountId) {
+                          toast.error("Please select an account.");
+                          return;
+                        }
                         try {
                           const returnDateIso = new Date(`${returnDate}T00:00:00`).toISOString();
                           const ret = await convertToReturn(
@@ -308,6 +346,7 @@ function PurchaseDetailsPage() {
                             raw,
                             returnPaymentMode,
                             returnDateIso,
+                            returnAccountId,
                           );
                           if (ret) {
                             toast.success(`Return ${ret.number} created`);

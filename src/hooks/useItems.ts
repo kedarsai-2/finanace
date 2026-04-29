@@ -184,17 +184,10 @@ export function useItems(businessId?: string | null) {
   useEffect(() => {
     const token = getJwt();
     if (!USE_BACKEND || !token) return;
-    const biz = businessId ? parseInt(businessId, 10) : NaN;
-    if (!businessId || isNaN(biz)) {
-      setItems([]);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
-        const list = await apiFetch<ItemDTO[]>(
-          `/api/items?businessId.equals=${biz}&size=500&sort=id,desc`,
-        );
+        const list = await apiFetch<ItemDTO[]>(`/api/items?size=1000&sort=id,desc`);
         if (cancelled) return;
         setItems(list.filter((dto) => !dto.deleted).map(dtoToItem));
       } catch {
@@ -347,10 +340,7 @@ export function useItems(businessId?: string | null) {
   }, []);
 
   // Scope to current business and hide soft-deleted items.
-  const scoped = useMemo(
-    () => items.filter((x) => !x.deleted && (!businessId || x.businessId === businessId)),
-    [items, businessId],
-  );
+  const scoped = useMemo(() => items.filter((x) => !x.deleted), [items]);
 
   return { items: scoped, allItems: items, hydrated, upsert, remove, toggleActive };
 }

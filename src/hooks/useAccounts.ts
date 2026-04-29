@@ -155,17 +155,10 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
       setAccounts([]);
       return;
     }
-    const biz = businessId ? parseInt(businessId, 10) : NaN;
-    if (!businessId || isNaN(biz)) {
-      setAccounts([]);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
-        const list = await apiFetch<AccountDTO[]>(
-          `/api/accounts?businessId.equals=${biz}&size=200&sort=id,desc`,
-        );
+        const list = await apiFetch<AccountDTO[]>(`/api/accounts?size=500&sort=id,desc`);
         if (cancelled) return;
         setAccounts(
           list
@@ -258,10 +251,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     return;
   }, []);
 
-  const scoped = useMemo(
-    () => accounts.filter((a) => !a.deleted && (!businessId || a.businessId === businessId)),
-    [accounts, businessId],
-  );
+  const scoped = useMemo(() => accounts.filter((a) => !a.deleted), [accounts]);
 
   return { accounts: scoped, allAccounts: accounts, hydrated, upsert, remove };
 }

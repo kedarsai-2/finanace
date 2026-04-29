@@ -139,6 +139,7 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     purchaseCategory: dbCategory ?? parsed.meta.purchaseCategory,
     purchasePaymentMode: parsed.meta.purchasePaymentMode,
     returnPaymentMode: parsed.meta.returnPaymentMode,
+    returnAccountId: parsed.meta.returnAccountId,
   };
 }
 
@@ -179,6 +180,7 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     purchaseCategory: categoryMeta,
     purchasePaymentMode: p.kind !== "return" ? p.purchasePaymentMode : undefined,
     returnPaymentMode: p.kind === "return" ? p.returnPaymentMode : undefined,
+    returnAccountId: p.kind === "return" ? p.returnAccountId : undefined,
   });
   return {
     id: toNumId(p.id) ?? undefined,
@@ -606,6 +608,7 @@ export function usePurchases(businessId?: string | null) {
       returnAmount?: number,
       paymentMode?: ReturnPaymentMode,
       returnDate?: string,
+      accountId?: string,
     ): Promise<Purchase | null> => {
       const src = purchasesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
@@ -661,6 +664,7 @@ export function usePurchases(businessId?: string | null) {
         kind: "return",
         sourcePurchaseId: src.id,
         returnPaymentMode: paymentMode,
+        returnAccountId: accountId,
         notes: src.notes ? `Against ${src.number}\n\n${src.notes}` : `Against ${src.number}`,
         lines,
         ...totals,

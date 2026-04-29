@@ -57,6 +57,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { creditedAmountForInvoice } from "@/hooks/useInvoices";
 import { FileMinus } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
+import { useAccounts } from "@/hooks/useAccounts";
 import { RecordPaymentDialog } from "@/components/payment/RecordPaymentDialog";
 import { cn } from "@/lib/utils";
 import { canEditInvoice, lineMath, paymentStatusOf, type Invoice } from "@/types/invoice";
@@ -101,11 +102,17 @@ function InvoiceDetailsPage() {
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
   const { payments } = usePayments(invoice?.businessId);
+  const { accounts } = useAccounts(invoice?.businessId);
   const [payOpen, setPayOpen] = useState(false);
   const [cnOpen, setCnOpen] = useState(false);
   const [cnAmount, setCnAmount] = useState<number>(0);
   const [cnPaymentMode, setCnPaymentMode] = useState<"cash" | "bank">("cash");
+  const [cnAccountId, setCnAccountId] = useState<string>("");
   const [cnReturnDate, setCnReturnDate] = useState<string>("");
+  const cnAccountOptions = useMemo(
+    () => accounts.filter((a) => a.type === cnPaymentMode),
+    [accounts, cnPaymentMode],
+  );
 
   useEffect(() => {
     if (!invoice) return;
@@ -315,6 +322,7 @@ function InvoiceDetailsPage() {
                     onClick={() => {
                       setCnAmount(remainingCredit);
                       setCnPaymentMode("cash");
+                      setCnAccountId("");
                       setCnReturnDate(format(new Date(), "yyyy-MM-dd"));
                       setCnOpen(true);
                     }}
@@ -362,6 +370,21 @@ function InvoiceDetailsPage() {
                       </Select>
                     </div>
                     <div className="pt-1">
+                      <label className="text-sm font-medium">Account *</label>
+                      <Select value={cnAccountId} onValueChange={setCnAccountId}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={`Select ${cnPaymentMode} account`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cnAccountOptions.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="pt-1">
                       <label className="text-sm font-medium">Return date *</label>
                       <Input
                         type="date"
@@ -391,6 +414,10 @@ function InvoiceDetailsPage() {
                           toast.error("Return date is required.");
                           return;
                         }
+                        if (!cnAccountId) {
+                          toast.error("Please select an account.");
+                          return;
+                        }
                         try {
                           const cnDate = new Date(`${cnReturnDate}T00:00:00`).toISOString();
                           const cn = await convertToCreditNote(
@@ -398,6 +425,7 @@ function InvoiceDetailsPage() {
                             raw,
                             cnPaymentMode,
                             cnDate,
+                            cnAccountId,
                           );
                           if (cn) {
                             toast.success(`Credit note ${cn.number} created`);
