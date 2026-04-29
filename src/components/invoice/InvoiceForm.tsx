@@ -553,11 +553,19 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <Input
                 id="number"
                 value={number}
-                readOnly
+                onChange={(e) => setNumber(e.target.value.toUpperCase())}
+                readOnly={mode === "edit"}
                 placeholder="INV-0001"
-                className="cursor-not-allowed bg-muted/50 font-mono text-muted-foreground"
+                className={cn(
+                  "font-mono",
+                  mode === "edit" && "cursor-not-allowed bg-muted/50 text-muted-foreground",
+                )}
               />
-              <p className="mt-1 text-xs text-muted-foreground">Auto-generated and locked.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {mode === "edit"
+                  ? "Auto-generated and locked."
+                  : "Auto-generated. Edit if needed — duplicates are blocked."}
+              </p>
             </div>
             <div>
               <Label htmlFor="invoiceType">Invoice type *</Label>
