@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Banknote, Pencil, ArrowRight } from "lucide-react";
+import { Banknote, Pencil, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,8 +44,14 @@ const KIND_LABEL: Record<AccountTxnKind, string> = {
   expense: "Expense",
 };
 
-function txnTypeLabel(r: { kind: AccountTxnKind; refLink?: string }) {
+function txnTypeLabel(r: {
+  kind: AccountTxnKind;
+  refLink?: string;
+  refNo?: string;
+  note?: string;
+}) {
   if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if (r.kind === "payment-out" && r.refLink?.startsWith("/purchases/")) return "Purchase";
   if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
     return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";
   }
@@ -126,6 +132,12 @@ function CashPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to="/cash/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Add cash account
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
                 if (!effectiveBusinessId) {
@@ -207,7 +219,11 @@ function CashPage() {
                       return;
                     }
                     if (isAll) setActiveId(effectiveBusinessId);
-                    navigate({ to: "/cash/balance" });
+                    navigate({
+                      to: "/accounts/$id/edit",
+                      params: { id: a.id },
+                      search: { source: "cash" },
+                    });
                   }}
                   className="group w-full rounded-xl border border-border bg-card p-6 text-left transition-shadow hover:shadow-md"
                 >
@@ -304,9 +320,16 @@ function EmptyCashState({ onSetBalance }: { onSetBalance: () => void }) {
       <p className="mb-4 text-sm text-muted-foreground">
         Add a cash account to start tracking cash inflows and outflows.
       </p>
-      <Button className="gap-2" onClick={onSetBalance}>
-        <Pencil className="h-4 w-4" /> Set cash balance
-      </Button>
+      <div className="flex items-center justify-center gap-2">
+        <Button asChild className="gap-2">
+          <Link to="/cash/new">
+            <Plus className="h-4 w-4" /> Add cash account
+          </Link>
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={onSetBalance}>
+          <Pencil className="h-4 w-4" /> Set cash balance
+        </Button>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,10 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 const searchSchema = z.object({
   mode: z.enum(["transfer", "adjustment"]).catch("transfer").default("transfer"),
   scope: z.enum(["all", "bank", "cash"]).catch("all").default("all"),
-  preset: z.enum(["any", "bank-bank", "cash-bank", "bank-cash"]).catch("any").default("any"),
+  preset: z
+    .enum(["any", "bank-bank", "cash-bank", "bank-cash", "cash-cash"])
+    .catch("any")
+    .default("any"),
 });
 
 export const Route = createFileRoute("/accounts/transfer")({
@@ -97,6 +100,7 @@ function TransferPage() {
     if (search.preset === "bank-bank") return safeAccounts.filter((a) => a.type === "bank");
     if (search.preset === "cash-bank") return safeAccounts.filter((a) => a.type === "cash");
     if (search.preset === "bank-cash") return safeAccounts.filter((a) => a.type === "bank");
+    if (search.preset === "cash-cash") return safeAccounts.filter((a) => a.type === "cash");
     return scopedAccounts;
   }, [mode, scopedAccounts, safeAccounts, search.preset]);
   const toOptions = useMemo(() => {
@@ -106,6 +110,8 @@ function TransferPage() {
     if (search.preset === "cash-bank")
       return safeAccounts.filter((a) => a.type === "bank" && a.id !== fromId);
     if (search.preset === "bank-cash")
+      return safeAccounts.filter((a) => a.type === "cash" && a.id !== fromId);
+    if (search.preset === "cash-cash")
       return safeAccounts.filter((a) => a.type === "cash" && a.id !== fromId);
     return scopedAccounts.filter((a) => a.id !== fromId);
   }, [mode, scopedAccounts, safeAccounts, search.preset, fromId]);
@@ -127,9 +133,6 @@ function TransferPage() {
     if (mode === "transfer") {
       if (!toId) return "Choose a destination account";
       if (fromId === toId) return "Source and destination must be different";
-      if (fromAccount?.type === "cash" && toAccount?.type === "cash") {
-        return "Cash to cash transfer is not allowed";
-      }
     }
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode === "transfer" && amount > fromBalance + 0.01)

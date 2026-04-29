@@ -105,6 +105,7 @@ function InvoiceDetailsPage() {
   const [cnOpen, setCnOpen] = useState(false);
   const [cnAmount, setCnAmount] = useState<number>(0);
   const [cnPaymentMode, setCnPaymentMode] = useState<"cash" | "bank">("cash");
+  const [cnReturnDate, setCnReturnDate] = useState<string>("");
 
   useEffect(() => {
     if (!invoice) return;
@@ -314,6 +315,7 @@ function InvoiceDetailsPage() {
                     onClick={() => {
                       setCnAmount(remainingCredit);
                       setCnPaymentMode("cash");
+                      setCnReturnDate(format(new Date(), "yyyy-MM-dd"));
                       setCnOpen(true);
                     }}
                   >
@@ -359,6 +361,15 @@ function InvoiceDetailsPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="pt-1">
+                      <label className="text-sm font-medium">Return date *</label>
+                      <Input
+                        type="date"
+                        value={cnReturnDate}
+                        onChange={(e) => setCnReturnDate(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -376,8 +387,18 @@ function InvoiceDetailsPage() {
                           );
                           return;
                         }
+                        if (!cnReturnDate) {
+                          toast.error("Return date is required.");
+                          return;
+                        }
                         try {
-                          const cn = await convertToCreditNote(invoice.id, raw, cnPaymentMode);
+                          const cnDate = new Date(`${cnReturnDate}T00:00:00`).toISOString();
+                          const cn = await convertToCreditNote(
+                            invoice.id,
+                            raw,
+                            cnPaymentMode,
+                            cnDate,
+                          );
                           if (cn) {
                             toast.success(`Credit note ${cn.number} created`);
                             navigate({ to: "/credit-notes/$id", params: { id: cn.id } });

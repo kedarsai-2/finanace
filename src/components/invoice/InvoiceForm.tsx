@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format, addDays } from "date-fns";
 import {
@@ -79,6 +79,7 @@ interface Props {
 
 type PaymentSplit = {
   id: string;
+  sourcePaymentId?: string;
   mode: PaymentMode;
   accountId?: string;
   amount: number;
@@ -108,7 +109,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
   const { accounts } = useAccounts(activeId);
-  const { create: createPayment } = usePayments(activeId);
+  const { payments: paymentRecords, create: createPayment } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const existing = useMemo(
@@ -136,6 +137,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const newSplitId = () => `pay_${Math.random().toString(36).slice(2, 9)}`;
   const emptySplit = (): PaymentSplit => ({ id: newSplitId(), mode: "cash", amount: 0 });
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
+  const seededPaymentsForInvoiceRef = useRef<string | null>(null);
   const updateSplit = (id: string, patch: Partial<PaymentSplit>) =>
     setPayments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const removeSplit = (id: string) => setPayments((prev) => prev.filter((s) => s.id !== id));
@@ -156,10 +158,33 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setOverallDiscountValue(existing.overallDiscountValue);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
+      if (seededPaymentsForInvoiceRef.current !== existing.id) {
+        const linkedSplits: PaymentSplit[] = paymentRecords
+          .filter((p) => p.allocations.some((a) => a.docId === existing.id))
+          .map((p) => ({
+            id: `pay_existing_${p.id}`,
+            sourcePaymentId: p.id,
+            mode: p.mode,
+            accountId: p.accountId,
+            amount: Number(
+              p.allocations.find((a) => a.docId === existing.id)?.amount ?? p.amount ?? 0,
+            ),
+            reference: p.reference,
+            notes: p.notes,
+            proofDataUrl: p.proofDataUrl,
+            proofName: p.proofName,
+          }));
+        setPayments(linkedSplits);
+        seededPaymentsForInvoiceRef.current = existing.id;
+      }
     } else if (activeId) {
       setNumber(nextInvoiceNumber(allInvoices, activeId));
+      if (seededPaymentsForInvoiceRef.current !== null) {
+        setPayments([]);
+        seededPaymentsForInvoiceRef.current = null;
+      }
     }
-  }, [existing, hydrated, activeId, allInvoices, ensureLines]);
+  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -285,7 +310,10 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const buildInvoice = (status: Invoice["status"]): Invoice => {
     const isFinal = status === "final";
-    const newPaidAmount = status === "final" ? payments.reduce((s, p) => s + (p.amount || 0), 0) : 0;
+    const newPaidAmount =
+      status === "final"
+        ? payments.filter((p) => !p.sourcePaymentId).reduce((s, p) => s + (p.amount || 0), 0)
+        : 0;
     return {
       id: existing?.id ?? `inv_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -328,7 +356,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       const inv = buildInvoice(status);
       await upsert(inv);
       if (status === "final") {
-        const validSplits = payments.filter((p) => p.amount > 0);
+        const validSplits = payments.filter((p) => !p.sourcePaymentId && p.amount > 0);
         for (const split of validSplits) {
           const selectedAccount = split.accountId
             ? accounts.find((a) => a.id === split.accountId)

@@ -606,6 +606,7 @@ export function usePurchases(businessId?: string | null) {
       sourceId: string,
       returnAmount?: number,
       paymentMode?: ReturnPaymentMode,
+      returnDate?: string,
     ): Promise<Purchase | null> => {
       const src = purchasesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
@@ -630,6 +631,8 @@ export function usePurchases(businessId?: string | null) {
       const number = nextDocNumber(allRet, src.businessId, "PRET-");
       const id = `pret_${Date.now()}`;
       const now = new Date().toISOString();
+      const effectiveReturnDate =
+        returnDate && !Number.isNaN(Date.parse(returnDate)) ? returnDate : now;
       const lines: PurchaseLine[] = [
         {
           id: `pretl_${id}_0`,
@@ -651,7 +654,7 @@ export function usePurchases(businessId?: string | null) {
         ...src,
         id,
         number,
-        date: now,
+        date: effectiveReturnDate,
         finalizedAt: undefined,
         status: "draft",
         paidAmount: 0,

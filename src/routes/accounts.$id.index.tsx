@@ -117,6 +117,7 @@ function txnTypeLabel(r: {
   note?: string;
 }) {
   if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if (r.kind === "payment-out" && r.refLink?.startsWith("/purchases/")) return "Purchase";
   if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
     return r.note?.toLowerCase().includes("cash") ? "Cash adjustment" : "Bank adjustment";
   }

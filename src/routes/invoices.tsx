@@ -32,6 +32,8 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
 import { formatCurrency } from "@/hooks/useParties";
+import { usePayments } from "@/hooks/usePayments";
+import { PAYMENT_MODE_LABEL } from "@/types/payment";
 import {
   paymentStatusOf,
   type Invoice,
@@ -103,6 +105,7 @@ function InvoicesPage() {
   const { q, status, payment, type, from, to } = Route.useSearch();
   const { activeId, scopedBusinessId, isAll, businesses } = useBusinesses();
   const { invoices, hydrated, remove, cancel } = useInvoices(scopedBusinessId);
+  const { payments } = usePayments(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Invoice | null>(null);
@@ -141,6 +144,19 @@ function InvoicesPage() {
     }
     return { total, paid, outstanding: total - paid, count };
   }, [invoices]);
+
+  const paymentTypeByInvoiceId = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const payment of payments) {
+      if (payment.direction !== "in") continue;
+      for (const alloc of payment.allocations ?? []) {
+        const current = map.get(alloc.docId) ?? new Set<string>();
+        current.add(PAYMENT_MODE_LABEL[payment.mode]);
+        map.set(alloc.docId, current);
+      }
+    }
+    return map;
+  }, [payments]);
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
@@ -275,6 +291,7 @@ function InvoicesPage() {
           <InvoicesTable
             invoices={visible}
             currency={currency}
+            paymentTypeByInvoiceId={paymentTypeByInvoiceId}
             onDelete={setDeleting}
             onCancel={setCancelling}
           />
@@ -457,11 +474,13 @@ function DatePill({
 function InvoicesTable({
   invoices,
   currency,
+  paymentTypeByInvoiceId,
   onDelete,
   onCancel,
 }: {
   invoices: Invoice[];
   currency: string;
+  paymentTypeByInvoiceId: Map<string, Set<string>>;
   onDelete: (i: Invoice) => void;
   onCancel: (i: Invoice) => void;
 }) {
@@ -482,6 +501,13 @@ function InvoicesTable({
           const balance = inv.total - inv.paidAmount;
           const pay = paymentStatusOf(inv);
           const cancelled = inv.status === "cancelled";
+          const modes = paymentTypeByInvoiceId.get(inv.id);
+          const paymentType =
+            !modes || modes.size === 0
+              ? "Not set"
+              : modes.size === 1
+                ? Array.from(modes)[0]
+                : "Mixed";
           return (
             <li
               key={inv.id}
@@ -512,6 +538,7 @@ function InvoicesTable({
                       ? "Advance"
                       : "Standard"}
                 </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Payment type: {paymentType}</p>
               </div>
               <span className="text-right font-semibold tabular-nums">
                 {formatCurrency(inv.total, currency)}

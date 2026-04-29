@@ -4,6 +4,7 @@ export type CreditNotePaymentMode = "cash" | "bank";
 
 export interface DocumentMeta {
   cnPaymentMode?: CreditNotePaymentMode;
+  sourceInvoiceId?: string;
   purchaseCategory?: PurchaseCategory;
   purchasePaymentMode?: PurchasePaymentMode;
   returnPaymentMode?: ReturnPaymentMode;
@@ -35,12 +36,14 @@ export function composeNotesWithMeta(
 ): string | undefined {
   const payload: DocumentMeta = {};
   if (meta.cnPaymentMode) payload.cnPaymentMode = meta.cnPaymentMode;
+  if (meta.sourceInvoiceId) payload.sourceInvoiceId = meta.sourceInvoiceId;
   if (meta.purchaseCategory) payload.purchaseCategory = meta.purchaseCategory;
   if (meta.purchasePaymentMode) payload.purchasePaymentMode = meta.purchasePaymentMode;
   if (meta.returnPaymentMode) payload.returnPaymentMode = meta.returnPaymentMode;
   const note = (cleanNotes ?? "").trim();
   if (
     !payload.cnPaymentMode &&
+    !payload.sourceInvoiceId &&
     !payload.purchaseCategory &&
     !payload.purchasePaymentMode &&
     !payload.returnPaymentMode

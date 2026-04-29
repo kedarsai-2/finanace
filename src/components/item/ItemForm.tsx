@@ -48,6 +48,7 @@ function labelsForContext(context: Props["context"]) {
 }
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
+  "1": "1",
   number: "Number (bhk)",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
@@ -73,7 +74,7 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
   const defaults: ItemFormValues = useMemo(() => {
     const unit = (ITEM_UNITS as readonly string[]).includes((existing?.unit ?? "").toLowerCase())
       ? (existing!.unit.toLowerCase() as ItemFormValues["unit"])
-      : "pcs";
+      : "1";
     const tax = (TAX_RATES as readonly number[]).includes(existing?.taxPercent ?? -1)
       ? (existing!.taxPercent as ItemFormValues["taxPercent"])
       : 18;

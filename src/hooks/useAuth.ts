@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { clearJwt, getJwt, setJwt, subscribeAuth } from "@/lib/auth";
 import { API_BASE_URL } from "@/lib/flags";
+import { httpRequest } from "@/lib/http";
 
 function parseJwtClaims(token: string | null): Record<string, unknown> | null {
   if (!token) return null;
@@ -36,9 +37,9 @@ export function useAuth() {
   const isAdmin = authorities.includes("ROLE_ADMIN");
 
   const login = useCallback(async (username: string, password: string) => {
-    let res: Response;
+    let res: Awaited<ReturnType<typeof httpRequest>>;
     try {
-      res = await fetch(`${API_BASE_URL}/api/authenticate`, {
+      res = await httpRequest(`${API_BASE_URL}/api/authenticate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, rememberMe: true }),
@@ -68,9 +69,9 @@ export function useAuth() {
       firstName?: string;
       lastName?: string;
     }) => {
-      let res: Response;
+      let res: Awaited<ReturnType<typeof httpRequest>>;
       try {
-        res = await fetch(`${API_BASE_URL}/api/register`, {
+        res = await httpRequest(`${API_BASE_URL}/api/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

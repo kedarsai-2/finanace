@@ -50,6 +50,7 @@ interface Props {
 }
 
 const UNIT_LABEL: Record<(typeof ITEM_UNITS)[number], string> = {
+  "1": "1",
   number: "Number (bhk)",
   pcs: "Pieces (pcs)",
   kg: "Kilograms (kg)",
@@ -79,7 +80,7 @@ export function QuickAddItemDialog({
     defaultValues: {
       name: defaultName,
       sellingPrice: 0,
-      unit: "pcs",
+      unit: "1",
     },
     mode: "onBlur",
   });
@@ -90,7 +91,7 @@ export function QuickAddItemDialog({
       reset({
         name: defaultName,
         sellingPrice: 0,
-        unit: "pcs",
+        unit: "1",
       });
     }
   }, [open, defaultName, reset]);

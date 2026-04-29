@@ -123,6 +123,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [partyOpen, setPartyOpen] = useState(false);
   const [quickPartyOpen, setQuickPartyOpen] = useState(false);
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
+  const [quickAssetOpen, setQuickAssetOpen] = useState(false);
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
@@ -265,34 +266,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       (it) => it.type === "product" && (it.description ?? "").includes(sourceTag),
     );
 
-    // Short-term purchases must remain only in purchases (no asset reflection).
-    if (purchase.purchaseCategory !== "long-term") {
-      for (const asset of linkedAssets) {
-        await removeItem(asset.id);
-      }
-      return;
-    }
-
-    for (const line of purchase.lines) {
-      const lineTag = `${sourceTag}[LINE:${line.id}]`;
-      const existingAsset = linkedAssets.find((it) => (it.description ?? "").includes(lineTag));
-      const asset: Item = {
-        id: existingAsset?.id ?? "",
-        businessId: purchase.businessId,
-        name: line.name,
-        type: "product",
-        sellingPrice: line.rate,
-        purchasePrice: line.rate,
-        taxPercent: line.taxPercent,
-        unit: line.unit || "pcs",
-        active: true,
-        description: lineTag,
-        sku: existingAsset?.sku,
-        openingStock: existingAsset?.openingStock,
-        reorderLevel: existingAsset?.reorderLevel,
-        deleted: existingAsset?.deleted,
-      };
-      await upsertItem(asset);
+    // Purchases should not auto-create or sync assets anymore.
+    for (const asset of linkedAssets) {
+      await removeItem(asset.id);
     }
   };
 
@@ -326,10 +302,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           amount: paymentDelta,
           mode: purchasePaymentMode,
           accountId: purchasePaymentMode === "cash" ? undefined : purchaseAccountId,
-          account:
-            purchasePaymentMode === "cash"
-              ? "Cash"
-              : selectedBankAccount?.name || "Bank",
+          account: purchasePaymentMode === "cash" ? "Cash" : selectedBankAccount?.name || "Bank",
           reference: p.number,
           notes: `Auto payment from purchase ${p.number}`,
           proofDataUrl,
@@ -728,10 +701,21 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               </tbody>
             </table>
           </div>
-          <Button type="button" variant="outline" onClick={addLine} className="mt-3 gap-2">
-            <Plus className="h-4 w-4" />
-            Add row
-          </Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={addLine} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add row
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setQuickAssetOpen(true)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Quick add asset
+            </Button>
+          </div>
         </FormSection>
 
         {/* 4. Summary ----------------------------------------------------- */}
@@ -867,6 +851,21 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         onCreated={(item) => {
           if (quickItemForRow) applyItemToLine(quickItemForRow, item);
           setQuickItemForRow(null);
+        }}
+      />
+      <QuickAddItemDialog
+        open={quickAssetOpen}
+        onOpenChange={setQuickAssetOpen}
+        defaultType="product"
+        onCreated={(item) => {
+          const next = emptyLine();
+          next.itemId = item.id;
+          next.name = item.name;
+          next.unit = item.unit;
+          next.rate = item.purchasePrice ?? item.sellingPrice;
+          next.taxPercent = item.taxPercent;
+          setLines((prev) => [...prev, next]);
+          setQuickAssetOpen(false);
         }}
       />
     </div>

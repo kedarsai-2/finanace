@@ -13,41 +13,69 @@ function isNativePlatform() {
 export function useMobileTabSettings() {
   const [hiddenTabs, setHiddenTabs] = useState<Record<string, true>>({});
   const [hydrated, setHydrated] = useState(false);
-  const canSync = USE_BACKEND && !!getJwt();
+  const authToken = getJwt();
+  const canSync = USE_BACKEND && !!authToken;
+  const isNative = typeof window !== "undefined" && isNativePlatform();
+
+  const loadHiddenTabs = useCallback(async () => {
+    if (!canSync) {
+      setHiddenTabs({});
+      setHydrated(true);
+      return;
+    }
+    try {
+      const res = await apiFetch<MobileTabsResponse>("/api/account/mobile-tabs");
+      const map: Record<string, true> = {};
+      for (const tab of res.hiddenTabs ?? []) map[tab] = true;
+      setHiddenTabs(map);
+    } catch {
+      setHiddenTabs({});
+    } finally {
+      setHydrated(true);
+    }
+  }, [canSync]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!canSync) {
-        setHiddenTabs({});
-        setHydrated(true);
-        return;
-      }
-      try {
-        const res = await apiFetch<MobileTabsResponse>("/api/account/mobile-tabs");
-        const map: Record<string, true> = {};
-        for (const tab of res.hiddenTabs ?? []) map[tab] = true;
-        if (!cancelled) setHiddenTabs(map);
-      } catch {
-        if (!cancelled) setHiddenTabs({});
-      } finally {
-        if (!cancelled) setHydrated(true);
-      }
+      if (!cancelled) await loadHiddenTabs();
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [canSync]);
+  }, [authToken, loadHiddenTabs]);
+
+  useEffect(() => {
+    if (!isNative || !canSync) return;
+
+    const refresh = () => void loadHiddenTabs();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const intervalId = window.setInterval(refresh, 30_000);
+
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.clearInterval(intervalId);
+    };
+  }, [canSync, isNative, loadHiddenTabs]);
 
   const saveHiddenTabs = useCallback(
     async (next: Record<string, true>) => {
-      setHiddenTabs(next);
-      if (!canSync) return;
+      if (!canSync) {
+        setHiddenTabs(next);
+        return;
+      }
       await apiFetch<MobileTabsResponse>("/api/account/mobile-tabs", {
         method: "PUT",
         body: JSON.stringify({ hiddenTabs: Object.keys(next) }),
       });
+      setHiddenTabs(next);
     },
     [canSync],
   );
@@ -57,8 +85,8 @@ export function useMobileTabSettings() {
       hiddenTabs,
       hydrated,
       saveHiddenTabs,
-      isNative: typeof window !== "undefined" && isNativePlatform(),
+      isNative,
     }),
-    [hiddenTabs, hydrated, saveHiddenTabs],
+    [hiddenTabs, hydrated, isNative, saveHiddenTabs],
   );
 }

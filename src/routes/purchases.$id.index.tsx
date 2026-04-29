@@ -91,6 +91,7 @@ function PurchaseDetailsPage() {
   const remainingReturn = Math.max(0, purchaseTotal - alreadyReturned);
   const [returnAmount, setReturnAmount] = useState<number>(remainingReturn);
   const [returnPaymentMode, setReturnPaymentMode] = useState<ReturnPaymentMode>("cash");
+  const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
     if (!purchase) return;
@@ -222,7 +223,11 @@ function PurchaseDetailsPage() {
             {purchase.status === "final" && purchase.kind !== "return" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setReturnDate(format(new Date(), "yyyy-MM-dd"))}
+                  >
                     <Undo2 className="h-4 w-4" />
                     <span className="hidden sm:inline">Return</span>
                   </Button>
@@ -266,6 +271,15 @@ function PurchaseDetailsPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="pt-1">
+                      <label className="text-sm font-medium">Return date *</label>
+                      <Input
+                        type="date"
+                        value={returnDate}
+                        onChange={(e) => setReturnDate(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -283,8 +297,18 @@ function PurchaseDetailsPage() {
                           );
                           return;
                         }
+                        if (!returnDate) {
+                          toast.error("Return date is required.");
+                          return;
+                        }
                         try {
-                          const ret = await convertToReturn(purchase.id, raw, returnPaymentMode);
+                          const returnDateIso = new Date(`${returnDate}T00:00:00`).toISOString();
+                          const ret = await convertToReturn(
+                            purchase.id,
+                            raw,
+                            returnPaymentMode,
+                            returnDateIso,
+                          );
                           if (ret) {
                             toast.success(`Return ${ret.number} created`);
                             navigate({ to: "/purchase-returns/$id", params: { id: ret.id } });

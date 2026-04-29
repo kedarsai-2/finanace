@@ -189,12 +189,6 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   }, [accounts]);
 
   const upsert = useCallback((a: Account) => {
-    const hasOtherCashAccount = accountsRef.current.some(
-      (x) => !x.deleted && x.businessId === a.businessId && x.type === "cash" && x.id !== a.id,
-    );
-    if (a.type === "cash" && hasOtherCashAccount) {
-      return Promise.reject(new Error("Only one cash account is allowed per business"));
-    }
     const token = getJwt();
     if (USE_BACKEND && token) {
       return (async () => {

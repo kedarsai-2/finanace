@@ -55,6 +55,17 @@ function CreditNotesPage() {
     return m;
   }, [allInvoices]);
 
+  const inferSourceFromNotes = (notes?: string) => {
+    const raw = (notes ?? "").trim();
+    if (!raw) return undefined;
+    const firstLine = raw.split("\n")[0]?.trim() ?? "";
+    const m = /^Against\s+([A-Z0-9-]+)/i.exec(firstLine);
+    return m?.[1];
+  };
+
+  const creditNotePaymentTypeLabel = (mode?: "cash" | "bank") =>
+    mode === "cash" ? "Cash" : mode === "bank" ? "Bank" : "Not set";
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
@@ -117,8 +128,13 @@ function CreditNotesPage() {
                   >
                     {cn.partyName}
                   </Link>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Payment type: {creditNotePaymentTypeLabel(cn.cnPaymentMode)}
+                  </p>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {cn.sourceInvoiceId ? (sourceMap.get(cn.sourceInvoiceId) ?? "—") : "—"}
+                    {cn.sourceInvoiceId
+                      ? (sourceMap.get(cn.sourceInvoiceId) ?? inferSourceFromNotes(cn.notes) ?? "—")
+                      : (inferSourceFromNotes(cn.notes) ?? "—")}
                   </span>
                   <span className="text-right font-semibold tabular-nums text-destructive">
                     − {formatCurrency(cn.total, currency)}

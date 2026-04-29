@@ -157,6 +157,7 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     finalizedAt: dto.finalizedAt ?? undefined,
     kind,
     cnPaymentMode: dbMode ?? parsed.meta.cnPaymentMode,
+    sourceInvoiceId: parsed.meta.sourceInvoiceId,
   };
 }
 
@@ -175,7 +176,10 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
 }
 
 function invoiceToDto(inv: Invoice): InvoiceDTO {
-  const notes = composeNotesWithMeta(inv.notes, { cnPaymentMode: inv.cnPaymentMode });
+  const notes = composeNotesWithMeta(inv.notes, {
+    cnPaymentMode: inv.cnPaymentMode,
+    sourceInvoiceId: inv.sourceInvoiceId,
+  });
   const isCreditNote =
     inv.kind === "credit-note" || (inv.number ?? "").trim().toUpperCase().startsWith("CN-");
   return {
@@ -670,6 +674,7 @@ export function useInvoices(businessId?: string | null) {
       sourceId: string,
       creditAmount?: number,
       paymentMode?: CreditNotePaymentMode,
+      creditDate?: string,
     ): Promise<Invoice | null> => {
       const src = invoicesRef.current.find((x) => x.id === sourceId);
       if (!src) return null;
@@ -682,6 +687,8 @@ export function useInvoices(businessId?: string | null) {
       const number = nextDocNumber(allCN, src.businessId, "CN-");
       const id = `cn_${Date.now()}`;
       const now = new Date().toISOString();
+      const effectiveCreditDate =
+        creditDate && !Number.isNaN(Date.parse(creditDate)) ? creditDate : now;
       const hasAmount = typeof creditAmount === "number" && Number.isFinite(creditAmount);
       const safeAmount = hasAmount ? Math.max(0, Math.min(creditAmount!, remaining)) : remaining;
       if (safeAmount <= 0) {
@@ -711,9 +718,9 @@ export function useInvoices(businessId?: string | null) {
         ...src,
         id,
         number,
-        date: now,
-        finalizedAt: undefined,
-        status: "draft",
+        date: effectiveCreditDate,
+        finalizedAt: now,
+        status: "final",
         paidAmount: 0,
         deleted: false,
         kind: "credit-note",

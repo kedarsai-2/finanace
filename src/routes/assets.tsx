@@ -29,6 +29,8 @@ import { useItems } from "@/hooks/useItems";
 import type { Item } from "@/types/item";
 import { formatCurrency } from "@/hooks/useParties";
 
+const AUTO_ASSET_SOURCE_TAG = "[AUTO_ASSET_SOURCE:";
+
 export const Route = createFileRoute("/assets")({
   head: () => ({
     meta: [
@@ -69,6 +71,7 @@ function AssetsPage() {
     const term = q.trim().toLowerCase();
     return items.filter((it) => {
       if (it.type !== "product") return false;
+      if ((it.description ?? "").includes(AUTO_ASSET_SOURCE_TAG)) return false;
       if (!term) return true;
       return it.name.toLowerCase().includes(term) || (it.sku ?? "").toLowerCase().includes(term);
     });

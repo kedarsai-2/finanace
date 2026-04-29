@@ -48,6 +48,9 @@ function PurchaseReturnsPage() {
     return m;
   }, [allPurchases]);
 
+  const returnPaymentTypeLabel = (mode?: "cash" | "bank" | "cheque") =>
+    mode === "cash" ? "Cash" : mode === "bank" ? "Bank" : mode === "cheque" ? "Cheque" : "Not set";
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
@@ -110,6 +113,9 @@ function PurchaseReturnsPage() {
                   >
                     {r.partyName}
                   </Link>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Payment type: {returnPaymentTypeLabel(r.returnPaymentMode)}
+                  </p>
                   <span className="font-mono text-xs text-muted-foreground">
                     {r.sourcePurchaseId ? (sourceMap.get(r.sourcePurchaseId) ?? "—") : "—"}
                   </span>

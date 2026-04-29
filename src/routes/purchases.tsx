@@ -34,6 +34,19 @@ import { usePurchases } from "@/hooks/usePurchases";
 import { formatCurrency } from "@/hooks/useParties";
 import type { Purchase, PurchaseStatus } from "@/types/purchase";
 
+function purchasePaymentTypeLabel(mode?: Purchase["purchasePaymentMode"]) {
+  if (mode === "cash") return "Cash";
+  if (mode === "bank") return "Bank";
+  if (mode === "cheque") return "Cheque";
+  return "Not set";
+}
+
+function purchaseCategoryLabel(category?: Purchase["purchaseCategory"]) {
+  if (category === "long-term") return "Long-term";
+  if (category === "short-term") return "Short-term";
+  return "Not set";
+}
+
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
@@ -420,13 +433,21 @@ function PurchasesTable({
               <span className="text-sm text-muted-foreground">
                 {format(new Date(p.date), "dd MMM yyyy")}
               </span>
-              <Link
-                to="/parties/$id"
-                params={{ id: p.partyId }}
-                className="truncate text-sm font-medium text-foreground hover:text-primary"
-              >
-                {p.partyName}
-              </Link>
+              <div className="min-w-0">
+                <Link
+                  to="/parties/$id"
+                  params={{ id: p.partyId }}
+                  className="truncate text-sm font-medium text-foreground hover:text-primary"
+                >
+                  {p.partyName}
+                </Link>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Purchase type: {purchaseCategoryLabel(p.purchaseCategory)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Payment type: {purchasePaymentTypeLabel(p.purchasePaymentMode)}
+                </p>
+              </div>
               <span
                 className={cn(
                   "text-right font-semibold tabular-nums",

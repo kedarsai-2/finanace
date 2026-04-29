@@ -47,10 +47,6 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
       toast.error("Select a business first");
       return;
     }
-    if (mode === "create" && type !== "bank") {
-      toast.error("Only bank accounts can be created here");
-      return;
-    }
     setSubmitting(true);
     try {
       const payload: Account = {
