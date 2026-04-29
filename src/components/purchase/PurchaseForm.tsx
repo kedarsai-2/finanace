@@ -93,12 +93,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { create: createPayment } = usePayments(activeId);
   const { accounts } = useAccounts(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
-  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
-  const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
-  const paymentAccounts = useMemo(
-    () => (purchasePaymentMode === "cash" ? cashAccounts : bankAccounts),
-    [purchasePaymentMode, cashAccounts, bankAccounts],
-  );
 
   // Show all parties (party-type concept removed).
   const suppliers = parties;
@@ -129,6 +123,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [quickPartyOpen, setQuickPartyOpen] = useState(false);
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
   const [quickAssetOpen, setQuickAssetOpen] = useState(false);
+  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
+  const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
+  const paymentAccounts = useMemo(
+    () => (purchasePaymentMode === "cash" ? cashAccounts : bankAccounts),
+    [purchasePaymentMode, cashAccounts, bankAccounts],
+  );
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
