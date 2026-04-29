@@ -128,7 +128,6 @@ function AccountDetailsPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const backTo = search.source === "cash" ? "/cash" : "/accounts";
 
   const { scopedBusinessId, businesses } = useBusinesses();
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
@@ -187,6 +186,8 @@ function AccountDetailsPage() {
 
   const balance = allTxns.reduce((s, t) => s + t.amount, 0);
   const Icon = TYPE_ICON[account.type];
+  const backTo = search.source === "cash" || account.type === "cash" ? "/cash" : "/accounts";
+  const backLabel = backTo === "/cash" ? "Back to cash" : "Back to accounts";
 
   const exportCsv = () => {
     const header = ["Date", "Type", "Reference", "Note", "Debit", "Credit", "Balance"];
@@ -213,7 +214,7 @@ function AccountDetailsPage() {
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-3 gap-2">
         <Link to={backTo}>
-          <ArrowLeft className="h-4 w-4" /> Back to accounts
+          <ArrowLeft className="h-4 w-4" /> {backLabel}
         </Link>
       </Button>
 
