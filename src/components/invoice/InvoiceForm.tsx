@@ -166,10 +166,17 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         // Wait for payments hydration when invoice already has paid value,
         // otherwise edit view may seed empty and user can accidentally duplicate payments.
         if (existing.paidAmount > 0 && !paymentsHydrated) return;
+        const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
         const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
-          alloc.docId === existing.id || alloc.docNumber === existing.number;
+          alloc.docId === existing.id ||
+          (alloc.docNumber ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
         const linkedSplits: PaymentSplit[] = paymentRecords
-          .filter((p) => p.allocations.some(matchesCurrentInvoice))
+          .filter((p) => {
+            const hasAllocationMatch = p.allocations.some(matchesCurrentInvoice);
+            const hasReferenceMatch =
+              (p.reference ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
+            return hasAllocationMatch || hasReferenceMatch;
+          })
           .map((p) => ({
             id: `pay_existing_${p.id}`,
             sourcePaymentId: p.id,
@@ -302,6 +309,9 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       return "Overall discount % cannot exceed 100";
     // Payment splits
     let paySum = 0;
+    let additionalPaySum = 0;
+    const existingPaidAmount = existing?.paidAmount ?? 0;
+    const outstandingLimit = Math.max(0, totals.total - existingPaidAmount);
     for (const s of payments) {
       if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
       if (s.mode !== "cash" && !s.accountId)
@@ -309,9 +319,12 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (s.mode !== "cash" && !s.proofDataUrl)
         return `Upload an attachment for the ${PAYMENT_MODE_LABEL[s.mode]} payment`;
       paySum += s.amount;
+      if (!s.sourcePaymentId) additionalPaySum += s.amount;
     }
     if (paySum - 0.001 > totals.total)
       return `Payments (${paySum.toFixed(2)}) exceed invoice total (${totals.total.toFixed(2)})`;
+    if (additionalPaySum - 0.001 > outstandingLimit)
+      return `New payment (${additionalPaySum.toFixed(2)}) exceeds outstanding balance (${outstandingLimit.toFixed(2)}).`;
     return null;
   };
 
@@ -540,13 +553,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <Input
                 id="number"
                 value={number}
-                onChange={(e) => setNumber(e.target.value.toUpperCase())}
+                readOnly
                 placeholder="INV-0001"
-                className="font-mono"
+                className="cursor-not-allowed bg-muted/50 font-mono text-muted-foreground"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Auto-generated. Edit if needed — duplicates are blocked.
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Auto-generated and locked.</p>
             </div>
             <div>
               <Label htmlFor="invoiceType">Invoice type *</Label>
@@ -721,6 +732,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             accounts={accounts}
             currency={currency}
             invoiceTotal={totals.total}
+            alreadyPaidAmount={existing?.paidAmount ?? 0}
             onChange={(s, patch) => updateSplit(s, patch)}
             onRemove={removeSplit}
             onAdd={() => setPayments((p) => [...p, emptySplit()])}
@@ -941,6 +953,7 @@ function PaymentSplitsEditor({
   accounts,
   currency,
   invoiceTotal,
+  alreadyPaidAmount,
   onChange,
   onRemove,
   onAdd,
@@ -950,12 +963,20 @@ function PaymentSplitsEditor({
   accounts: Account[];
   currency: string;
   invoiceTotal: number;
+  alreadyPaidAmount: number;
   onChange: (id: string, patch: Partial<PaymentSplit>) => void;
   onRemove: (id: string) => void;
   onAdd: () => void;
   disabled?: boolean;
 }) {
-  const paid = splits.reduce((s, p) => s + (p.amount || 0), 0);
+  const existingPaid = splits
+    .filter((p) => !!p.sourcePaymentId)
+    .reduce((s, p) => s + (p.amount || 0), 0);
+  const additionalPaid = splits
+    .filter((p) => !p.sourcePaymentId)
+    .reduce((s, p) => s + (p.amount || 0), 0);
+  const effectiveAlreadyPaid = Math.max(alreadyPaidAmount, existingPaid);
+  const paid = effectiveAlreadyPaid + additionalPaid;
   const remaining = Math.max(0, invoiceTotal - paid);
   const [uploadingProofIds, setUploadingProofIds] = useState<Record<string, boolean>>({});
 

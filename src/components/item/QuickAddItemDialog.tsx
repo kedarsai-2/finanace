@@ -43,6 +43,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Default item type — useful when called from a Purchase screen. */
   defaultType?: ItemType;
+  /** Override for price field label in specific flows (e.g. purchases). */
+  priceLabel?: string;
   /** Pre-fill the name from the current invoice search box. */
   defaultName?: string;
   /** Called with the saved item so the parent can auto-add it to the line. */
@@ -61,6 +63,7 @@ export function QuickAddItemDialog({
   open,
   onOpenChange,
   defaultType = "product",
+  priceLabel = "Selling price",
   defaultName = "",
   onCreated,
 }: Props) {
@@ -112,6 +115,7 @@ export function QuickAddItemDialog({
           name: values.name.trim(),
           type: defaultType,
           sellingPrice: values.sellingPrice,
+          purchasePrice: defaultType === "product" ? values.sellingPrice : undefined,
           taxPercent: 0,
           unit: values.unit,
           openingStock: defaultType === "product" ? 1 : undefined,
@@ -160,7 +164,7 @@ export function QuickAddItemDialog({
           </div>
 
           <div>
-            <Label htmlFor="qa-price">Selling price *</Label>
+            <Label htmlFor="qa-price">{priceLabel} *</Label>
             <Input
               id="qa-price"
               type="number"

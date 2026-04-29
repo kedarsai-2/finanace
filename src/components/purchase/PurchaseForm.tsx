@@ -848,6 +848,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         open={!!quickItemForRow}
         onOpenChange={(o) => !o && setQuickItemForRow(null)}
         defaultType="product"
+        priceLabel="Price"
         onCreated={(item) => {
           if (quickItemForRow) applyItemToLine(quickItemForRow, item);
           setQuickItemForRow(null);
@@ -857,6 +858,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         open={quickAssetOpen}
         onOpenChange={setQuickAssetOpen}
         defaultType="product"
+        priceLabel="Price"
         onCreated={(item) => {
           const next = emptyLine();
           next.itemId = item.id;

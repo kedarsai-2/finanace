@@ -149,16 +149,24 @@ function InvoicesPage() {
     const map = new Map<string, Set<string>>();
     const invoiceIdByNumber = new Map<string, string>();
     for (const inv of invoices) {
-      invoiceIdByNumber.set(inv.number, inv.id);
+      invoiceIdByNumber.set(inv.number.trim().toLowerCase(), inv.id);
     }
     for (const payment of payments) {
       if (payment.direction !== "in") continue;
       for (const alloc of payment.allocations ?? []) {
-        const resolvedInvoiceId = alloc.docId || invoiceIdByNumber.get(alloc.docNumber) || "";
+        const resolvedInvoiceId =
+          alloc.docId || invoiceIdByNumber.get((alloc.docNumber ?? "").trim().toLowerCase()) || "";
         if (!resolvedInvoiceId) continue;
         const current = map.get(resolvedInvoiceId) ?? new Set<string>();
         current.add(PAYMENT_MODE_LABEL[payment.mode]);
         map.set(resolvedInvoiceId, current);
+      }
+      if ((payment.allocations ?? []).length === 0 && payment.reference) {
+        const fallbackInvoiceId = invoiceIdByNumber.get(payment.reference.trim().toLowerCase());
+        if (!fallbackInvoiceId) continue;
+        const current = map.get(fallbackInvoiceId) ?? new Set<string>();
+        current.add(PAYMENT_MODE_LABEL[payment.mode]);
+        map.set(fallbackInvoiceId, current);
       }
     }
     return map;

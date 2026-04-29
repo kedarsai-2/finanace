@@ -127,15 +127,24 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
       }
       setSubmitting(true);
       try {
+        const normalizedPurchasePrice =
+          values.purchasePrice && values.purchasePrice > 0 ? values.purchasePrice : undefined;
+        const effectiveSellingPrice =
+          context === "assets"
+            ? (normalizedPurchasePrice ?? values.sellingPrice)
+            : values.sellingPrice;
+        const effectivePurchasePrice =
+          context === "assets"
+            ? (normalizedPurchasePrice ?? values.sellingPrice)
+            : normalizedPurchasePrice;
         const item: Item = {
           id: existing?.id ?? "",
           businessId: existing?.businessId ?? activeId,
           name: values.name.trim(),
           type: forcedType,
           sku: emptyToUndef(values.sku)?.toUpperCase(),
-          sellingPrice: values.sellingPrice,
-          purchasePrice:
-            values.purchasePrice && values.purchasePrice > 0 ? values.purchasePrice : undefined,
+          sellingPrice: effectiveSellingPrice,
+          purchasePrice: effectivePurchasePrice,
           taxPercent: values.taxPercent,
           unit: values.unit,
           openingStock:
@@ -247,7 +256,9 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
         <FormSection step={2} title="Pricing">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="sellingPrice">Selling price *</Label>
+              <Label htmlFor="sellingPrice">
+                {context === "assets" ? "Price *" : "Selling price *"}
+              </Label>
               <Input
                 id="sellingPrice"
                 type="number"
@@ -260,22 +271,24 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
               />
               {errMsg(errors.sellingPrice?.message)}
             </div>
-            <div>
-              <Label htmlFor="purchasePrice">Purchase price</Label>
-              <Input
-                id="purchasePrice"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="0.00"
-                aria-invalid={!!errors.purchasePrice}
-                {...register("purchasePrice", {
-                  setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
-                })}
-                className={cn(errors.purchasePrice && "border-destructive")}
-              />
-              {errMsg(errors.purchasePrice?.message)}
-            </div>
+            {context !== "assets" && (
+              <div>
+                <Label htmlFor="purchasePrice">Purchase price</Label>
+                <Input
+                  id="purchasePrice"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  aria-invalid={!!errors.purchasePrice}
+                  {...register("purchasePrice", {
+                    setValueAs: (v) => (v === "" || v === null ? undefined : Number(v)),
+                  })}
+                  className={cn(errors.purchasePrice && "border-destructive")}
+                />
+                {errMsg(errors.purchasePrice?.message)}
+              </div>
+            )}
           </div>
         </FormSection>
 
