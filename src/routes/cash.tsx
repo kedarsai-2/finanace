@@ -228,13 +228,8 @@ function CashPage() {
                     }
                     if (isAll) setActiveId(effectiveBusinessId);
                     navigate({
-                      to: "/accounts/transfer",
-                      search: {
-                        mode: "adjustment",
-                        scope: "cash",
-                        preset: "any",
-                        accountId: a.id,
-                      },
+                      to: "/accounts/$id",
+                      params: { id: a.id },
                     });
                   }}
                   className="group w-full rounded-xl border border-border bg-card p-6 text-left transition-shadow hover:shadow-md"
