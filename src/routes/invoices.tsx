@@ -147,16 +147,22 @@ function InvoicesPage() {
 
   const paymentTypeByInvoiceId = useMemo(() => {
     const map = new Map<string, Set<string>>();
+    const invoiceIdByNumber = new Map<string, string>();
+    for (const inv of invoices) {
+      invoiceIdByNumber.set(inv.number, inv.id);
+    }
     for (const payment of payments) {
       if (payment.direction !== "in") continue;
       for (const alloc of payment.allocations ?? []) {
-        const current = map.get(alloc.docId) ?? new Set<string>();
+        const resolvedInvoiceId = alloc.docId || invoiceIdByNumber.get(alloc.docNumber) || "";
+        if (!resolvedInvoiceId) continue;
+        const current = map.get(resolvedInvoiceId) ?? new Set<string>();
         current.add(PAYMENT_MODE_LABEL[payment.mode]);
-        map.set(alloc.docId, current);
+        map.set(resolvedInvoiceId, current);
       }
     }
     return map;
-  }, [payments]);
+  }, [payments, invoices]);
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });

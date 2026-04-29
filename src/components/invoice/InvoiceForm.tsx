@@ -166,16 +166,16 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         // Wait for payments hydration when invoice already has paid value,
         // otherwise edit view may seed empty and user can accidentally duplicate payments.
         if (existing.paidAmount > 0 && !paymentsHydrated) return;
+        const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
+          alloc.docId === existing.id || alloc.docNumber === existing.number;
         const linkedSplits: PaymentSplit[] = paymentRecords
-          .filter((p) => p.allocations.some((a) => a.docId === existing.id))
+          .filter((p) => p.allocations.some(matchesCurrentInvoice))
           .map((p) => ({
             id: `pay_existing_${p.id}`,
             sourcePaymentId: p.id,
             mode: p.mode,
             accountId: p.accountId,
-            amount: Number(
-              p.allocations.find((a) => a.docId === existing.id)?.amount ?? p.amount ?? 0,
-            ),
+            amount: Number(p.allocations.find(matchesCurrentInvoice)?.amount ?? p.amount ?? 0),
             reference: p.reference,
             notes: p.notes,
             proofDataUrl: p.proofDataUrl,

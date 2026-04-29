@@ -97,19 +97,20 @@ function CreditNotesPage() {
           <EmptyState />
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="hidden grid-cols-[140px_110px_1.6fr_140px_140px_120px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+            <div className="hidden grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
               <span>CN Number</span>
               <span>Date</span>
               <span>Party</span>
               <span>Against</span>
+              <span>Payment type</span>
               <span className="text-right">Amount</span>
-              <span className="text-right">Status</span>
+              <span className="text-center">Status</span>
             </div>
             <ul className="divide-y divide-border">
               {sorted.map((cn) => (
                 <li
                   key={cn.id}
-                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[140px_110px_1.6fr_140px_140px_120px]"
+                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px]"
                 >
                   <Link
                     to="/credit-notes/$id"
@@ -128,18 +129,18 @@ function CreditNotesPage() {
                   >
                     {cn.partyName}
                   </Link>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Payment type: {creditNotePaymentTypeLabel(cn.cnPaymentMode)}
-                  </p>
                   <span className="font-mono text-xs text-muted-foreground">
                     {cn.sourceInvoiceId
                       ? (sourceMap.get(cn.sourceInvoiceId) ?? inferSourceFromNotes(cn.notes) ?? "—")
                       : (inferSourceFromNotes(cn.notes) ?? "—")}
                   </span>
+                  <span className="text-sm text-muted-foreground">
+                    {creditNotePaymentTypeLabel(cn.cnPaymentMode)}
+                  </span>
                   <span className="text-right font-semibold tabular-nums text-destructive">
                     − {formatCurrency(cn.total, currency)}
                   </span>
-                  <span className="text-right">
+                  <span className="text-center">
                     <span
                       className={
                         cn.status === "cancelled"
@@ -149,7 +150,11 @@ function CreditNotesPage() {
                             : "inline-flex rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
                       }
                     >
-                      {cn.status}
+                      {cn.status === "final"
+                        ? "Final"
+                        : cn.status === "cancelled"
+                          ? "Cancelled"
+                          : "Draft"}
                     </span>
                   </span>
                 </li>
