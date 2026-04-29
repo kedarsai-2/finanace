@@ -37,6 +37,7 @@ const searchSchema = z.object({
     .enum(["any", "bank-bank", "cash-bank", "bank-cash", "cash-cash"])
     .catch("any")
     .default("any"),
+  accountId: z.string().catch("").default(""),
 });
 
 export const Route = createFileRoute("/accounts/transfer")({
@@ -127,6 +128,16 @@ function TransferPage() {
       navigate({ search: (s) => ({ ...s, mode: "adjustment", preset: "any" }) });
     }
   }, [search.scope, mode, navigate]);
+
+  useEffect(() => {
+    if (!search.accountId) return;
+    const requested = search.accountId.trim();
+    if (!requested) return;
+    const requestedAccount = accountsById[requested];
+    if (!requestedAccount) return;
+    if (search.scope === "cash" && requestedAccount.type !== "cash") return;
+    setFromId(requested);
+  }, [search.accountId, accountsById, search.scope]);
 
   const validate = (): string | null => {
     if (!fromId) return "Choose a source account";

@@ -145,7 +145,15 @@ function CashPage() {
                   return;
                 }
                 if (isAll) setActiveId(effectiveBusinessId);
-                navigate({ to: "/cash/balance" });
+                navigate({
+                  to: "/accounts/transfer",
+                  search: {
+                    mode: "adjustment",
+                    scope: "cash",
+                    preset: "any",
+                    accountId: cashAccounts[0]?.id ?? "",
+                  },
+                });
               }}
             >
               Edit cash balance
@@ -220,9 +228,13 @@ function CashPage() {
                     }
                     if (isAll) setActiveId(effectiveBusinessId);
                     navigate({
-                      to: "/accounts/$id/edit",
-                      params: { id: a.id },
-                      search: { source: "cash" },
+                      to: "/accounts/transfer",
+                      search: {
+                        mode: "adjustment",
+                        scope: "cash",
+                        preset: "any",
+                        accountId: a.id,
+                      },
                     });
                   }}
                   className="group w-full rounded-xl border border-border bg-card p-6 text-left transition-shadow hover:shadow-md"
