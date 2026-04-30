@@ -199,8 +199,8 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         </div>
       </section>
 
-      {/* ---------- Pay To ---------- */}
-      <section className="mt-6 text-[11px]">
+      {/* ---------- Pay To + Stamp ---------- */}
+      <section className="mt-6 grid grid-cols-[1.1fr_1fr] gap-8 text-[11px]">
         <div>
           <p className="font-semibold">Pay To:</p>
           {resolvedMode === "cash" ? (
@@ -215,6 +215,11 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           ) : (
             <div className="mt-1 text-slate-600">—</div>
           )}
+        </div>
+        <div className="ml-auto w-[90mm]">
+          <div className="mt-2 flex h-[31mm] items-center justify-center overflow-hidden">
+            <SmallStamp />
+          </div>
         </div>
       </section>
 
@@ -280,6 +285,16 @@ function SnickrLogo() {
       src="/snickr-logo.png"
       alt="SnickR"
       style={{ height: "40px", width: "96px", objectFit: "contain" }}
+    />
+  );
+}
+
+function SmallStamp() {
+  return (
+    <img
+      src="/snickr-stamp.png"
+      alt="Company stamp"
+      style={{ height: "30mm", width: "auto", objectFit: "contain" }}
     />
   );
 }
