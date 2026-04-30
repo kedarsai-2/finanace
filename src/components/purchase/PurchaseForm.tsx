@@ -123,6 +123,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [lines, setLines] = useState<PurchaseLine[]>([emptyLine()]);
   const [overallDiscountKind, setOverallDiscountKind] = useState<DiscountKind>("percent");
   const [overallDiscountValue, setOverallDiscountValue] = useState<number>(0);
+  const [totalOverride, setTotalOverride] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [termsText, setTermsText] = useState("");
   const [purchaseCategory, setPurchaseCategory] = useState<PurchaseCategory>("short-term");
@@ -160,6 +161,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setLines(existing.lines.length ? existing.lines : [emptyLine()]);
       setOverallDiscountKind(existing.overallDiscountKind);
       setOverallDiscountValue(existing.overallDiscountValue);
+      setTotalOverride(null);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
       setPurchaseCategory(existing.purchaseCategory ?? "short-term");
@@ -205,6 +207,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       }
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
+      setTotalOverride(null);
       setPaymentSplits([]);
       initialSourceSplitsRef.current = {};
       seededPaymentsForPurchaseRef.current = null;
@@ -240,11 +243,15 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     () => Math.max(0, totals.taxableValue + totals.overallDiscountAmount),
     [totals.taxableValue, totals.overallDiscountAmount],
   );
+  const effectiveTotal = useMemo(
+    () => Math.max(0, totalOverride ?? totals.total),
+    [totalOverride, totals.total],
+  );
   const capturedAmount = useMemo(
     () => paymentSplits.reduce((sum, s) => sum + Math.max(0, s.amount || 0), 0),
     [paymentSplits],
   );
-  const balanceAmount = Math.max(0, totals.total - capturedAmount);
+  const balanceAmount = Math.max(0, effectiveTotal - capturedAmount);
 
   // -------- Edit-lock -----------------------------------------------------
   const locked = mode === "edit" && existing ? !canEditPurchase(existing) : false;
@@ -292,15 +299,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
 
   const updatePurchaseTotal = (nextTotal: number) => {
     const safeTarget = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
-    const boundedTarget = Math.min(preDiscountTotal, safeTarget);
-    const requiredDiscount = Math.max(0, preDiscountTotal - boundedTarget);
-    setOverallDiscountKind("amount");
-    setOverallDiscountValue(Number(requiredDiscount.toFixed(2)));
+    setTotalOverride(Number(safeTarget.toFixed(2)));
   };
 
   const updateCapturedAmount = (nextAmount: number) => {
     const safe = Math.max(0, Number.isFinite(nextAmount) ? nextAmount : 0);
-    const bounded = Math.min(totals.total, safe);
+    const bounded = Math.min(effectiveTotal, safe);
     setPaymentSplits((prev) => {
       if (prev.length === 0) return [{ id: `pay_manual_${Date.now()}`, amount: bounded }];
       if (prev.length === 1) return [{ ...prev[0], amount: bounded }];
@@ -336,8 +340,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
     }
-    if (capturedAmount - 0.001 > totals.total) {
-      return `Captured amount (${capturedAmount.toFixed(2)}) cannot exceed total (${totals.total.toFixed(2)})`;
+    if (capturedAmount - 0.001 > effectiveTotal) {
+      return `Captured amount (${capturedAmount.toFixed(2)}) cannot exceed total (${effectiveTotal.toFixed(2)})`;
     }
     return null;
   };
@@ -359,6 +363,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
+      taxableValue: effectiveTotal,
+      total: effectiveTotal,
       paidAmount,
       status,
       proofDataUrl,
@@ -892,7 +898,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   </Select>
                   <Input
                     type="number"
-                    min={0}
                     step="0.01"
                     value={overallDiscountValue}
                     onChange={(e) => setOverallDiscountValue(Number(e.target.value))}
@@ -926,9 +931,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   id="purchaseTargetTotal"
                   type="number"
                   min={0}
-                  max={preDiscountTotal}
                   step="0.01"
-                  value={totals.total}
+                  value={effectiveTotal}
                   onChange={(e) => updatePurchaseTotal(Number(e.target.value))}
                   className="h-9 text-right tabular-nums font-semibold"
                 />
@@ -941,7 +945,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   id="purchaseCapturedAmount"
                   type="number"
                   min={0}
-                  max={totals.total}
+                  max={effectiveTotal}
                   step="0.01"
                   value={capturedAmount}
                   onChange={(e) => updateCapturedAmount(Number(e.target.value))}
@@ -949,7 +953,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                 />
               </div>
               <div className="my-2 h-px bg-border" />
-              <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
+              <Row label="Total" value={formatCurrency(effectiveTotal, currency)} emphasis />
               <Row label="Captured" value={formatCurrency(capturedAmount, currency)} />
               <Row label="Balance" value={formatCurrency(balanceAmount, currency)} emphasis />
             </dl>
