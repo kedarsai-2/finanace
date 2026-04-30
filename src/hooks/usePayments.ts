@@ -144,20 +144,19 @@ export function usePayments(businessId?: string | null) {
 
   const refresh = useCallback(async () => {
     if (!USE_BACKEND) return;
-    if (!businessId) {
-      setPayments([]);
-      return;
-    }
-
     const list = await apiFetch<PaymentDTO[]>(
-      `/api/payments?businessId.equals=${encodeURIComponent(String(businessId))}&size=500&sort=id,desc`,
+      businessId
+        ? `/api/payments?businessId.equals=${encodeURIComponent(String(businessId))}&size=500&sort=id,desc`
+        : `/api/payments?size=1000&sort=id,desc`,
     );
 
     const allocs = await apiFetch<
       Array<{ docId: string; docNumber: string; amount: number; payment?: { id?: number } }>
-    >(`/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`).catch(
-      () => [],
-    );
+    >(
+      businessId
+        ? `/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`
+        : `/api/payment-allocations?size=2000&sort=id,desc`,
+    ).catch(() => []);
 
     const allocByPayment = new Map<string, Payment["allocations"]>();
     for (const a of allocs) {

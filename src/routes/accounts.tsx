@@ -67,10 +67,10 @@ function AccountsPage() {
   const { businesses, activeId, scopedBusinessId, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
-  const { accounts, hydrated, remove } = useAccounts(effectiveBusinessId, businessIds);
-  const { payments } = usePayments(effectiveBusinessId);
-  const { transfers } = useTransfers(effectiveBusinessId);
-  const { expenses } = useExpenses(effectiveBusinessId);
+  const { accounts, hydrated, remove } = useAccounts(null, businessIds);
+  const { payments } = usePayments();
+  const { transfers } = useTransfers();
+  const { expenses } = useExpenses();
 
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),

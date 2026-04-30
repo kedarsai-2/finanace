@@ -78,10 +78,10 @@ function CashPage() {
   } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
-  const { accounts, hydrated } = useAccounts(effectiveBusinessId, businessIds);
-  const { payments } = usePayments(effectiveBusinessId);
-  const { transfers } = useTransfers(effectiveBusinessId);
-  const { expenses } = useExpenses(effectiveBusinessId);
+  const { accounts, hydrated } = useAccounts(null, businessIds);
+  const { payments } = usePayments();
+  const { transfers } = useTransfers();
+  const { expenses } = useExpenses();
 
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";

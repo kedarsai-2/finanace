@@ -106,15 +106,13 @@ export function useTransfers(businessId?: string | null) {
     const token = getJwt();
     if (!USE_BACKEND || !token) return;
     const biz = businessId ? parseInt(businessId, 10) : NaN;
-    if (!businessId || isNaN(biz)) {
-      setTransfers([]);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
         const list = await apiFetch<TransferDTO[]>(
-          `/api/transfers?businessId.equals=${biz}&size=200&sort=date,desc`,
+          businessId && !isNaN(biz)
+            ? `/api/transfers?businessId.equals=${biz}&size=200&sort=date,desc`
+            : `/api/transfers?size=1000&sort=date,desc`,
         );
         if (cancelled) return;
         setTransfers(list.map(dtoToTransfer));

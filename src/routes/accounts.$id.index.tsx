@@ -133,10 +133,10 @@ function AccountDetailsPage() {
 
   const { scopedBusinessId, businesses } = useBusinesses();
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
-  const { accounts, hydrated } = useAccounts(effectiveBusinessId, []);
-  const { payments } = usePayments(effectiveBusinessId);
-  const { transfers } = useTransfers(effectiveBusinessId);
-  const { expenses } = useExpenses(effectiveBusinessId);
+  const { accounts, hydrated } = useAccounts(null, []);
+  const { payments } = usePayments();
+  const { transfers } = useTransfers();
+  const { expenses } = useExpenses();
 
   const account = accounts.find((a) => a.id === id);
   const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];

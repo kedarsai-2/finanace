@@ -122,15 +122,13 @@ export function useExpenses(businessId?: string | null) {
     const token = getJwt();
     if (!USE_BACKEND || !token) return;
     const biz = businessId ? parseInt(businessId, 10) : NaN;
-    if (!businessId || isNaN(biz)) {
-      setExpenses([]);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
         const list = await apiFetch<ExpenseDTO[]>(
-          `/api/expenses?businessId.equals=${biz}&size=300&sort=date,desc`,
+          businessId && !isNaN(biz)
+            ? `/api/expenses?businessId.equals=${biz}&size=300&sort=date,desc`
+            : `/api/expenses?size=1000&sort=date,desc`,
         );
         if (cancelled) return;
         setExpenses(list.filter((dto) => !dto.deleted).map(dtoToExpense));
