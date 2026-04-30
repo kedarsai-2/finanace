@@ -12,9 +12,7 @@ import { useEffect, useState } from "react";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-import { AIAskDrawer } from "@/components/ai/AIAskDrawer";
 import { Toaster } from "@/components/ui/sonner";
-import { useDashboardSnapshot } from "@/hooks/useDashboardSnapshot";
 import appCss from "../styles.css?url";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
@@ -144,7 +142,6 @@ function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthed } = useAuth();
-  const snapshot = useDashboardSnapshot();
 
   const isAuthScreen = pathname === "/login" || pathname === "/register";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
@@ -212,7 +209,6 @@ function RootComponent() {
         <AppHeader />
         <Outlet />
       </div>
-      <AIAskDrawer snapshot={snapshot} />
       <Toaster richColors position="top-right" />
     </div>
   );

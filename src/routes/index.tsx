@@ -32,10 +32,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
-import { useParties, formatCurrency } from "@/hooks/useParties";
-import { buildDashboardSnapshot } from "@/lib/aiContext";
-import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
-import { CashflowProjectionCard } from "@/components/ai/CashflowProjectionCard";
+import { formatCurrency } from "@/hooks/useParties";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,7 +66,6 @@ function DashboardPage() {
     businesses.map((b) => b.id),
   );
   const { transfers } = useTransfers(scopedBusinessId);
-  const { allParties } = useParties(scopedBusinessId);
 
   const [range, setRange] = useState<Range>("6m");
 
@@ -158,19 +154,6 @@ function DashboardPage() {
   const trendData = useMemo(
     () => buildTrend(range, liveInvoices, expenses),
     [range, liveInvoices, expenses],
-  );
-
-  const aiSnapshot = useMemo(
-    () =>
-      buildDashboardSnapshot({
-        currency,
-        invoices,
-        purchases,
-        payments,
-        expenses,
-        parties: allParties,
-      }),
-    [currency, invoices, purchases, payments, expenses, allParties],
   );
 
   const recent = useMemo(() => {
@@ -383,14 +366,6 @@ function DashboardPage() {
           icon={<CreditCard className="h-4 w-4" />}
         />
       </section>
-
-      {/* AI Section */}
-      {!isEmpty && (
-        <section className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <AIInsightsCard snapshot={aiSnapshot} />
-          <CashflowProjectionCard snapshot={aiSnapshot} currency={currency} />
-        </section>
-      )}
 
       <section className="mb-6 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

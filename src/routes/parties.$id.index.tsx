@@ -23,7 +23,6 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
 import { usePurchases } from "@/hooks/usePurchases";
 import { PartyLedger } from "@/components/party/PartyLedger";
-import { PartyPredictionCard } from "@/components/ai/PartyPredictionCard";
 import type { Invoice } from "@/types/invoice";
 import type { Purchase } from "@/types/purchase";
 import type { Payment } from "@/types/payment";
@@ -193,7 +192,6 @@ function PartyDetailsPage() {
           </TabsList>
 
           <TabsContent value="ledger" className="mt-4 space-y-4">
-            <PartyPredictionCard party={party} invoices={invoices} payments={payments} />
             <PartyLedger party={party} entries={entries} currency={currency} />
           </TabsContent>
 

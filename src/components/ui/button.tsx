@@ -15,8 +15,9 @@ const buttonVariants = cva(
           "primary-gradient btn-shimmer primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px",
         destructive: "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90",
         outline:
-          "border border-border bg-card/70 backdrop-blur shadow-sm hover:border-primary/40 hover:bg-accent/10 hover:text-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+          "primary-gradient primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px active:translate-y-0",
+        secondary:
+          "primary-gradient primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px active:translate-y-0",
         ghost: "hover:bg-accent/10 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
