@@ -49,8 +49,11 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{ background: "var(--gradient-login-overlay)" }}
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-sm backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <LockKeyhole className="h-5 w-5" />

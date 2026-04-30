@@ -68,9 +68,9 @@
   --background: #ffffff;
   --foreground: oklch(0.22 0.04 260);
 
-  --card: #ffffff;
+  --card: #fcfffe;
   --card-foreground: oklch(0.22 0.04 260);
-  --popover: #ffffff;
+  --popover: #fcfffe;
   --popover-foreground: oklch(0.22 0.04 260);
 
   /* Royal Blue */
@@ -108,14 +108,14 @@
   --chart-5: oklch(0.6 0.22 25);
 
   /* Charcoal sidebar */
-  --sidebar: oklch(0.24 0.04 260);
-  --sidebar-foreground: oklch(0.96 0.01 250);
-  --sidebar-primary: oklch(0.66 0.19 262);
-  --sidebar-primary-foreground: oklch(0.99 0.005 240);
-  --sidebar-accent: oklch(0.3 0.04 260);
-  --sidebar-accent-foreground: oklch(0.98 0.005 240);
-  --sidebar-border: oklch(0.32 0.04 260);
-  --sidebar-ring: oklch(0.66 0.19 262);
+  --sidebar: #736cfe;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #5b8cff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.14);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.22);
+  --sidebar-ring: #7b61ff;
 
   /* Glass tokens */
   --glass-bg: color-mix(in oklab, white 75%, transparent);
@@ -124,6 +124,12 @@
 
   /* Premium gradients */
   --gradient-primary: linear-gradient(90deg, #4b7cf3 0%, #5b8cff 45%, #7b61ff 100%);
+  --gradient-login-overlay: linear-gradient(
+    135deg,
+    rgba(106, 116, 172, 0.92) 0%,
+    rgba(106, 116, 172, 0.82) 55%,
+    rgba(123, 97, 255, 0.72) 100%
+  );
   --gradient-primary-shine: linear-gradient(
     135deg,
     oklch(0.78 0.16 262) 0%,
