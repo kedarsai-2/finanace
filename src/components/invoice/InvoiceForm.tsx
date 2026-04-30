@@ -250,6 +250,10 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       }),
     [lines, overallDiscountKind, overallDiscountValue],
   );
+  const preDiscountTotal = useMemo(
+    () => Math.max(0, totals.taxableValue + totals.overallDiscountAmount),
+    [totals.taxableValue, totals.overallDiscountAmount],
+  );
 
   // -------- Edit-lock -----------------------------------------------------
   const locked = mode === "edit" && existing ? !canEditInvoice(existing) : false;
@@ -297,6 +301,18 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         return { ...l, rate: Number(nextRate.toFixed(2)) };
       }),
     );
+
+  /**
+   * Lets user enter a target invoice total directly without changing line prices.
+   * We resolve it as an overall flat discount amount.
+   */
+  const updateInvoiceTotal = (nextTotal: number) => {
+    const safeTarget = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
+    const boundedTarget = Math.min(preDiscountTotal, safeTarget);
+    const requiredDiscount = Math.max(0, preDiscountTotal - boundedTarget);
+    setOverallDiscountKind("amount");
+    setOverallDiscountValue(Number(requiredDiscount.toFixed(2)));
+  };
 
   /**
    * Re-syncs every line that was picked from the catalog with the most recent
@@ -370,8 +386,10 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     // Payment splits
     let paySum = 0;
     let additionalPaySum = 0;
-    const existingPaidAmount = existing?.paidAmount ?? 0;
-    const outstandingLimit = Math.max(0, totals.total - existingPaidAmount);
+    const currentSourcePaid = payments
+      .filter((s) => !!s.sourcePaymentId)
+      .reduce((sum, s) => sum + Math.max(0, s.amount || 0), 0);
+    const outstandingLimit = Math.max(0, totals.total - currentSourcePaid);
     for (const s of payments) {
       if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
       if (s.sourcePaymentId && s.sourceLocked) {
@@ -827,6 +845,24 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           <div className="flex justify-end">
             <dl className="w-full max-w-sm space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
               <Row label="Subtotal" value={formatCurrency(totals.subtotal, currency)} />
+              <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                <Label htmlFor="invoiceTargetTotal" className="text-xs text-muted-foreground">
+                  Final total (editable)
+                </Label>
+                <Input
+                  id="invoiceTargetTotal"
+                  type="number"
+                  min={0}
+                  max={preDiscountTotal}
+                  step="0.01"
+                  value={totals.total}
+                  onChange={(e) => updateInvoiceTotal(Number(e.target.value))}
+                  className="h-9 text-right tabular-nums font-semibold"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Change total directly. Unit prices stay unchanged.
+                </p>
+              </div>
               <div className="my-2 h-px bg-border" />
               <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
             </dl>
@@ -1087,7 +1123,8 @@ function PaymentSplitsEditor({
   const additionalPaid = splits
     .filter((p) => !p.sourcePaymentId)
     .reduce((s, p) => s + (p.amount || 0), 0);
-  const effectiveAlreadyPaid = Math.max(alreadyPaidAmount, existingPaid);
+  const hasSourceSplits = splits.some((p) => !!p.sourcePaymentId);
+  const effectiveAlreadyPaid = hasSourceSplits ? existingPaid : alreadyPaidAmount;
   const paid = effectiveAlreadyPaid + additionalPaid;
   const remaining = Math.max(0, invoiceTotal - paid);
   const [uploadingProofIds, setUploadingProofIds] = useState<Record<string, boolean>>({});
