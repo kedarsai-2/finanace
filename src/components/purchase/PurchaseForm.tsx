@@ -137,7 +137,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
   const [quickAssetOpen, setQuickAssetOpen] = useState(false);
   const [paymentSplits, setPaymentSplits] = useState<PurchasePaymentSplit[]>([]);
-  const [purchaseTotalInput, setPurchaseTotalInput] = useState("0");
   const seededPaymentsForPurchaseRef = useRef<string | null>(null);
   const initialSourceSplitsRef = useRef<Record<string, PurchasePaymentSplit>>({});
   const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
@@ -299,15 +298,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     setOverallDiscountValue(Number(requiredDiscount.toFixed(2)));
   };
 
-  const applyPurchaseTotalInput = () => {
-    const parsed = Number(purchaseTotalInput);
-    if (!Number.isFinite(parsed)) {
-      setPurchaseTotalInput(totals.total.toFixed(2));
-      return;
-    }
-    updatePurchaseTotal(parsed);
-  };
-
   const updateCapturedAmount = (nextAmount: number) => {
     const safe = Math.max(0, Number.isFinite(nextAmount) ? nextAmount : 0);
     const bounded = Math.min(totals.total, safe);
@@ -319,10 +309,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       return prev.map((s, idx) => (idx === indexToUpdate ? { ...s, amount: bounded } : s));
     });
   };
-
-  useEffect(() => {
-    setPurchaseTotalInput(totals.total.toFixed(2));
-  }, [totals.total]);
 
   // -------- Validation ----------------------------------------------------
   const validate = (): string | null => {
@@ -938,18 +924,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                 </Label>
                 <Input
                   id="purchaseTargetTotal"
-                  type="text"
-                  inputMode="decimal"
-                  value={purchaseTotalInput}
-                  onChange={(e) => setPurchaseTotalInput(e.target.value)}
-                  onBlur={applyPurchaseTotalInput}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      applyPurchaseTotalInput();
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
+                  type="number"
+                  min={0}
+                  max={preDiscountTotal}
+                  step="0.01"
+                  value={totals.total}
+                  onChange={(e) => updatePurchaseTotal(Number(e.target.value))}
                   className="h-9 text-right tabular-nums font-semibold"
                 />
               </div>

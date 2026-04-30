@@ -151,7 +151,7 @@ function AccountsPage() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/accounts/transfer" search={{ mode: "adjustment", scope: "bank" }}>
-                  Bank adjustment
+                  Edit bank balance
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
