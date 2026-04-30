@@ -223,10 +223,95 @@ export function usePayments(businessId?: string | null) {
     [businessId, payments, refresh],
   );
 
+  const update = useCallback(
+    async (id: string, patch: Partial<Omit<Payment, "id" | "businessId">>) => {
+      if (USE_BACKEND) {
+        if (!businessId) throw new Error("Missing businessId");
+        const idNum = toNumId(id);
+        if (idNum == null) throw new Error("Invalid payment id");
+        const current = payments.find((x) => x.id === id);
+        if (!current) throw new Error("Payment not found");
+        const merged: Payment = {
+          ...current,
+          ...patch,
+          allocations: patch.allocations ?? current.allocations,
+        };
+        const paymentDto = paymentToDto(
+          {
+            businessId,
+            partyId: merged.partyId,
+            direction: merged.direction,
+            date: merged.date,
+            amount: merged.amount,
+            mode: merged.mode,
+            accountId: merged.accountId,
+            account: merged.account,
+            reference: merged.reference,
+            notes: merged.notes,
+            proofDataUrl: merged.proofDataUrl,
+            proofName: merged.proofName,
+            allocations: merged.allocations,
+          },
+          businessId,
+        );
+        await apiFetch<PaymentDTO>(`/api/payments/${idNum}`, {
+          method: "PATCH",
+          body: JSON.stringify({ ...paymentDto, id: idNum }),
+        });
+
+        const existingAllocs = await apiFetch<PaymentAllocationDTO[]>(
+          `/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`,
+        )
+          .then((list) => list.filter((a) => toNumId(a.payment?.id) === idNum))
+          .catch(() => []);
+        for (const alloc of existingAllocs) {
+          if (alloc.id != null) {
+            await apiFetch<void>(`/api/payment-allocations/${alloc.id}`, { method: "DELETE" });
+          }
+        }
+        for (const a of merged.allocations ?? []) {
+          const allocDto: PaymentAllocationDTO = {
+            docId: a.docId,
+            docNumber: a.docNumber,
+            amount: a.amount,
+            payment: { id: idNum },
+          };
+          await apiFetch<PaymentAllocationDTO>(`/api/payment-allocations`, {
+            method: "POST",
+            body: JSON.stringify({ ...allocDto, id: undefined }),
+          });
+        }
+        await refresh();
+        return;
+      }
+
+      setPayments((prev) =>
+        prev.map((x) =>
+          x.id === id ? { ...x, ...patch, allocations: patch.allocations ?? x.allocations } : x,
+        ),
+      );
+    },
+    [businessId, payments, refresh],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (USE_BACKEND) {
+        const idNum = toNumId(id);
+        if (idNum == null) throw new Error("Invalid payment id");
+        await apiFetch<void>(`/api/payments/${idNum}`, { method: "DELETE" });
+        await refresh();
+        return;
+      }
+      setPayments((prev) => prev.filter((x) => x.id !== id));
+    },
+    [refresh],
+  );
+
   const scoped = useMemo(
     () => (businessId ? payments.filter((p) => p.businessId === businessId) : payments),
     [payments, businessId],
   );
 
-  return { payments: scoped, allPayments: payments, hydrated, create, refresh };
+  return { payments: scoped, allPayments: payments, hydrated, create, update, remove, refresh };
 }

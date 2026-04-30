@@ -80,6 +80,7 @@ interface Props {
 type PaymentSplit = {
   id: string;
   sourcePaymentId?: string;
+  sourceLocked?: boolean;
   mode: PaymentMode;
   accountId?: string;
   amount: number;
@@ -113,6 +114,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     payments: paymentRecords,
     hydrated: paymentsHydrated,
     create: createPayment,
+    update: updatePayment,
+    remove: removePayment,
   } = usePayments(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -142,9 +145,23 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const emptySplit = (): PaymentSplit => ({ id: newSplitId(), mode: "cash", amount: 0 });
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
   const seededPaymentsForInvoiceRef = useRef<string | null>(null);
+  const initialSourceSplitsRef = useRef<Record<string, PaymentSplit>>({});
   const updateSplit = (id: string, patch: Partial<PaymentSplit>) =>
     setPayments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const removeSplit = (id: string) => setPayments((prev) => prev.filter((s) => s.id !== id));
+
+  const didSourceSplitChange = (prev: PaymentSplit | undefined, next: PaymentSplit) => {
+    if (!prev) return false;
+    return (
+      prev.mode !== next.mode ||
+      (prev.accountId ?? "") !== (next.accountId ?? "") ||
+      Number(prev.amount || 0) !== Number(next.amount || 0) ||
+      (prev.reference ?? "").trim() !== (next.reference ?? "").trim() ||
+      (prev.notes ?? "").trim() !== (next.notes ?? "").trim() ||
+      (prev.proofDataUrl ?? "") !== (next.proofDataUrl ?? "") ||
+      (prev.proofName ?? "") !== (next.proofName ?? "")
+    );
+  };
 
   // Initialise from existing or sensible defaults.
   useEffect(() => {
@@ -163,14 +180,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
       if (seededPaymentsForInvoiceRef.current !== existing.id) {
-        // Wait for payments hydration when invoice already has paid value,
-        // otherwise edit view may seed empty and user can accidentally duplicate payments.
-        if (existing.paidAmount > 0 && !paymentsHydrated) return;
+        // Always wait for payment hydration in edit mode so we do not seed
+        // "no payments" too early and accidentally allow duplicate entries.
+        if (!paymentsHydrated) return;
         const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
         const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
           alloc.docId === existing.id ||
           (alloc.docNumber ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
-        const linkedSplits: PaymentSplit[] = paymentRecords
+        const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
           .filter((p) => {
             const hasAllocationMatch = p.allocations.some(matchesCurrentInvoice);
             const hasReferenceMatch =
@@ -180,6 +197,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           .map((p) => ({
             id: `pay_existing_${p.id}`,
             sourcePaymentId: p.id,
+            sourceLocked: false,
             mode: p.mode,
             accountId: p.accountId,
             amount: Number(p.allocations.find(matchesCurrentInvoice)?.amount ?? p.amount ?? 0),
@@ -188,13 +206,32 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             proofDataUrl: p.proofDataUrl,
             proofName: p.proofName,
           }));
+        const linkedSplits =
+          linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
+            ? linkedSplitsFromRecords
+            : [
+                {
+                  id: `pay_existing_carried_${existing.id}`,
+                  sourcePaymentId: `carried_${existing.id}`,
+                  sourceLocked: true,
+                  mode: "cash" as PaymentMode,
+                  amount: Number(existing.paidAmount ?? 0),
+                  notes: "Previously captured payment",
+                },
+              ];
         setPayments(linkedSplits);
+        initialSourceSplitsRef.current = Object.fromEntries(
+          linkedSplitsFromRecords
+            .filter((split) => !!split.sourcePaymentId)
+            .map((split) => [split.sourcePaymentId!, split]),
+        );
         seededPaymentsForInvoiceRef.current = existing.id;
       }
     } else if (activeId) {
       setNumber(nextInvoiceNumber(allInvoices, activeId));
       if (seededPaymentsForInvoiceRef.current !== null) {
         setPayments([]);
+        initialSourceSplitsRef.current = {};
         seededPaymentsForInvoiceRef.current = null;
       }
     }
@@ -337,6 +374,10 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     const outstandingLimit = Math.max(0, totals.total - existingPaidAmount);
     for (const s of payments) {
       if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
+      if (s.sourcePaymentId && s.sourceLocked) {
+        paySum += Math.max(0, s.amount || 0);
+        continue;
+      }
       if (!s.accountId)
         return `Select a ${s.mode === "cash" ? "cash" : PAYMENT_MODE_LABEL[s.mode]} account for the payment`;
       if (s.mode !== "cash" && !s.proofDataUrl)
@@ -353,10 +394,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   const buildInvoice = (status: Invoice["status"]): Invoice => {
     const isFinal = status === "final";
-    const newPaidAmount =
-      status === "final"
-        ? payments.filter((p) => !p.sourcePaymentId).reduce((s, p) => s + (p.amount || 0), 0)
-        : 0;
+    const paidAmount =
+      status === "final" ? payments.reduce((s, p) => s + Math.max(0, p.amount || 0), 0) : 0;
     return {
       id: existing?.id ?? `inv_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -373,7 +412,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
-      paidAmount: (existing?.paidAmount ?? 0) + newPaidAmount,
+      paidAmount,
       status,
       deleted: existing?.deleted,
       notes: notes.trim() || undefined,
@@ -400,6 +439,36 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       const savedInv = await upsert(draftInv);
       const inv = savedInv ?? draftInv;
       if (status === "final") {
+        const currentSourceSplits = payments.filter((p) => p.sourcePaymentId && !p.sourceLocked);
+        const currentSourceIds = new Set(currentSourceSplits.map((p) => p.sourcePaymentId!));
+        const removedSourceIds = Object.keys(initialSourceSplitsRef.current).filter(
+          (id) => !currentSourceIds.has(id),
+        );
+        for (const sourcePaymentId of removedSourceIds) {
+          await removePayment(sourcePaymentId);
+        }
+        for (const split of currentSourceSplits) {
+          const sourcePaymentId = split.sourcePaymentId!;
+          const original = initialSourceSplitsRef.current[sourcePaymentId];
+          if (!didSourceSplitChange(original, split)) continue;
+          const selectedAccount = split.accountId
+            ? accounts.find((a) => a.id === split.accountId)
+            : undefined;
+          await updatePayment(sourcePaymentId, {
+            partyId: inv.partyId || "_advance",
+            direction: "in",
+            date: inv.date,
+            amount: split.amount,
+            mode: split.mode,
+            accountId: split.accountId,
+            account: selectedAccount?.name,
+            reference: split.reference?.trim() || undefined,
+            notes: split.notes?.trim() || undefined,
+            proofDataUrl: split.proofDataUrl,
+            proofName: split.proofName,
+            allocations: [{ docId: inv.id, docNumber: inv.number, amount: split.amount }],
+          });
+        }
         const validSplits = payments.filter((p) => !p.sourcePaymentId && p.amount > 0);
         for (const split of validSplits) {
           const selectedAccount = split.accountId
@@ -421,6 +490,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             allocations: [{ docId: inv.id, docNumber: inv.number, amount: split.amount }],
           });
         }
+        initialSourceSplitsRef.current = Object.fromEntries(
+          payments
+            .filter((p) => !!p.sourcePaymentId && !p.sourceLocked)
+            .map((p) => [p.sourcePaymentId!, p]),
+        );
       }
       toast.success(
         status === "final" ? `Sale ${inv.number} finalised` : `Draft ${inv.number} saved`,
@@ -1179,6 +1253,7 @@ function PaymentSplitsEditor({
       {splits.map((s) => {
         const uploadingProof = Boolean(uploadingProofIds[s.id]);
         const proof = parseProofAttachments(s.proofDataUrl, s.proofName);
+        const isLockedSource = Boolean(s.sourcePaymentId && s.sourceLocked);
         const requiresAccount = s.mode !== "cash";
         const requiresProof = s.mode !== "cash";
         const accountOptions = accounts.filter((a) => {
@@ -1196,7 +1271,7 @@ function PaymentSplitsEditor({
                   onValueChange={(v) =>
                     onChange(s.id, { mode: v as PaymentMode, accountId: undefined })
                   }
-                  disabled={disabled}
+                  disabled={disabled || isLockedSource}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1215,7 +1290,11 @@ function PaymentSplitsEditor({
                 <Select
                   value={s.accountId ?? ""}
                   onValueChange={(v) => onChange(s.id, { accountId: v || undefined })}
-                  disabled={disabled || (s.mode === "cash" && accountOptions.length === 0)}
+                  disabled={
+                    disabled ||
+                    isLockedSource ||
+                    (s.mode === "cash" && accountOptions.length === 0)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue
@@ -1248,7 +1327,7 @@ function PaymentSplitsEditor({
                   onChange={(e) => onChange(s.id, { amount: Number(e.target.value) })}
                   placeholder="0.00"
                   className="text-right tabular-nums"
-                  disabled={disabled}
+                  disabled={disabled || isLockedSource}
                 />
               </div>
               <Button
@@ -1257,12 +1336,17 @@ function PaymentSplitsEditor({
                 variant="ghost"
                 className="h-9 w-9 self-end text-destructive hover:bg-destructive/10"
                 onClick={() => onRemove(s.id)}
-                disabled={disabled}
+                disabled={disabled || isLockedSource}
                 aria-label="Remove payment"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
+            {isLockedSource && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Previously recorded payment. Add a new payment row to capture additional receipts.
+              </p>
+            )}
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label>Reference {s.mode === "cheque" ? "(cheque no.)" : ""}</Label>
@@ -1270,7 +1354,7 @@ function PaymentSplitsEditor({
                   value={s.reference ?? ""}
                   onChange={(e) => onChange(s.id, { reference: e.target.value })}
                   placeholder={s.mode === "cheque" ? "Cheque #" : "Reference"}
-                  disabled={disabled}
+                  disabled={disabled || isLockedSource}
                 />
               </div>
               <div>
@@ -1291,7 +1375,7 @@ function PaymentSplitsEditor({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => handleImage(s.id, null)}
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       aria-label="Remove proof"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1301,7 +1385,7 @@ function PaymentSplitsEditor({
                   <label
                     className={cn(
                       "flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
-                      disabled && "pointer-events-none opacity-50",
+                      (disabled || isLockedSource) && "pointer-events-none opacity-50",
                     )}
                   >
                     <Upload className="h-3.5 w-3.5" />
@@ -1310,7 +1394,7 @@ function PaymentSplitsEditor({
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       onChange={(e) => handleImage(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
@@ -1337,7 +1421,7 @@ function PaymentSplitsEditor({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => handleDocument(s.id, null)}
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       aria-label="Remove document"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1347,7 +1431,7 @@ function PaymentSplitsEditor({
                   <label
                     className={cn(
                       "mt-2 flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
-                      disabled && "pointer-events-none opacity-50",
+                      (disabled || isLockedSource) && "pointer-events-none opacity-50",
                     )}
                   >
                     <Upload className="h-3.5 w-3.5" />
@@ -1356,7 +1440,7 @@ function PaymentSplitsEditor({
                       type="file"
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
                       className="hidden"
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       onChange={(e) => handleDocument(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
@@ -1383,7 +1467,7 @@ function PaymentSplitsEditor({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => handleAdditionalDocument(s.id, null)}
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       aria-label="Remove additional document"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1393,7 +1477,7 @@ function PaymentSplitsEditor({
                   <label
                     className={cn(
                       "mt-2 flex h-9 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40",
-                      disabled && "pointer-events-none opacity-50",
+                      (disabled || isLockedSource) && "pointer-events-none opacity-50",
                     )}
                   >
                     <Upload className="h-3.5 w-3.5" />
@@ -1402,7 +1486,7 @@ function PaymentSplitsEditor({
                       type="file"
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
                       className="hidden"
-                      disabled={disabled || uploadingProof}
+                      disabled={disabled || isLockedSource || uploadingProof}
                       onChange={(e) => handleAdditionalDocument(s.id, e.target.files?.[0] ?? null)}
                     />
                   </label>
