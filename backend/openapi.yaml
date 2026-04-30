@@ -1,0 +1,524 @@
+openapi: 3.0.3
+info:
+  title: Glow Business Board API
+  version: 1.0.0
+  description: API documentation for authentication, masters, sales, purchases, payments, accounts, and reports helpers.
+servers:
+  - url: http://localhost:8080
+    description: Local backend
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Ok:
+      description: Success
+    Created:
+      description: Created
+    NoContent:
+      description: No content
+    BadRequest:
+      description: Bad request
+    Unauthorized:
+      description: Unauthorized
+    NotFound:
+      description: Not found
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Businesses
+  - name: Parties
+  - name: Items
+  - name: Accounts
+  - name: Transfers
+  - name: Payments
+  - name: Invoices
+  - name: Purchases
+  - name: Expenses
+  - name: Expense Categories
+  - name: Utilities
+paths:
+  /api/authenticate:
+    post:
+      tags: [Auth]
+      summary: Authenticate user
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      security: []
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/businesses:
+    get:
+      tags: [Businesses]
+      summary: List businesses
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Businesses]
+      summary: Create business
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/businesses/{id}:
+    put:
+      tags: [Businesses]
+      summary: Update business
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Businesses]
+      summary: Delete business
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/parties:
+    get:
+      tags: [Parties]
+      summary: List parties
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Parties]
+      summary: Create party
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/parties/{id}:
+    put:
+      tags: [Parties]
+      summary: Update party
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Parties]
+      summary: Delete party
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/items:
+    get:
+      tags: [Items]
+      summary: List items/assets
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Items]
+      summary: Create item/asset
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/items/{id}:
+    put:
+      tags: [Items]
+      summary: Update item/asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    patch:
+      tags: [Items]
+      summary: Patch item/asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Items]
+      summary: Delete item/asset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Accounts]
+      summary: Create account
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/accounts/{id}:
+    put:
+      tags: [Accounts]
+      summary: Update account
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Accounts]
+      summary: Delete account
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/transfers:
+    get:
+      tags: [Transfers]
+      summary: List transfers and balance edit entries
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Transfers]
+      summary: Create transfer or balance edit transaction
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+
+  /api/payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Payments]
+      summary: Create payment
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/payments/{id}:
+    patch:
+      tags: [Payments]
+      summary: Patch payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Payments]
+      summary: Delete payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/payment-allocations:
+    post:
+      tags: [Payments]
+      summary: Create payment allocation
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/payment-allocations/by-business/{businessId}:
+    get:
+      tags: [Payments]
+      summary: List payment allocations by business
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /api/payment-allocations/{id}:
+    delete:
+      tags: [Payments]
+      summary: Delete payment allocation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Invoices]
+      summary: Create invoice
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/invoices/{id}:
+    put:
+      tags: [Invoices]
+      summary: Update invoice
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    patch:
+      tags: [Invoices]
+      summary: Patch invoice
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Invoices]
+      summary: Delete invoice
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+  /api/invoices/{id}/lines:
+    get:
+      tags: [Invoices]
+      summary: List invoice lines
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /api/invoice-lines:
+    post:
+      tags: [Invoices]
+      summary: Create invoice line
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/invoice-lines/{id}:
+    delete:
+      tags: [Invoices]
+      summary: Delete invoice line
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/purchases:
+    get:
+      tags: [Purchases]
+      summary: List purchases
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Purchases]
+      summary: Create purchase
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/purchases/{id}:
+    put:
+      tags: [Purchases]
+      summary: Update purchase
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    patch:
+      tags: [Purchases]
+      summary: Patch purchase
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Purchases]
+      summary: Delete purchase
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+  /api/purchases/{id}/lines:
+    get:
+      tags: [Purchases]
+      summary: List purchase lines
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Purchases]
+      summary: Create purchase lines for purchase
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/purchase-lines:
+    post:
+      tags: [Purchases]
+      summary: Create purchase line
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/purchase-lines/{id}:
+    delete:
+      tags: [Purchases]
+      summary: Delete purchase line
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/expenses:
+    get:
+      tags: [Expenses]
+      summary: List expenses
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Expenses]
+      summary: Create expense
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/expenses/{id}:
+    put:
+      tags: [Expenses]
+      summary: Update expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Expenses]
+      summary: Delete expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/expense-categories:
+    get:
+      tags: [Expense Categories]
+      summary: List expense categories
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Expense Categories]
+      summary: Create expense category
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+  /api/expense-categories/{id}:
+    put:
+      tags: [Expense Categories]
+      summary: Update expense category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    delete:
+      tags: [Expense Categories]
+      summary: Delete expense category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+
+  /api/cash-balance:
+    get:
+      tags: [Utilities]
+      summary: Get cash balance snapshot
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    put:
+      tags: [Utilities]
+      summary: Set cash balance snapshot
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+  /api/cloudinary/signature:
+    post:
+      tags: [Utilities]
+      summary: Generate Cloudinary upload signature
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+  /api/account/mobile-tabs:
+    get:
+      tags: [Utilities]
+      summary: Get mobile tab settings
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    put:
+      tags: [Utilities]
+      summary: Update mobile tab settings
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
