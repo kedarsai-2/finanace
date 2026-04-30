@@ -136,6 +136,7 @@ function PurchaseDetailsPage() {
   const editable = canEditPurchase(purchase);
   const currency = business?.currency ?? "INR";
   const attachments = parseProofAttachments(purchase.proofDataUrl, purchase.proofName);
+  const balance = Math.max(0, purchase.total - purchase.paidAmount);
 
   const handleCancel = async () => {
     try {
@@ -655,13 +656,12 @@ function PurchaseDetailsPage() {
             <h3 className="text-sm font-semibold">Summary</h3>
             <Separator className="my-3" />
             <dl className="space-y-2 text-sm">
-              <Row label="Total" value={formatCurrency(purchase.total, currency)} emphasis />
+              <Row label="Total" value={formatCurrency(purchase.total, currency)} />
+              <Row label="Paid" value={formatCurrency(purchase.paidAmount, currency)} />
+              <Row label="Balance" value={formatCurrency(balance, currency)} emphasis />
               <Row label="Tax" value={formatCurrency(purchase.taxTotal, currency)} muted />
               <Row label="Items" value={String(purchase.lines.length)} muted />
             </dl>
-            <p className="mt-4 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              Supplier payments will arrive in a future update.
-            </p>
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">

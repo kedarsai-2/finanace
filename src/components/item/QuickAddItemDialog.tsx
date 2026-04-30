@@ -68,7 +68,7 @@ export function QuickAddItemDialog({
   onCreated,
 }: Props) {
   const { activeId } = useBusinesses();
-  const { upsert } = useItems();
+  const { allItems, upsert } = useItems(activeId);
   const [submitting, setSubmitting] = useState(false);
 
   const {
@@ -105,6 +105,18 @@ export function QuickAddItemDialog({
     (values) => {
       if (!activeId) {
         toast.error("Select an active business first");
+        return;
+      }
+      const normalizedName = values.name.trim().toLowerCase();
+      const duplicate = allItems.some(
+        (it) =>
+          !it.deleted &&
+          it.businessId === activeId &&
+          it.type === defaultType &&
+          it.name.trim().toLowerCase() === normalizedName,
+      );
+      if (duplicate) {
+        toast.error("Item already exists");
         return;
       }
       setSubmitting(true);

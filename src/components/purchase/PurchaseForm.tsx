@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -66,6 +66,13 @@ interface Props {
   purchaseId?: string;
 }
 
+type PurchasePaymentSplit = {
+  id: string;
+  sourcePaymentId?: string;
+  sourceLocked?: boolean;
+  amount: number;
+};
+
 function emptyLine(): PurchaseLine {
   return {
     id: `ln_${Math.random().toString(36).slice(2, 9)}`,
@@ -90,7 +97,13 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const { parties } = useParties(activeId);
   const { items, upsert: upsertItem, remove: removeItem } = useItems(activeId);
   const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
-  const { create: createPayment } = usePayments(activeId);
+  const {
+    payments: paymentRecords,
+    hydrated: paymentsHydrated,
+    create: createPayment,
+    update: updatePayment,
+    remove: removePayment,
+  } = usePayments(activeId);
   const { accounts } = useAccounts(activeId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -123,6 +136,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [quickPartyOpen, setQuickPartyOpen] = useState(false);
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
   const [quickAssetOpen, setQuickAssetOpen] = useState(false);
+  const [paymentSplits, setPaymentSplits] = useState<PurchasePaymentSplit[]>([]);
+  const seededPaymentsForPurchaseRef = useRef<string | null>(null);
+  const initialSourceSplitsRef = useRef<Record<string, PurchasePaymentSplit>>({});
   const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
   const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
   const paymentAccounts = useMemo(
@@ -151,10 +167,57 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setPurchaseAccountId("");
       setProofDataUrl(existing.proofDataUrl);
       setProofName(existing.proofName);
+      if (seededPaymentsForPurchaseRef.current !== existing.id) {
+        if (!paymentsHydrated) return;
+        const normalizedPurchaseNumber = existing.number.trim().toLowerCase();
+        const matchesCurrentPurchase = (alloc: { docId: string; docNumber: string }) =>
+          alloc.docId === existing.id ||
+          (alloc.docNumber ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
+        const linkedSplitsFromRecords: PurchasePaymentSplit[] = paymentRecords
+          .filter((p) => {
+            const hasAllocationMatch = p.allocations.some(matchesCurrentPurchase);
+            const hasReferenceMatch =
+              (p.reference ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
+            return p.direction === "out" && (hasAllocationMatch || hasReferenceMatch);
+          })
+          .map((p) => ({
+            id: `pay_existing_${p.id}`,
+            sourcePaymentId: p.id,
+            sourceLocked: false,
+            amount: Number(p.allocations.find(matchesCurrentPurchase)?.amount ?? p.amount ?? 0),
+          }));
+        const linkedSplits =
+          linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
+            ? linkedSplitsFromRecords
+            : [
+                {
+                  id: `pay_existing_carried_${existing.id}`,
+                  sourcePaymentId: `carried_${existing.id}`,
+                  sourceLocked: true,
+                  amount: Number(existing.paidAmount ?? 0),
+                },
+              ];
+        setPaymentSplits(linkedSplits);
+        initialSourceSplitsRef.current = Object.fromEntries(
+          linkedSplitsFromRecords.map((split) => [split.sourcePaymentId!, split]),
+        );
+        seededPaymentsForPurchaseRef.current = existing.id;
+      }
     } else if (activeId) {
       setNumber(nextPurchaseNumber(allPurchases, activeId));
+      setPaymentSplits([]);
+      initialSourceSplitsRef.current = {};
+      seededPaymentsForPurchaseRef.current = null;
     }
-  }, [existing, hydrated, activeId, allPurchases, ensureLines]);
+  }, [
+    existing,
+    hydrated,
+    activeId,
+    allPurchases,
+    ensureLines,
+    paymentRecords,
+    paymentsHydrated,
+  ]);
 
   useEffect(() => {
     if (!purchaseAccountId && paymentAccounts[0]?.id) {
@@ -173,6 +236,15 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       }),
     [lines, overallDiscountKind, overallDiscountValue],
   );
+  const preDiscountTotal = useMemo(
+    () => Math.max(0, totals.taxableValue + totals.overallDiscountAmount),
+    [totals.taxableValue, totals.overallDiscountAmount],
+  );
+  const capturedAmount = useMemo(
+    () => paymentSplits.reduce((sum, s) => sum + Math.max(0, s.amount || 0), 0),
+    [paymentSplits],
+  );
+  const balanceAmount = Math.max(0, totals.total - capturedAmount);
 
   // -------- Edit-lock -----------------------------------------------------
   const locked = mode === "edit" && existing ? !canEditPurchase(existing) : false;
@@ -198,6 +270,45 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       rate: item.purchasePrice ?? item.sellingPrice,
       taxPercent: item.taxPercent,
     });
+
+  const updateLineTotal = (id: string, nextTotal: number) =>
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.id !== id) return l;
+        const safeQty = l.qty > 0 ? l.qty : 1;
+        const safeTotal = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
+        let gross = safeTotal;
+        if (l.discountKind === "percent") {
+          const pct = Math.min(100, Math.max(0, l.discountValue || 0));
+          const factor = 1 - pct / 100;
+          gross = factor > 0 ? safeTotal / factor : safeTotal;
+        } else {
+          gross = safeTotal + Math.max(0, l.discountValue || 0);
+        }
+        const nextRate = Math.max(0, gross / safeQty);
+        return { ...l, rate: Number(nextRate.toFixed(2)) };
+      }),
+    );
+
+  const updatePurchaseTotal = (nextTotal: number) => {
+    const safeTarget = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
+    const boundedTarget = Math.min(preDiscountTotal, safeTarget);
+    const requiredDiscount = Math.max(0, preDiscountTotal - boundedTarget);
+    setOverallDiscountKind("amount");
+    setOverallDiscountValue(Number(requiredDiscount.toFixed(2)));
+  };
+
+  const updateCapturedAmount = (nextAmount: number) => {
+    const safe = Math.max(0, Number.isFinite(nextAmount) ? nextAmount : 0);
+    const bounded = Math.min(totals.total, safe);
+    setPaymentSplits((prev) => {
+      if (prev.length === 0) return [{ id: `pay_manual_${Date.now()}`, amount: bounded }];
+      if (prev.length === 1) return [{ ...prev[0], amount: bounded }];
+      const sourceIndex = prev.findIndex((s) => !!s.sourcePaymentId && !s.sourceLocked);
+      const indexToUpdate = sourceIndex >= 0 ? sourceIndex : 0;
+      return prev.map((s, idx) => (idx === indexToUpdate ? { ...s, amount: bounded } : s));
+    });
+  };
 
   // -------- Validation ----------------------------------------------------
   const validate = (): string | null => {
@@ -225,13 +336,15 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
     }
+    if (capturedAmount - 0.001 > totals.total) {
+      return `Captured amount (${capturedAmount.toFixed(2)}) cannot exceed total (${totals.total.toFixed(2)})`;
+    }
     return null;
   };
 
   const buildPurchase = (status: Purchase["status"]): Purchase => {
     const isFinal = status === "final";
-    const finalPaymentDelta =
-      status === "final" ? Math.max(0, totals.total - (existing?.paidAmount ?? 0)) : 0;
+    const paidAmount = status === "final" ? capturedAmount : 0;
     return {
       id: existing?.id ?? `pur_${Date.now()}`,
       businessId: existing?.businessId ?? activeId!,
@@ -246,7 +359,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       overallDiscountKind,
       overallDiscountValue,
       ...totals,
-      paidAmount: (existing?.paidAmount ?? 0) + finalPaymentDelta,
+      paidAmount,
       status,
       proofDataUrl,
       proofName,
@@ -292,25 +405,57 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     try {
       const p = buildPurchase(status);
       await upsert(p);
-      const alreadyPaid = existing?.paidAmount ?? 0;
-      const paymentDelta = Math.max(0, p.paidAmount - alreadyPaid);
       const selectedPaymentAccount = paymentAccounts.find((a) => a.id === purchaseAccountId);
-      if (status === "final" && paymentDelta > 0) {
-        await createPayment({
-          businessId: p.businessId,
-          partyId: p.partyId || "_advance",
-          direction: "out",
-          date: p.date,
-          amount: paymentDelta,
-          mode: purchasePaymentMode,
-          accountId: purchaseAccountId,
-          account: selectedPaymentAccount?.name,
-          reference: p.number,
-          notes: `Auto payment from purchase ${p.number}`,
-          proofDataUrl,
-          proofName,
-          allocations: [{ docId: p.id, docNumber: p.number, amount: paymentDelta }],
-        });
+      if (status === "final") {
+        const sourceSplits = paymentSplits.filter((s) => !!s.sourcePaymentId && !s.sourceLocked);
+        const sourceIds = sourceSplits.map((s) => s.sourcePaymentId!);
+        const removedSourceIds = Object.keys(initialSourceSplitsRef.current).filter(
+          (id) => !sourceIds.includes(id),
+        );
+        for (const sourceId of removedSourceIds) {
+          await removePayment(sourceId);
+        }
+        const editableSource = sourceSplits[0]?.sourcePaymentId;
+        const nextCapture = Math.max(0, p.paidAmount);
+        if (editableSource) {
+          if (nextCapture <= 0) {
+            await removePayment(editableSource);
+          } else {
+            await updatePayment(editableSource, {
+              partyId: p.partyId || "_advance",
+              direction: "out",
+              date: p.date,
+              amount: nextCapture,
+              mode: purchasePaymentMode,
+              accountId: purchaseAccountId,
+              account: selectedPaymentAccount?.name,
+              reference: p.number,
+              notes: `Auto payment from purchase ${p.number}`,
+              proofDataUrl,
+              proofName,
+              allocations: [{ docId: p.id, docNumber: p.number, amount: nextCapture }],
+            });
+          }
+          for (const extra of sourceSplits.slice(1)) {
+            if (extra.sourcePaymentId) await removePayment(extra.sourcePaymentId);
+          }
+        } else if (nextCapture > 0) {
+          await createPayment({
+            businessId: p.businessId,
+            partyId: p.partyId || "_advance",
+            direction: "out",
+            date: p.date,
+            amount: nextCapture,
+            mode: purchasePaymentMode,
+            accountId: purchaseAccountId,
+            account: selectedPaymentAccount?.name,
+            reference: p.number,
+            notes: `Auto payment from purchase ${p.number}`,
+            proofDataUrl,
+            proofName,
+            allocations: [{ docId: p.id, docNumber: p.number, amount: nextCapture }],
+          });
+        }
       }
       if (status === "final") {
         await syncAssetsForPurchaseCategory(p);
@@ -682,7 +827,14 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                         />
                       </td>
                       <td className="w-32 px-3 py-2 text-right font-semibold tabular-nums">
-                        {formatCurrency(m.total, currency)}
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={m.taxable}
+                          onChange={(e) => updateLineTotal(line.id, Number(e.target.value))}
+                          className="h-9 text-right tabular-nums font-semibold"
+                        />
                       </td>
                       <td className="w-10 px-2 py-2 text-right">
                         <Button
@@ -766,8 +918,40 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   muted
                 />
               )}
+              <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                <Label htmlFor="purchaseTargetTotal" className="text-xs text-muted-foreground">
+                  Final total (editable)
+                </Label>
+                <Input
+                  id="purchaseTargetTotal"
+                  type="number"
+                  min={0}
+                  max={preDiscountTotal}
+                  step="0.01"
+                  value={totals.total}
+                  onChange={(e) => updatePurchaseTotal(Number(e.target.value))}
+                  className="h-9 text-right tabular-nums font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                <Label htmlFor="purchaseCapturedAmount" className="text-xs text-muted-foreground">
+                  Captured amount
+                </Label>
+                <Input
+                  id="purchaseCapturedAmount"
+                  type="number"
+                  min={0}
+                  max={totals.total}
+                  step="0.01"
+                  value={capturedAmount}
+                  onChange={(e) => updateCapturedAmount(Number(e.target.value))}
+                  className="h-9 text-right tabular-nums font-semibold"
+                />
+              </div>
               <div className="my-2 h-px bg-border" />
               <Row label="Total" value={formatCurrency(totals.total, currency)} emphasis />
+              <Row label="Captured" value={formatCurrency(capturedAmount, currency)} />
+              <Row label="Balance" value={formatCurrency(balanceAmount, currency)} emphasis />
             </dl>
           </div>
         </FormSection>

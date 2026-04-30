@@ -131,13 +131,17 @@ function PurchasesPage() {
 
   const totals = useMemo(() => {
     let total = 0;
+    let paid = 0;
+    let balance = 0;
     let count = 0;
     for (const p of purchases) {
       if (p.status === "cancelled") continue;
       total += p.total;
+       paid += Math.max(0, p.paidAmount ?? 0);
+       balance += Math.max(0, p.total - (p.paidAmount ?? 0));
       count += 1;
     }
-    return { total, count };
+    return { total, paid, balance, count };
   }, [purchases]);
 
   const setSearch = (next: Partial<SearchValues>) =>
@@ -196,9 +200,13 @@ function PurchasesPage() {
             </Button>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <SummaryCard label="Total purchases" value={String(totals.count)} />
-            <SummaryCard label="Total Purchase" value={formatCurrency(totals.total, currency)} />
+            <SummaryCard label="Total" value={formatCurrency(totals.total, currency)} />
+            <SummaryCard
+              label="Paid / Balance"
+              value={`${formatCurrency(totals.paid, currency)} / ${formatCurrency(totals.balance, currency)}`}
+            />
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
@@ -417,11 +425,13 @@ function PurchasesTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[140px_110px_1.6fr_140px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[140px_110px_1.2fr_120px_120px_120px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
         <span>Purchase</span>
         <span>Date</span>
         <span>Supplier</span>
         <span className="text-right">Total</span>
+        <span className="text-right">Paid</span>
+        <span className="text-right">Balance</span>
         <span className="text-right">Status / Actions</span>
       </div>
 
@@ -431,7 +441,7 @@ function PurchasesTable({
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[140px_110px_1.6fr_140px_220px]"
+              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[140px_110px_1.2fr_120px_120px_120px_220px]"
             >
               <Link
                 to="/purchases/$id"
@@ -463,6 +473,22 @@ function PurchasesTable({
                 )}
               >
                 {formatCurrency(p.total, currency)}
+              </span>
+              <span
+                className={cn(
+                  "text-right tabular-nums",
+                  cancelled && "text-muted-foreground line-through",
+                )}
+              >
+                {formatCurrency(p.paidAmount ?? 0, currency)}
+              </span>
+              <span
+                className={cn(
+                  "text-right font-semibold tabular-nums",
+                  cancelled && "text-muted-foreground line-through",
+                )}
+              >
+                {formatCurrency(Math.max(0, p.total - (p.paidAmount ?? 0)), currency)}
               </span>
 
               <div className="flex items-center justify-start gap-1.5 sm:justify-end">

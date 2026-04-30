@@ -127,6 +127,20 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
       }
       setSubmitting(true);
       try {
+        const normalizedName = values.name.trim().toLowerCase();
+        const duplicate = allItems.some(
+          (it) =>
+            !it.deleted &&
+            it.businessId === activeId &&
+            it.id !== existing?.id &&
+            it.type === forcedType &&
+            it.name.trim().toLowerCase() === normalizedName,
+        );
+        if (duplicate) {
+          toast.error("Item already exists");
+          setSubmitting(false);
+          return;
+        }
         const normalizedPurchasePrice =
           values.purchasePrice && values.purchasePrice > 0 ? values.purchasePrice : undefined;
         const effectiveSellingPrice =
