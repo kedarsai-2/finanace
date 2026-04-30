@@ -1327,7 +1327,7 @@ function PaymentSplitsEditor({
                   onChange={(e) => onChange(s.id, { amount: Number(e.target.value) })}
                   placeholder="0.00"
                   className="text-right tabular-nums"
-                  disabled={disabled || isLockedSource}
+                  disabled={disabled}
                 />
               </div>
               <Button
@@ -1344,7 +1344,7 @@ function PaymentSplitsEditor({
             </div>
             {isLockedSource && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Previously recorded payment. Add a new payment row to capture additional receipts.
+                Previously recorded payment (legacy entry). You can edit only the amount here.
               </p>
             )}
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
