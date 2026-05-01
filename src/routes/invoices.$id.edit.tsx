@@ -6,7 +6,7 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 export const Route = createFileRoute("/invoices/$id/edit")({
   head: () => ({
     meta: [
-      { title: "Edit Invoice" },
+      { title: "Edit Invoice - QOBOX" },
       {
         name: "description",
         content: "Update an invoice that is still within the editable window.",

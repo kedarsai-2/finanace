@@ -8,7 +8,7 @@ import {
   useRouterState,
   redirect,
 } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -17,20 +17,6 @@ import appCss from "../styles.css?url";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { getJwt } from "@/lib/auth";
-
-function normalizeTabTitle(rawTitle: string) {
-  const title = rawTitle.trim();
-  if (!title) return title;
-
-  // During route transitions TanStack can briefly emit the root marketing title.
-  // Keep the tab stable and in requested format.
-  if (/^qobox\s*[-—]\s*/i.test(title)) return "Dashboard - QOBOX";
-  if (/^qobox$/i.test(title)) return "QOBOX";
-
-  // Take the left-most semantic page segment and force "Page - QOBOX".
-  const pageName = title.split(/\s[—-]\s/)[0]?.trim() || title;
-  return `${pageName} - QOBOX`;
-}
 
 function ClickProbe() {
   const [last, setLast] = useState<{ t: number; tag: string; prevented: boolean } | null>(null);
@@ -104,7 +90,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "QOBOX - Invoicing, Billing, Accounting" },
+      { title: "Dashboard - QOBOX" },
       {
         name: "description",
         content: "Manage all your businesses, GST profiles and books in one place.",
@@ -162,14 +148,6 @@ function RootComponent() {
 
   const isAuthScreen = pathname === "/login" || pathname === "/register";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
-
-  useLayoutEffect(() => {
-    if (typeof document === "undefined") return;
-    const current = (document.title || "").trim();
-    if (!current) return;
-    const normalized = normalizeTabTitle(current);
-    if (normalized && normalized !== current) document.title = normalized;
-  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

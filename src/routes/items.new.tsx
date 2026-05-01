@@ -4,7 +4,7 @@ import { ItemForm } from "@/components/item/ItemForm";
 export const Route = createFileRoute("/items/new")({
   head: () => ({
     meta: [
-      { title: "Add Item — Products & Services" },
+      { title: "Add Item - QOBOX" },
       {
         name: "description",
         content: "Create a new product or service with pricing, tax and unit.",

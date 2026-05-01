@@ -41,7 +41,7 @@ import { DEFAULT_EXPENSE_TYPES } from "@/types/expense";
 export const Route = createFileRoute("/expenses")({
   head: () => ({
     meta: [
-      { title: "Expenses — Track outflows" },
+      { title: "Expenses - QOBOX" },
       {
         name: "description",
         content: "Search, filter and manage all business expenses by category, account and date.",

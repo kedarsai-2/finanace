@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/credit-notes")({
   head: () => ({
     meta: [
-      { title: "Credit Notes — Sales Returns" },
+      { title: "Credit Notes - QOBOX" },
       {
         name: "description",
         content: "View and manage credit notes issued against sales invoices.",

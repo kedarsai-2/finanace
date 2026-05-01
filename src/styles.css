@@ -322,7 +322,7 @@
   }
 
   .primary-glow {
-    box-shadow: 0 6px 16px 0 rgba(91, 140, 255, 0.45);
+    box-shadow: 0 4px 10px 0 rgba(91, 140, 255, 0.28);
   }
 
   .btn-shimmer {

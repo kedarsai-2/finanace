@@ -10,7 +10,7 @@ import { formatCurrency } from "@/hooks/useParties";
 export const Route = createFileRoute("/purchase-returns")({
   head: () => ({
     meta: [
-      { title: "Purchase Returns — Debit Notes" },
+      { title: "Purchase Returns - QOBOX" },
       {
         name: "description",
         content: "View and manage purchase returns / debit notes issued against supplier bills.",

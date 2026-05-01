@@ -66,7 +66,7 @@ export const Route = createFileRoute("/invoices")({
     searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Sales — Invoices & Receivables" },
+      { title: "Sales - QOBOX" },
       {
         name: "description",
         content: "Manage all your sales. Track totals, payments and outstanding balances.",

@@ -36,7 +36,7 @@ import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 export const Route = createFileRoute("/accounts")({
   head: () => ({
     meta: [
-      { title: "Bank Accounts" },
+      { title: "Bank Accounts - QOBOX" },
       {
         name: "description",
         content:

@@ -7,7 +7,7 @@ import { ExpenseForm } from "@/components/expense/ExpenseForm";
 export const Route = createFileRoute("/expenses/new")({
   head: () => ({
     meta: [
-      { title: "Add Expense" },
+      { title: "Add Expense - QOBOX" },
       { name: "description", content: "Record a new business expense." },
     ],
   }),

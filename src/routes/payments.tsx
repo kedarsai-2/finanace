@@ -45,7 +45,7 @@ export const Route = createFileRoute("/payments")({
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Payments — Receive & Pay" },
+      { title: "Payments - QOBOX" },
       {
         name: "description",
         content:

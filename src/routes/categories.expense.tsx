@@ -12,7 +12,7 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 export const Route = createFileRoute("/categories/expense")({
   head: () => ({
     meta: [
-      { title: "Expense Categories" },
+      { title: "Expense Categories - QOBOX" },
       {
         name: "description",
         content: "Manage the categories used when recording business expenses.",

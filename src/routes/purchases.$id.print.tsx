@@ -11,7 +11,7 @@ import { usePurchases } from "@/hooks/usePurchases";
 export const Route = createFileRoute("/purchases/$id/print")({
   head: () => ({
     meta: [
-      { title: "Purchase — Print preview" },
+      { title: "Purchase - QOBOX" },
       {
         name: "description",
         content: "Print-ready purchase bill layout. Use Print → Save as PDF to download.",

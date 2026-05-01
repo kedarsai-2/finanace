@@ -30,7 +30,7 @@ import type { Payment } from "@/types/payment";
 export const Route = createFileRoute("/parties/$id/")({
   head: () => ({
     meta: [
-      { title: "Party Details — Ledger & Balance" },
+      { title: "Party Details - QOBOX" },
       {
         name: "description",
         content: "View party details, outstanding balance and full ledger history in one place.",

@@ -13,7 +13,7 @@ import { usePayments } from "@/hooks/usePayments";
 export const Route = createFileRoute("/invoices/$id/print")({
   head: () => ({
     meta: [
-      { title: "Sale — Print preview" },
+      { title: "Sale - QOBOX" },
       {
         name: "description",
         content: "Print-ready invoice layout. Use Print → Save as PDF to download.",

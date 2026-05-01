@@ -28,7 +28,7 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/expenses/$id/")({
   head: () => ({
-    meta: [{ title: "Expense details" }],
+    meta: [{ title: "Expense Details - QOBOX" }],
   }),
   component: ExpenseDetailPage,
 });

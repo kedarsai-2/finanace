@@ -11,7 +11,7 @@ import { formatCurrency } from "@/hooks/useParties";
 export const Route = createFileRoute("/items/$id/")({
   head: () => ({
     meta: [
-      { title: "Item Details" },
+      { title: "Item Details - QOBOX" },
       { name: "description", content: "View product or service details, pricing and tax." },
     ],
   }),

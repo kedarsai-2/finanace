@@ -4,7 +4,7 @@ import { PartyForm } from "@/components/party/PartyForm";
 export const Route = createFileRoute("/parties/new")({
   head: () => ({
     meta: [
-      { title: "Add Party" },
+      { title: "Add Party - QOBOX" },
       { name: "description", content: "Create a new party with opening balance and credit terms." },
     ],
   }),

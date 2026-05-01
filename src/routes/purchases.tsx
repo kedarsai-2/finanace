@@ -74,7 +74,7 @@ export const Route = createFileRoute("/purchases")({
     searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Purchases — Bills & Payables" },
+      { title: "Purchases - QOBOX" },
       {
         name: "description",
         content: "Manage all your purchase bills. Track totals and supplier payables.",

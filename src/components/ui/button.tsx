@@ -10,14 +10,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "primary-gradient primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px active:translate-y-0",
+          "primary-gradient primary-glow hover:shadow-[0_6px_16px_0_rgba(123,97,255,0.4)] hover:-translate-y-px active:translate-y-0",
         premium:
-          "primary-gradient btn-shimmer primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px",
-        destructive: "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90",
+          "primary-gradient btn-shimmer primary-glow hover:shadow-[0_6px_16px_0_rgba(123,97,255,0.4)] hover:-translate-y-px",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "primary-gradient primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px active:translate-y-0",
+          "primary-gradient primary-glow hover:shadow-[0_6px_16px_0_rgba(123,97,255,0.4)] hover:-translate-y-px active:translate-y-0",
         secondary:
-          "primary-gradient primary-glow hover:shadow-[0_10px_28px_0_rgba(123,97,255,0.9)] hover:-translate-y-px active:translate-y-0",
+          "primary-gradient primary-glow hover:shadow-[0_6px_16px_0_rgba(123,97,255,0.4)] hover:-translate-y-px active:translate-y-0",
         ghost: "hover:bg-accent/10 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

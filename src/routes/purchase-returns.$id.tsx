@@ -28,7 +28,7 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 export const Route = createFileRoute("/purchase-returns/$id")({
   head: () => ({
     meta: [
-      { title: "Purchase Return Details" },
+      { title: "Purchase Return Details - QOBOX" },
       { name: "description", content: "View purchase return items, totals and status." },
     ],
   }),

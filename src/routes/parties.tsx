@@ -45,7 +45,7 @@ export const Route = createFileRoute("/parties")({
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Parties" },
+      { title: "Parties - QOBOX" },
       {
         name: "description",
         content: "Manage all your parties. Track balances, receivables and payables in one place.",

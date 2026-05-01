@@ -27,7 +27,7 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 export const Route = createFileRoute("/credit-notes/$id")({
   head: () => ({
     meta: [
-      { title: "Credit Note Details" },
+      { title: "Credit Note Details - QOBOX" },
       { name: "description", content: "View credit note items, totals and status." },
     ],
   }),

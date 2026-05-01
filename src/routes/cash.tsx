@@ -25,7 +25,7 @@ import type { AccountTxn, AccountTxnKind } from "@/types/account";
 export const Route = createFileRoute("/cash")({
   head: () => ({
     meta: [
-      { title: "Cash — Live balance & recent transactions" },
+      { title: "Cash - QOBOX" },
       {
         name: "description",
         content: "View cash account balance and recent cash transactions in one place.",
