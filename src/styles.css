@@ -108,14 +108,14 @@
   --chart-5: oklch(0.6 0.22 25);
 
   /* Sidebar palette: light blue -> light purple */
-  --sidebar: #7aa9ff;
+  --sidebar: #8abfff;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #8ecbff;
+  --sidebar-primary: #9bd4ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(173, 200, 255, 0.28);
+  --sidebar-accent: rgba(182, 188, 255, 0.34);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(214, 223, 255, 0.45);
-  --sidebar-ring: #aa98ff;
+  --sidebar-border: rgba(217, 214, 255, 0.52);
+  --sidebar-ring: #b59cff;
 
   /* Glass tokens */
   --glass-bg: color-mix(in oklab, white 75%, transparent);
