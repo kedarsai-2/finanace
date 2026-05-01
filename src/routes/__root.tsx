@@ -84,11 +84,7 @@ export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
     if (!USE_BACKEND) return;
     const token = getJwt();
-    if (
-      !token &&
-      location.pathname !== "/login" &&
-      location.pathname !== "/forbidden"
-    ) {
+    if (!token && location.pathname !== "/login" && location.pathname !== "/forbidden") {
       throw redirect({ to: "/login" });
     }
     const authorities = getAuthoritiesFromToken(token);
@@ -154,7 +150,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAuthed } = useAuth();
+  const { isAuthed, isAdmin } = useAuth();
   const { hiddenTabs, hydrated } = useMobileTabSettings();
 
   const isPublicScreen = pathname === "/login" || pathname === "/forbidden";
@@ -163,10 +159,10 @@ function RootComponent() {
   useEffect(() => {
     if (!USE_BACKEND || !isAuthed || !hydrated) return;
     if (pathname === "/forbidden" || pathname === "/login") return;
-    if (hiddenTabs[pathname]) {
+    if (!isAdmin && hiddenTabs[pathname]) {
       void router.navigate({ href: "/forbidden" });
     }
-  }, [hiddenTabs, hydrated, isAuthed, pathname, router]);
+  }, [hiddenTabs, hydrated, isAdmin, isAuthed, pathname, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

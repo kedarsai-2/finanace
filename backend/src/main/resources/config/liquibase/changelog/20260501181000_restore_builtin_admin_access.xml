@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260501181000-1" author="cursor">
+        <comment>Restore built-in admin access and visibility defaults.</comment>
+
+        <sql>
+            insert into jhi_authority (name)
+            select 'ROLE_ADMIN'
+            where not exists (
+                select 1 from jhi_authority where name = 'ROLE_ADMIN'
+            );
+        </sql>
+
+        <sql>
+            insert into jhi_authority (name)
+            select 'ROLE_USER'
+            where not exists (
+                select 1 from jhi_authority where name = 'ROLE_USER'
+            );
+        </sql>
+
+        <sql>
+            insert into jhi_user_authority (user_id, authority_name)
+            select id, 'ROLE_ADMIN'
+            from jhi_user
+            where login = 'admin'
+              and not exists (
+                  select 1
+                  from jhi_user_authority
+                  where user_id = jhi_user.id
+                    and authority_name = 'ROLE_ADMIN'
+              );
+        </sql>
+
+        <sql>
+            insert into jhi_user_authority (user_id, authority_name)
+            select id, 'ROLE_USER'
+            from jhi_user
+            where login = 'admin'
+              and not exists (
+                  select 1
+                  from jhi_user_authority
+                  where user_id = jhi_user.id
+                    and authority_name = 'ROLE_USER'
+              );
+        </sql>
+
+        <update tableName="jhi_user">
+            <column name="mobile_hidden_tabs" value="[]"/>
+            <where>login = 'admin'</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

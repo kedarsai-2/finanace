@@ -34,12 +34,14 @@ const navLinks = [
 export function AppHeader() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthed, logout, authorities } = useAuth();
+  const { isAuthed, isAdmin, logout, authorities } = useAuth();
   const { hiddenTabs } = useMobileTabSettings();
   const permittedLinks = USE_BACKEND
     ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed))
     : navLinks;
-  const visibleLinks = permittedLinks.filter((l) => !hiddenTabs[l.to]);
+  const visibleLinks = permittedLinks.filter(
+    (l) => isAdmin || l.to === "/role-access" || !hiddenTabs[l.to],
+  );
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
@@ -49,13 +51,16 @@ export function AppHeader() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 overflow-y-auto bg-sidebar text-sidebar-foreground p-0">
-            <Link
-              to="/"
-              onClick={() => setOpen(false)}
-              className="px-4 py-4"
-            >
-              <img src="/qobox-wordmark.png" alt="QOBOX" className="h-9 w-auto max-w-[140px] object-contain" />
+          <SheetContent
+            side="left"
+            className="w-64 overflow-y-auto bg-sidebar text-sidebar-foreground p-0"
+          >
+            <Link to="/" onClick={() => setOpen(false)} className="px-4 py-4">
+              <img
+                src="/qobox-wordmark.png"
+                alt="QOBOX"
+                className="h-9 w-auto max-w-[140px] object-contain"
+              />
             </Link>
             <nav className="flex flex-col gap-0.5 px-2 pb-4">
               {visibleLinks.map((l) => (

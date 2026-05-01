@@ -68,10 +68,12 @@ function moduleForPath(pathname: string): RbacModuleKey {
   if (pathname.startsWith("/items")) return "items";
   if (pathname.startsWith("/assets")) return "assets";
   if (pathname.startsWith("/invoices") || pathname.startsWith("/credit-notes")) return "sales";
-  if (pathname.startsWith("/purchases") || pathname.startsWith("/purchase-returns")) return "purchases";
+  if (pathname.startsWith("/purchases") || pathname.startsWith("/purchase-returns"))
+    return "purchases";
   if (pathname.startsWith("/payments")) return "payments";
   if (pathname.startsWith("/accounts") || pathname.startsWith("/cash")) return "accounts";
-  if (pathname.startsWith("/expenses") || pathname.startsWith("/categories/expense")) return "expenses";
+  if (pathname.startsWith("/expenses") || pathname.startsWith("/categories/expense"))
+    return "expenses";
   if (pathname.startsWith("/reports")) return "reports";
   return "dashboard";
 }
@@ -80,6 +82,7 @@ export function canAccessPath(pathname: string, authorities: string[], isAuthed:
   // Public routes
   if (pathname === "/login" || pathname === "/register" || pathname === "/forbidden") return true;
   if (!isAuthed) return false;
+  if (authorities.includes("ROLE_ADMIN")) return true;
   const isWritePath =
     pathname.endsWith("/new") ||
     pathname.endsWith("/edit") ||
@@ -95,7 +98,8 @@ export function canAccessPath(pathname: string, authorities: string[], isAuthed:
   }
 
   const canRead =
-    authorities.includes(readAuthorityForModule(module)) || authorities.includes(writeAuthorityForModule(module));
+    authorities.includes(readAuthorityForModule(module)) ||
+    authorities.includes(writeAuthorityForModule(module));
   const canWrite = authorities.includes(writeAuthorityForModule(module));
   return isWritePath ? canWrite : canRead;
 }

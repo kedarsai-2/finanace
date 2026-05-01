@@ -47,15 +47,16 @@ const navLinks = [
 
 export function AppSidebar() {
   const { hiddenTabs } = useMobileTabSettings();
-  const { isAuthed, authorities } = useAuth();
+  const { isAuthed, isAdmin, authorities } = useAuth();
 
   const permittedLinks = useMemo(
-    () => (USE_BACKEND ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed)) : navLinks),
+    () =>
+      USE_BACKEND ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed)) : navLinks,
     [authorities, isAuthed],
   );
   const visibleLinks = useMemo(
-    () => permittedLinks.filter((l) => !hiddenTabs[l.to]),
-    [hiddenTabs, permittedLinks],
+    () => permittedLinks.filter((l) => isAdmin || l.to === "/role-access" || !hiddenTabs[l.to]),
+    [hiddenTabs, isAdmin, permittedLinks],
   );
 
   return (

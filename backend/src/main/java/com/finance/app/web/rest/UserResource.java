@@ -151,6 +151,9 @@ public class UserResource {
         @Valid @RequestBody AdminUserDTO userDTO
     ) {
         LOG.debug("REST request to update User : {}", userDTO);
+        if ("admin".equalsIgnoreCase(userDTO.getLogin()) && (userDTO.getAuthorities() == null || !userDTO.getAuthorities().contains(AuthoritiesConstants.ADMIN))) {
+            throw new BadRequestAlertException("The built-in admin user must keep ROLE_ADMIN", "userManagement", "adminrolemissing");
+        }
         Optional<User> existingUser = userRepository.findOneByEmailIgnoreCase(userDTO.getEmail());
         if (existingUser.isPresent() && (!existingUser.orElseThrow().getId().equals(userDTO.getId()))) {
             throw new EmailAlreadyUsedException();
@@ -221,6 +224,9 @@ public class UserResource {
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<Void> deleteUser(@PathVariable("login") @Pattern(regexp = Constants.LOGIN_REGEX) String login) {
         LOG.debug("REST request to delete User: {}", login);
+        if ("admin".equalsIgnoreCase(login)) {
+            throw new BadRequestAlertException("The built-in admin user cannot be deleted", "userManagement", "admindeleteforbidden");
+        }
         String actor = SecurityUtils.getCurrentUserLogin().orElse("system");
         LOG.info("RBAC_CHANGE delete_user actor={} target={}", actor, login);
         userService.deleteUser(login);

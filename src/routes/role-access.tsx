@@ -8,7 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
 import { getJwt, getSubjectFromToken } from "@/lib/auth";
-import { RBAC_MODULES, readAuthorityForModule, writeAuthorityForModule, type RbacModuleKey } from "@/lib/rbac";
+import {
+  RBAC_MODULES,
+  readAuthorityForModule,
+  writeAuthorityForModule,
+  type RbacModuleKey,
+} from "@/lib/rbac";
 
 export const Route = createFileRoute("/role-access")({
   head: () => ({
@@ -126,16 +131,15 @@ function RoleAccessPage() {
     () => users.find((u) => u.login === selectedLogin) ?? null,
     [users, selectedLogin],
   );
+  const selectedIsBuiltInAdmin = selectedUser?.login === "admin";
   const [selectedRole, setSelectedRole] = useState<string>("ROLE_USER");
   const [selectedHiddenTabs, setSelectedHiddenTabs] = useState<Record<string, true>>({});
-  const [moduleRead, setModuleRead] = useState<Record<RbacModuleKey, boolean>>({} as Record<
-    RbacModuleKey,
-    boolean
-  >);
-  const [moduleWrite, setModuleWrite] = useState<Record<RbacModuleKey, boolean>>({} as Record<
-    RbacModuleKey,
-    boolean
-  >);
+  const [moduleRead, setModuleRead] = useState<Record<RbacModuleKey, boolean>>(
+    {} as Record<RbacModuleKey, boolean>,
+  );
+  const [moduleWrite, setModuleWrite] = useState<Record<RbacModuleKey, boolean>>(
+    {} as Record<RbacModuleKey, boolean>,
+  );
 
   const effectiveRoleOptions = useMemo(() => {
     const set = new Set(authorities.filter((a) => a.startsWith("ROLE_")));
@@ -211,7 +215,9 @@ function RoleAccessPage() {
         if (tpl.write[module.key]) perms.push(writeAuthorityForModule(module.key));
         return perms;
       });
-      const hiddenTabs = TAB_OPTIONS.filter((tab) => !tpl.read[tab.pathToModule]).map((tab) => tab.path);
+      const hiddenTabs = TAB_OPTIONS.filter((tab) => !tpl.read[tab.pathToModule]).map(
+        (tab) => tab.path,
+      );
       const neededAuthorities = [newRole, ...moduleAuthorities];
       for (const authority of neededAuthorities) {
         if (authorities.includes(authority)) continue;
@@ -253,6 +259,10 @@ function RoleAccessPage() {
 
   const saveAccess = async () => {
     if (!selectedUser) return;
+    if (selectedIsBuiltInAdmin && selectedRole !== "ROLE_ADMIN") {
+      toast.error("Built-in admin role cannot be changed.");
+      return;
+    }
     setSaving(true);
     try {
       const moduleAuthorities = RBAC_MODULES.flatMap((module) => {
@@ -308,7 +318,9 @@ function RoleAccessPage() {
     if (!confirm(`Delete user "${selectedUser.login}"? This cannot be undone.`)) return;
     setSaving(true);
     try {
-      await apiFetch(`/api/admin/users/${encodeURIComponent(selectedUser.login)}`, { method: "DELETE" });
+      await apiFetch(`/api/admin/users/${encodeURIComponent(selectedUser.login)}`, {
+        method: "DELETE",
+      });
       toast.success("User deleted");
       const deletedLogin = selectedUser.login;
       await loadAll();
@@ -334,14 +346,26 @@ function RoleAccessPage() {
       <section className="mb-5 rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Create user</h2>
         <div className="grid gap-3 md:grid-cols-5">
-          <Input placeholder="Login *" value={newLogin} onChange={(e) => setNewLogin(e.target.value)} />
-          <Input placeholder="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          <Input
+            placeholder="Login *"
+            value={newLogin}
+            onChange={(e) => setNewLogin(e.target.value)}
+          />
+          <Input
+            placeholder="Email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+          />
           <Input
             placeholder="First name"
             value={newFirstName}
             onChange={(e) => setNewFirstName(e.target.value)}
           />
-          <Input placeholder="Last name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} />
+          <Input
+            placeholder="Last name"
+            value={newLastName}
+            onChange={(e) => setNewLastName(e.target.value)}
+          />
           <select
             className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
             value={newRole}
@@ -407,6 +431,7 @@ function RoleAccessPage() {
                       className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                       value={selectedRole}
                       onChange={(e) => setSelectedRole(e.target.value)}
+                      disabled={selectedIsBuiltInAdmin}
                     >
                       {effectiveRoleOptions.map((role) => (
                         <option key={role} value={role}>
@@ -420,7 +445,13 @@ function RoleAccessPage() {
                 <div className="mb-4 rounded-lg border border-border p-3">
                   <Label className="mb-2 inline-block">Module permissions</Label>
                   <div className="mb-2">
-                    <Button type="button" variant="outline" size="sm" onClick={applyRoleTemplate}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={applyRoleTemplate}
+                      disabled={selectedIsBuiltInAdmin}
+                    >
                       Apply role template
                     </Button>
                   </div>
@@ -435,6 +466,7 @@ function RoleAccessPage() {
                           <label className="flex items-center gap-1.5">
                             <Checkbox
                               checked={!!moduleRead[module.key]}
+                              disabled={selectedIsBuiltInAdmin}
                               onCheckedChange={(v) => {
                                 const checked = v === true;
                                 setModuleRead((prev) => ({ ...prev, [module.key]: checked }));
@@ -448,6 +480,7 @@ function RoleAccessPage() {
                           <label className="flex items-center gap-1.5">
                             <Checkbox
                               checked={!!moduleWrite[module.key]}
+                              disabled={selectedIsBuiltInAdmin}
                               onCheckedChange={(v) => {
                                 const checked = v === true;
                                 setModuleWrite((prev) => ({ ...prev, [module.key]: checked }));
@@ -479,6 +512,7 @@ function RoleAccessPage() {
                         >
                           <Checkbox
                             checked={checked}
+                            disabled={selectedIsBuiltInAdmin}
                             onCheckedChange={(v) => {
                               const isChecked = v === true;
                               // hidden tabs are stored as deny-list
@@ -506,7 +540,11 @@ function RoleAccessPage() {
                     variant="destructive"
                     className="ml-2"
                     onClick={() => void deleteUser()}
-                    disabled={saving || (currentLogin ? selectedUser.login === currentLogin : false)}
+                    disabled={
+                      saving ||
+                      selectedIsBuiltInAdmin ||
+                      (currentLogin ? selectedUser.login === currentLogin : false)
+                    }
                   >
                     Delete user
                   </Button>
