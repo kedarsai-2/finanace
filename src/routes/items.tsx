@@ -121,7 +121,7 @@ function ItemsPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
-        <div className="max-w-screen-2xl px-6 py-8">
+        <div className="max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -134,7 +134,7 @@ function ItemsPage() {
                   : "Loading…"}
               </p>
             </div>
-            <Button asChild size="lg" className="gap-2">
+            <Button asChild size="lg" className="w-full gap-2 sm:w-auto">
               <Link to="/items/new">
                 <Plus className="h-4 w-4" />
                 Add Item
@@ -172,7 +172,7 @@ function ItemsPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl px-6 py-8">
+      <main className="max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={items.length > 0} />
         ) : (
@@ -228,7 +228,7 @@ function ItemsTable({
         {items.map((it) => (
           <li
             key={it.id}
-            className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(0,2.8fr)_100px_160px_160px_110px_100px]"
+            className="group grid grid-cols-1 items-center gap-3 px-4 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(0,2.8fr)_100px_160px_160px_110px_100px] sm:px-5"
           >
             <Link
               to="/items/$id"

@@ -480,18 +480,18 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background pb-32">
       <header className="sticky top-16 z-10 border-b border-border/60 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Button asChild size="icon" variant="ghost" className="h-9 w-9">
               <Link {...LIST_SEARCH} aria-label="Back">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs">
                 {activeBusiness?.name ?? "Workspace"}
               </p>
-              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+              <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight sm:text-2xl">
                 {mode === "edit" ? "Edit Purchase" : "New Purchase"}
                 {locked && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -502,7 +502,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               </h1>
             </div>
           </div>
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <Button variant="ghost" onClick={() => navigate(LIST_SEARCH)}>
               Cancel
             </Button>
@@ -531,7 +531,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {locked && (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground/80">
             <strong className="font-semibold">This purchase is locked.</strong> {lockedReason}

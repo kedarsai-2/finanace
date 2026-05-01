@@ -49,15 +49,15 @@ export function AppHeader() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 bg-sidebar text-sidebar-foreground p-0">
+          <SheetContent side="left" className="w-64 overflow-y-auto bg-sidebar text-sidebar-foreground p-0">
             <Link
               to="/"
               onClick={() => setOpen(false)}
               className="px-4 py-4"
             >
-              <img src="/qobox-wordmark.png" alt="QOBOX" className="h-10 w-auto object-contain" />
+              <img src="/qobox-wordmark.png" alt="QOBOX" className="h-9 w-auto max-w-[140px] object-contain" />
             </Link>
-            <nav className="flex flex-col gap-0.5 px-2">
+            <nav className="flex flex-col gap-0.5 px-2 pb-4">
               {visibleLinks.map((l) => (
                 <Link
                   key={l.to}
@@ -65,7 +65,7 @@ export function AppHeader() {
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: l.to === "/" }}
                   className={cn(
-                    "rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    "rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
                   activeProps={{ className: "bg-sidebar-accent text-sidebar-foreground" }}
                 >

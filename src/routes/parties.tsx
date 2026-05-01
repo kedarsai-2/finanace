@@ -124,7 +124,7 @@ function PartiesPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
-        <div className="max-w-screen-2xl px-6 py-8">
+        <div className="max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -140,7 +140,7 @@ function PartiesPage() {
             <Button
               asChild
               size="lg"
-              className="gap-2"
+              className="w-full gap-2 sm:w-auto"
               onClick={(e) => {
                 if (isAll) {
                   e.preventDefault();
@@ -189,7 +189,7 @@ function PartiesPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl px-6 py-8">
+      <main className="max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={parties.length > 0} />
         ) : (
@@ -281,7 +281,7 @@ function PartiesTable({
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] md:items-center"
+              className="group grid grid-cols-1 items-start gap-3 px-4 py-4 transition-colors hover:bg-muted/30 md:grid-cols-[minmax(0,2fr)_130px_180px_160px_100px] md:items-center md:px-5"
             >
               <Link
                 to="/parties/$id"

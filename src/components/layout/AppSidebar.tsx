@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -17,7 +17,6 @@ import {
   Undo2,
   Banknote,
   KeyRound,
-  SlidersHorizontal,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,6 @@ import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { USE_BACKEND } from "@/lib/flags";
 import { canAccessPath } from "@/lib/rbac";
-import { toast } from "sonner";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -48,9 +46,8 @@ const navLinks = [
 ] as const;
 
 export function AppSidebar() {
-  const { hiddenTabs, hydrated, isNative, saveHiddenTabs } = useMobileTabSettings();
-  const { isAdmin, isAuthed, authorities } = useAuth();
-  const [showCustomize, setShowCustomize] = useState(false);
+  const { hiddenTabs } = useMobileTabSettings();
+  const { isAuthed, authorities } = useAuth();
 
   const permittedLinks = useMemo(
     () => (USE_BACKEND ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed)) : navLinks),
@@ -60,19 +57,6 @@ export function AppSidebar() {
     () => permittedLinks.filter((l) => !hiddenTabs[l.to]),
     [hiddenTabs, permittedLinks],
   );
-
-  const toggleTab = async (to: string) => {
-    if (to === "/") return;
-    const next = { ...hiddenTabs };
-    if (next[to]) delete next[to];
-    else next[to] = true;
-    try {
-      await saveHiddenTabs(next);
-      toast.success("APK tabs updated");
-    } catch {
-      toast.error("Failed to update APK tabs");
-    }
-  };
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
@@ -104,41 +88,6 @@ export function AppSidebar() {
       </nav>
 
       <div className="px-3 py-3 text-[10px] text-sidebar-foreground/40">
-        {!isNative && isAdmin ? (
-          <button
-            type="button"
-            onClick={() => setShowCustomize((v) => !v)}
-            className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-sidebar-foreground/20 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground disabled:opacity-60"
-            disabled={!hydrated}
-          >
-            <SlidersHorizontal className="h-3 w-3" />
-            Customize APK tabs
-          </button>
-        ) : null}
-        {!isNative && isAdmin && showCustomize ? (
-          <div className="mb-2 rounded-md border border-sidebar-foreground/20 bg-sidebar-accent/40 p-2">
-            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
-              Show in APK sidebar
-            </p>
-            <div className="space-y-1">
-              {navLinks.map((l) => (
-                <label
-                  key={`pref-${l.to}`}
-                  className="flex items-center gap-1.5 text-[11px] text-sidebar-foreground/80"
-                >
-                  <input
-                    type="checkbox"
-                    checked={!hiddenTabs[l.to]}
-                    onChange={() => void toggleTab(l.to)}
-                    disabled={l.to === "/"}
-                    className="h-3 w-3 accent-primary"
-                  />
-                  {l.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        ) : null}
         <button
           type="button"
           onClick={() => {

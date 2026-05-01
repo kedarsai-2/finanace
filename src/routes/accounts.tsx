@@ -109,10 +109,10 @@ function AccountsPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Bank Accounts</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="w-full gap-2 sm:w-auto">
                 <ArrowLeftRight className="h-4 w-4" /> Transfer
               </Button>
             </DropdownMenuTrigger>
@@ -156,7 +156,7 @@ function AccountsPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button asChild className="gap-2">
+          <Button asChild className="w-full gap-2 sm:w-auto">
             <Link to="/accounts/new">
               <Plus className="h-4 w-4" /> Add bank account
             </Link>
@@ -260,7 +260,7 @@ function AccountCard({
         </p>
       </Link>
       <TooltipProvider>
-        <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="absolute right-3 top-3 flex gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

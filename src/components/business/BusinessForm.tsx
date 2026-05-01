@@ -247,23 +247,23 @@ export function BusinessForm({ mode, businessId }: Props) {
   return (
     <div className="min-h-screen bg-background pb-16">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-5">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-5">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Button asChild size="icon" variant="ghost" className="h-9 w-9">
               <Link to="/" aria-label="Back">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs">
                 {mode === "edit" ? "Editing" : "New"}
               </p>
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              <h1 className="text-lg font-bold tracking-tight sm:text-2xl">
                 {mode === "edit" ? "Edit Business" : "Add Business"}
               </h1>
             </div>
           </div>
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <Button variant="ghost" onClick={() => navigate({ to: "/" })}>
               Cancel
             </Button>
@@ -296,7 +296,7 @@ export function BusinessForm({ mode, businessId }: Props) {
         </div>
       </header>
 
-      <form className="mx-auto max-w-4xl space-y-6 px-6 py-8">
+      <form className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         <FormSection step={1} title="Basic Information" description="Who is this business?">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">

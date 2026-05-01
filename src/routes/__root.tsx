@@ -87,7 +87,6 @@ export const Route = createRootRoute({
     if (
       !token &&
       location.pathname !== "/login" &&
-      location.pathname !== "/register" &&
       location.pathname !== "/forbidden"
     ) {
       throw redirect({ to: "/login" });
@@ -158,12 +157,12 @@ function RootComponent() {
   const { isAuthed } = useAuth();
   const { hiddenTabs, hydrated } = useMobileTabSettings();
 
-  const isPublicScreen = pathname === "/login" || pathname === "/register" || pathname === "/forbidden";
+  const isPublicScreen = pathname === "/login" || pathname === "/forbidden";
   const shouldGate = USE_BACKEND && !isAuthed && !isPublicScreen;
 
   useEffect(() => {
     if (!USE_BACKEND || !isAuthed || !hydrated) return;
-    if (pathname === "/forbidden" || pathname === "/login" || pathname === "/register") return;
+    if (pathname === "/forbidden" || pathname === "/login") return;
     if (hiddenTabs[pathname]) {
       void router.navigate({ href: "/forbidden" });
     }
