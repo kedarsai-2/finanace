@@ -124,11 +124,12 @@
 
   /* Premium gradients */
   --gradient-primary: linear-gradient(90deg, #4b7cf3 0%, #5b8cff 45%, #7b61ff 100%);
+  /* Login hero: left blue → right violet (horizontal, like commodity-trading reference UIs) */
   --gradient-login-overlay: linear-gradient(
-    135deg,
-    rgba(106, 116, 172, 0.92) 0%,
-    rgba(106, 116, 172, 0.82) 55%,
-    rgba(123, 97, 255, 0.72) 100%
+    to right,
+    #5b72b8 0%,
+    #6169af 50%,
+    #6c5b9b 100%
   );
   --gradient-primary-shine: linear-gradient(
     135deg,
@@ -197,6 +198,12 @@
     border-radius: var(--radius-2xl);
     position: relative;
     overflow: hidden;
+    transition:
+      transform 220ms ease,
+      box-shadow 220ms ease,
+      border-color 220ms ease,
+      background-color 220ms ease;
+    will-change: transform;
   }
   .glass-card::before {
     content: "";
@@ -207,6 +214,31 @@
     height: 1px;
     background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.6), transparent);
     pointer-events: none;
+  }
+  .glass-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    background: radial-gradient(
+      120% 120% at 15% 0%,
+      color-mix(in oklab, oklch(0.7 0.2 290) 18%, transparent),
+      transparent 62%
+    );
+  }
+  .glass-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, white 48%, var(--color-primary) 52%);
+    box-shadow:
+      0 16px 36px -18px oklch(0.66 0.19 262 / 0.45),
+      0 10px 28px -18px oklch(0.7 0.2 290 / 0.34),
+      var(--shadow-glass);
+  }
+  .glass-card:hover::after {
+    opacity: 1;
   }
 
   .primary-text {
