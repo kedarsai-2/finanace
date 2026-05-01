@@ -18,6 +18,18 @@ import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { getJwt } from "@/lib/auth";
 
+function normalizeTabTitle(rawTitle: string) {
+  const title = rawTitle.trim();
+  if (!title) return title;
+
+  // Keep brand-only pages clean.
+  if (/^qobox(\s*[-—].*)?$/i.test(title)) return "QOBOX";
+
+  // Take the left-most semantic page segment and force "Page - QOBOX".
+  const pageName = title.split(/\s[—-]\s/)[0]?.trim() || title;
+  return `${pageName} - QOBOX`;
+}
+
 function ClickProbe() {
   const [last, setLast] = useState<{ t: number; tag: string; prevented: boolean } | null>(null);
   const router = useRouter();
@@ -153,9 +165,8 @@ function RootComponent() {
     if (typeof document === "undefined") return;
     const current = (document.title || "").trim();
     if (!current) return;
-    if (!/qobox/i.test(current)) {
-      document.title = `${current} - QOBOX`;
-    }
+    const normalized = normalizeTabTitle(current);
+    if (normalized && normalized !== current) document.title = normalized;
   }, [pathname]);
 
   useEffect(() => {
