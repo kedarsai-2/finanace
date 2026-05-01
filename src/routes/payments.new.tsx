@@ -46,7 +46,7 @@ import type { Purchase } from "@/types/purchase";
 import { ProofUpload } from "@/components/proof/ProofUpload";
 
 export const Route = createFileRoute("/payments/new")({
-  head: () => ({ meta: [{ title: "Record Payment — QOBOX" }] }),
+  head: () => ({ meta: [{ title: "Record Payment - QOBOX" }] }),
   component: NewPaymentPage,
 });
 

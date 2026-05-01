@@ -282,9 +282,9 @@ function termsList(raw?: string) {
 function SnickrLogo() {
   return (
     <img
-      src="/snickr-logo.png"
-      alt="SnickR"
-      style={{ height: "40px", width: "96px", objectFit: "contain" }}
+      src="/qobox-logo.png"
+      alt="QOBOX"
+      style={{ height: "40px", width: "120px", objectFit: "contain" }}
     />
   );
 }

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/accounts/$id/edit")({
     search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
   head: () => ({
-    meta: [{ title: "Edit Account — QOBOX" }],
+    meta: [{ title: "Edit Account - QOBOX" }],
   }),
   component: EditAccountPage,
   notFoundComponent: () => (

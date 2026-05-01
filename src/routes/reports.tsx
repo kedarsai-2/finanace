@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Reports — QOBOX" },
+      { title: "Reports - QOBOX" },
       { name: "description", content: "Sales, purchase, expense, party and account reports." },
     ],
   }),

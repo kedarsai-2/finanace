@@ -43,7 +43,7 @@ function unitShortLabel(unit?: string) {
 export const Route = createFileRoute("/assets")({
   head: () => ({
     meta: [
-      { title: "Assets — QOBOX" },
+      { title: "Assets - QOBOX" },
       {
         name: "description",
         content: "Manage assets (product-only) used for invoicing and inventory placeholders.",

@@ -53,7 +53,7 @@ export const Route = createFileRoute("/accounts/$id/")({
   validateSearch: (
     search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
-  head: () => ({ meta: [{ title: "Account details — QOBOX" }] }),
+  head: () => ({ meta: [{ title: "Account details - QOBOX" }] }),
   component: AccountDetailsPage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md px-4 py-16 text-center">

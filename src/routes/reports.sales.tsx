@@ -20,7 +20,7 @@ import { downloadCsv } from "@/lib/reportExport";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports/sales")({
-  head: () => ({ meta: [{ title: "Sales Report — QOBOX" }] }),
+  head: () => ({ meta: [{ title: "Sales Report - QOBOX" }] }),
   component: SalesReport,
 });
 

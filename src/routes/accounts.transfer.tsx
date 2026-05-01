@@ -44,7 +44,7 @@ export const Route = createFileRoute("/accounts/transfer")({
   validateSearch: (
     search: Partial<z.infer<typeof searchSchema>> & SearchSchemaInput,
   ): z.infer<typeof searchSchema> => searchSchema.parse(search),
-  head: () => ({ meta: [{ title: "Account Transfer — QOBOX" }] }),
+  head: () => ({ meta: [{ title: "Account Transfer - QOBOX" }] }),
   component: TransferPage,
 });
 

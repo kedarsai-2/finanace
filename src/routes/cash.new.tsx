@@ -5,7 +5,7 @@ import { AccountForm } from "@/components/account/AccountForm";
 
 export const Route = createFileRoute("/cash/new")({
   head: () => ({
-    meta: [{ title: "Add Cash Account — QOBOX" }],
+    meta: [{ title: "Add Cash Account - QOBOX" }],
   }),
   component: NewCashAccountPage,
 });

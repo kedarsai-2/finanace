@@ -20,7 +20,7 @@ import { formatCurrency } from "@/hooks/useParties";
 import { downloadCsv } from "@/lib/reportExport";
 
 export const Route = createFileRoute("/reports/expenses")({
-  head: () => ({ meta: [{ title: "Expense Report — QOBOX" }] }),
+  head: () => ({ meta: [{ title: "Expense Report - QOBOX" }] }),
   component: ExpenseReport,
 });
 

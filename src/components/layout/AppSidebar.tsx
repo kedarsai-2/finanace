@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  LayoutGrid,
   LayoutDashboard,
   Building2,
   Users,
@@ -70,9 +69,7 @@ export function AppSidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
       <Link to="/" className="flex items-center gap-2.5 px-4 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl primary-gradient primary-glow">
-          <LayoutGrid className="h-4 w-4" />
-        </div>
+        <img src="/qobox-logo.png" alt="QOBOX" className="h-9 w-auto rounded-lg bg-white/10 p-1" />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-bold tracking-tight">QOBOX</span>
           <span className="text-[10px] text-sidebar-foreground/60">

@@ -28,7 +28,7 @@ import type { AccountTxnKind } from "@/types/account";
 
 export const Route = createFileRoute("/cash/balance")({
   head: () => ({
-    meta: [{ title: "Cash Balance — QOBOX" }],
+    meta: [{ title: "Cash Balance - QOBOX" }],
   }),
   component: CashBalancePage,
 });

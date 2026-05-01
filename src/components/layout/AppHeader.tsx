@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutGrid, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { BusinessSwitcher } from "@/components/business/BusinessSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -50,9 +50,7 @@ export function AppHeader() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-4"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl primary-gradient primary-glow">
-                <LayoutGrid className="h-4 w-4" />
-              </div>
+              <img src="/qobox-logo.png" alt="QOBOX" className="h-9 w-auto rounded-lg bg-white/10 p-1" />
               <span className="text-sm font-bold tracking-tight">QOBOX</span>
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">

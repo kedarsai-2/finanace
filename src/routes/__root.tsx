@@ -90,14 +90,14 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "QOBOX — Invoicing, Billing, Accounting" },
+      { title: "QOBOX - Invoicing, Billing, Accounting" },
       {
         name: "description",
         content: "Manage all your businesses, GST profiles and books in one place.",
       },
       { name: "author", content: "QOBOX" },
-      { property: "og:title", content: "QOBOX — Invoicing, Billing, Accounting" },
-      { name: "twitter:title", content: "QOBOX — Invoicing, Billing, Accounting" },
+      { property: "og:title", content: "QOBOX - Invoicing, Billing, Accounting" },
+      { name: "twitter:title", content: "QOBOX - Invoicing, Billing, Accounting" },
       {
         property: "og:description",
         content: "Manage all your businesses, GST profiles and books in one place.",
@@ -112,6 +112,8 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "shortcut icon", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

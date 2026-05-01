@@ -11,7 +11,7 @@ import { USE_BACKEND } from "@/lib/flags";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Login — QOBOX" }],
+    meta: [{ title: "Login - QOBOX" }],
   }),
   component: LoginPage,
 });
