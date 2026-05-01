@@ -69,7 +69,7 @@ export function AppSidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
       <Link to="/" className="flex items-center gap-2.5 px-4 py-5">
-        <img src="/qobox-logo.png" alt="QOBOX" className="h-9 w-auto rounded-lg bg-white/10 p-1" />
+        <img src="/favicon.png" alt="QOBOX" className="h-9 w-9 object-contain" />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-bold tracking-tight">QOBOX</span>
           <span className="text-[10px] text-sidebar-foreground/60">

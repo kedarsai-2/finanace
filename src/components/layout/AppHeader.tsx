@@ -50,7 +50,7 @@ export function AppHeader() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-4"
             >
-              <img src="/qobox-logo.png" alt="QOBOX" className="h-9 w-auto rounded-lg bg-white/10 p-1" />
+              <img src="/favicon.png" alt="QOBOX" className="h-9 w-9 object-contain" />
               <span className="text-sm font-bold tracking-tight">QOBOX</span>
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">

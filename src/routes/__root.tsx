@@ -150,6 +150,15 @@ function RootComponent() {
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const current = (document.title || "").trim();
+    if (!current) return;
+    if (!/qobox/i.test(current)) {
+      document.title = `${current} - QOBOX`;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     // Capacitor Android: intercept hardware back so app navigates first.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
