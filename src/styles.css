@@ -123,7 +123,7 @@
   --glass-blur: 18px;
 
   /* Premium gradients */
-  --gradient-primary: linear-gradient(90deg, #8ecbff 0%, #80b8ff 45%, #a993ff 100%);
+  --gradient-primary: linear-gradient(90deg, #6892f6 0%, #6f82fb 45%, #7a62ff 100%);
   /* Login hero and auth screens: light blue -> light purple */
   --gradient-login-overlay: linear-gradient(
     to right,
@@ -159,7 +159,7 @@
   --shadow-lg: 0 12px 28px -8px oklch(0.22 0.04 260 / 0.18);
   --shadow-card: 0 4px 16px 0 oklch(0.22 0.04 260 / 0.08);
   --shadow-glass: 0 8px 32px 0 oklch(0.22 0.04 260 / 0.08), inset 0 1px 0 0 oklch(1 0 0 / 0.5);
-  --shadow-primary: 0 8px 24px 0 rgba(91, 140, 255, 0.85);
+  --shadow-primary: 0 10px 26px 0 rgba(104, 146, 246, 0.75);
 }
 
 @layer base {

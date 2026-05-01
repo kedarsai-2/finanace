@@ -68,7 +68,7 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#9fe0ff] via-[#8fb8ff] to-[#b297ff] text-sidebar-foreground md:flex">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
       <Link to="/" className="flex items-center gap-2.5 px-4 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl primary-gradient primary-glow">
           <LayoutGrid className="h-4 w-4" />
