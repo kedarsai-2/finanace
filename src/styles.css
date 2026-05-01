@@ -107,15 +107,15 @@
   --chart-4: oklch(0.78 0.15 75);
   --chart-5: oklch(0.6 0.22 25);
 
-  /* Sidebar palette aligned to Mercotrace-style blue UI */
-  --sidebar: #5f84ff;
+  /* Sidebar palette: light blue -> light purple */
+  --sidebar: #7aa9ff;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #76b8ff;
+  --sidebar-primary: #8ecbff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(118, 184, 255, 0.24);
+  --sidebar-accent: rgba(173, 200, 255, 0.28);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(180, 220, 255, 0.35);
-  --sidebar-ring: #8bc8ff;
+  --sidebar-border: rgba(214, 223, 255, 0.45);
+  --sidebar-ring: #aa98ff;
 
   /* Glass tokens */
   --glass-bg: color-mix(in oklab, white 75%, transparent);
@@ -123,13 +123,13 @@
   --glass-blur: 18px;
 
   /* Premium gradients */
-  --gradient-primary: linear-gradient(90deg, #4b7cf3 0%, #5b8cff 45%, #7b61ff 100%);
-  /* Login hero: Mercotrace-like bright blue progression */
+  --gradient-primary: linear-gradient(90deg, #8ecbff 0%, #80b8ff 45%, #a993ff 100%);
+  /* Login hero and auth screens: light blue -> light purple */
   --gradient-login-overlay: linear-gradient(
     to right,
-    #6db2ff 0%,
-    #629dff 48%,
-    #5f84ff 100%
+    #9ed3ff 0%,
+    #87b9ff 50%,
+    #b09eff 100%
   );
   --gradient-primary-shine: linear-gradient(
     135deg,
