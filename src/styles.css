@@ -107,15 +107,15 @@
   --chart-4: oklch(0.78 0.15 75);
   --chart-5: oklch(0.6 0.22 25);
 
-  /* Charcoal sidebar */
-  --sidebar: #736cfe;
+  /* Sidebar palette aligned to Mercotrace-style blue UI */
+  --sidebar: #5f84ff;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #5b8cff;
+  --sidebar-primary: #76b8ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.14);
+  --sidebar-accent: rgba(118, 184, 255, 0.24);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.22);
-  --sidebar-ring: #7b61ff;
+  --sidebar-border: rgba(180, 220, 255, 0.35);
+  --sidebar-ring: #8bc8ff;
 
   /* Glass tokens */
   --glass-bg: color-mix(in oklab, white 75%, transparent);
@@ -124,12 +124,12 @@
 
   /* Premium gradients */
   --gradient-primary: linear-gradient(90deg, #4b7cf3 0%, #5b8cff 45%, #7b61ff 100%);
-  /* Login hero: left blue → right violet (horizontal, like commodity-trading reference UIs) */
+  /* Login hero: Mercotrace-like bright blue progression */
   --gradient-login-overlay: linear-gradient(
     to right,
-    #5b72b8 0%,
-    #6169af 50%,
-    #6c5b9b 100%
+    #6db2ff 0%,
+    #629dff 48%,
+    #5f84ff 100%
   );
   --gradient-primary-shine: linear-gradient(
     135deg,
@@ -263,8 +263,9 @@
     transform: translateY(-6px);
     border-color: color-mix(in oklab, white 52%, var(--color-primary) 48%);
     box-shadow:
-      0 20px 40px -22px oklch(0.66 0.19 262 / 0.6),
-      0 12px 28px -18px oklch(0.7 0.2 290 / 0.5),
+      0 28px 56px -24px oklch(0.66 0.19 262 / 0.66),
+      0 18px 40px -22px oklch(0.7 0.2 290 / 0.56),
+      inset 0 1px 0 0 oklch(1 0 0 / 0.45),
       var(--shadow-card);
   }
 

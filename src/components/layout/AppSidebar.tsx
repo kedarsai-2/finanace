@@ -94,7 +94,7 @@ export function AppSidebar() {
               )}
               activeProps={{
                 className:
-                  "bg-gradient-to-r from-primary/30 via-accent/20 to-transparent text-sidebar-foreground shadow-[inset_2px_0_0_0_var(--primary)]",
+                  "bg-gradient-to-r from-sidebar-primary/45 via-sidebar-accent/40 to-transparent text-sidebar-foreground shadow-[inset_2px_0_0_0_var(--sidebar-primary)]",
               }}
             >
               <Icon className="h-4 w-4" />

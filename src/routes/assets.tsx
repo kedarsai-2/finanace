@@ -8,8 +8,9 @@ import {
 } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { ImageIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ImageIcon, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,7 @@ function AssetsPage() {
   const currency = activeBusiness?.currency ?? "INR";
 
   const [deleting, setDeleting] = useState<Item | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -101,6 +103,79 @@ function AssetsPage() {
     }
   };
 
+  const handleBulkImport = async (file?: File | null) => {
+    if (!file) return;
+    if (!activeId) {
+      toast.error("Select an active business first");
+      return;
+    }
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) throw new Error("No sheet found in file");
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      if (rows.length === 0) throw new Error("File has no rows");
+
+      const normalize = (v: unknown) => String(v ?? "").trim();
+      const existingNames = new Set(
+        items
+          .filter((it) => it.type === "product" && !it.deleted)
+          .map((it) => it.name.trim().toLowerCase()),
+      );
+
+      let created = 0;
+      let skipped = 0;
+      for (const row of rows) {
+        const name = normalize(row.name || row.Name || row.asset || row.Asset);
+        const sku = normalize(row.sku || row.SKU);
+        const unitRaw = normalize(row.unit || row.Unit || "pcs").toLowerCase();
+        const priceRaw = normalize(
+          row.price || row.Price || row.sellingPrice || row.SellingPrice || row.selling_price,
+        );
+        const price = Number(priceRaw);
+        if (!name || !Number.isFinite(price) || price < 0) {
+          skipped += 1;
+          continue;
+        }
+        const dedupeKey = name.toLowerCase();
+        if (existingNames.has(dedupeKey)) {
+          skipped += 1;
+          continue;
+        }
+        const allowedUnits = new Set(["number", "pcs", "kg", "litre", "hour"]);
+        const unit = allowedUnits.has(unitRaw) ? unitRaw : "pcs";
+        await upsert({
+          id: "",
+          businessId: activeId,
+          name,
+          type: "product",
+          sku: sku || undefined,
+          sellingPrice: price,
+          purchasePrice: price,
+          taxPercent: 18,
+          unit,
+          openingStock: 1,
+          active: true,
+        });
+        existingNames.add(dedupeKey);
+        created += 1;
+      }
+
+      if (created === 0) {
+        toast.error("No valid rows imported. Required columns: name, price");
+      } else {
+        toast.success(`Imported ${created} assets${skipped ? ` (${skipped} skipped)` : ""}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Bulk import failed";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
@@ -122,6 +197,26 @@ function AssetsPage() {
                 <Plus className="h-4 w-4" />
                 Add Asset
               </Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="gap-2"
+              disabled={importing}
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".csv,.xlsx,.xls";
+                input.onchange = () => {
+                  const file = input.files?.[0] ?? null;
+                  void handleBulkImport(file);
+                };
+                input.click();
+              }}
+            >
+              <Upload className="h-4 w-4" />
+              {importing ? "Importing..." : "Bulk Import"}
             </Button>
           </div>
 
