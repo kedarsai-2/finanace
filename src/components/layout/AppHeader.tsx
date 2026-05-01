@@ -53,13 +53,13 @@ export function AppHeader() {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-64 overflow-y-auto bg-sidebar text-sidebar-foreground p-0"
+            className="w-64 max-w-[85vw] overflow-y-auto border-r-0 bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] p-0 text-sidebar-foreground"
           >
-            <Link to="/" onClick={() => setOpen(false)} className="px-4 py-4">
+            <Link to="/" onClick={() => setOpen(false)} className="px-4 py-5">
               <img
                 src="/qobox-wordmark.png"
                 alt="QOBOX"
-                className="h-9 w-auto max-w-[140px] object-contain"
+                className="h-10 w-auto max-w-[160px] object-contain"
               />
             </Link>
             <nav className="flex flex-col gap-0.5 px-2 pb-4">
@@ -70,9 +70,12 @@ export function AppHeader() {
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: l.to === "/" }}
                   className={cn(
-                    "rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    "hover-lift group relative rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
-                  activeProps={{ className: "bg-sidebar-accent text-sidebar-foreground" }}
+                  activeProps={{
+                    className:
+                      "bg-gradient-to-r from-sidebar-primary/55 via-[#a694ff]/45 to-transparent text-sidebar-foreground shadow-[inset_2px_0_0_0_var(--sidebar-primary)]",
+                  }}
                 >
                   {l.label}
                 </Link>
