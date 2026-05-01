@@ -351,11 +351,14 @@ function DateField({
       <Label className="sr-only">{label}</Label>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-10 w-full justify-between font-normal">
-            <span className={cn(!value && "text-muted-foreground")}>
+          <Button
+            variant="outline"
+            className="h-10 w-full justify-between font-normal text-white hover:text-white"
+          >
+            <span className={cn(!value && "text-white/80")}>
               {value ? format(value, "dd MMM") : label}
             </span>
-            <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
+            <CalendarIcon className="ml-2 h-4 w-4 text-white/85" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

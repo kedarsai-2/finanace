@@ -605,12 +605,12 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                     variant="outline"
                     role="combobox"
                     className={cn(
-                      "h-10 w-full justify-between font-normal",
-                      !party && "text-muted-foreground",
+                      "h-10 w-full justify-between font-normal text-white hover:text-white",
+                      !party && "text-white/80",
                     )}
                   >
                     {party ? party.name : "Select party…"}
-                    <SearchIcon className="ml-2 h-4 w-4 opacity-50" />
+                    <SearchIcon className="ml-2 h-4 w-4 text-white/85" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
