@@ -44,7 +44,7 @@ export function AppHeader() {
   );
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
-      <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
