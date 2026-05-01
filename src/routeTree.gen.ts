@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RoleAccessRouteImport } from './routes/role-access'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PurchasesRouteImport } from './routes/purchases'
@@ -18,6 +19,7 @@ import { Route as PartiesRouteImport } from './routes/parties'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ItemsRouteImport } from './routes/items'
 import { Route as InvoicesRouteImport } from './routes/invoices'
+import { Route as ForbiddenRouteImport } from './routes/forbidden'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as CreditNotesRouteImport } from './routes/credit-notes'
 import { Route as CashRouteImport } from './routes/cash'
@@ -64,6 +66,11 @@ import { Route as BusinessesIdEditRouteImport } from './routes/businesses.$id.ed
 import { Route as AssetsIdEditRouteImport } from './routes/assets.$id.edit'
 import { Route as AccountsIdEditRouteImport } from './routes/accounts.$id.edit'
 
+const RoleAccessRoute = RoleAccessRouteImport.update({
+  id: '/role-access',
+  path: '/role-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -107,6 +114,11 @@ const ItemsRoute = ItemsRouteImport.update({
 const InvoicesRoute = InvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForbiddenRoute = ForbiddenRouteImport.update({
+  id: '/forbidden',
+  path: '/forbidden',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -344,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
@@ -353,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/purchases': typeof PurchasesRouteWithChildren
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
+  '/role-access': typeof RoleAccessRoute
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/assets/new': typeof AssetsNewRoute
@@ -400,6 +414,7 @@ export interface FileRoutesByTo {
   '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
@@ -409,6 +424,7 @@ export interface FileRoutesByTo {
   '/purchases': typeof PurchasesRouteWithChildren
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
+  '/role-access': typeof RoleAccessRoute
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/assets/new': typeof AssetsNewRoute
@@ -457,6 +473,7 @@ export interface FileRoutesById {
   '/cash': typeof CashRouteWithChildren
   '/credit-notes': typeof CreditNotesRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/items': typeof ItemsRouteWithChildren
   '/login': typeof LoginRoute
@@ -466,6 +483,7 @@ export interface FileRoutesById {
   '/purchases': typeof PurchasesRouteWithChildren
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRouteWithChildren
+  '/role-access': typeof RoleAccessRoute
   '/accounts/new': typeof AccountsNewRoute
   '/accounts/transfer': typeof AccountsTransferRoute
   '/assets/new': typeof AssetsNewRoute
@@ -515,6 +533,7 @@ export interface FileRouteTypes {
     | '/cash'
     | '/credit-notes'
     | '/expenses'
+    | '/forbidden'
     | '/invoices'
     | '/items'
     | '/login'
@@ -524,6 +543,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/register'
     | '/reports'
+    | '/role-access'
     | '/accounts/new'
     | '/accounts/transfer'
     | '/assets/new'
@@ -571,6 +591,7 @@ export interface FileRouteTypes {
     | '/cash'
     | '/credit-notes'
     | '/expenses'
+    | '/forbidden'
     | '/invoices'
     | '/items'
     | '/login'
@@ -580,6 +601,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/register'
     | '/reports'
+    | '/role-access'
     | '/accounts/new'
     | '/accounts/transfer'
     | '/assets/new'
@@ -627,6 +649,7 @@ export interface FileRouteTypes {
     | '/cash'
     | '/credit-notes'
     | '/expenses'
+    | '/forbidden'
     | '/invoices'
     | '/items'
     | '/login'
@@ -636,6 +659,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/register'
     | '/reports'
+    | '/role-access'
     | '/accounts/new'
     | '/accounts/transfer'
     | '/assets/new'
@@ -684,6 +708,7 @@ export interface RootRouteChildren {
   CashRoute: typeof CashRouteWithChildren
   CreditNotesRoute: typeof CreditNotesRouteWithChildren
   ExpensesRoute: typeof ExpensesRouteWithChildren
+  ForbiddenRoute: typeof ForbiddenRoute
   InvoicesRoute: typeof InvoicesRouteWithChildren
   ItemsRoute: typeof ItemsRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -693,12 +718,20 @@ export interface RootRouteChildren {
   PurchasesRoute: typeof PurchasesRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRouteWithChildren
+  RoleAccessRoute: typeof RoleAccessRoute
   CategoriesExpenseRoute: typeof CategoriesExpenseRoute
   NotificationsSettingsRoute: typeof NotificationsSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/role-access': {
+      id: '/role-access'
+      path: '/role-access'
+      fullPath: '/role-access'
+      preLoaderRoute: typeof RoleAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -760,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof InvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forbidden': {
+      id: '/forbidden'
+      path: '/forbidden'
+      fullPath: '/forbidden'
+      preLoaderRoute: typeof ForbiddenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -1282,6 +1322,7 @@ const rootRouteChildren: RootRouteChildren = {
   CashRoute: CashRouteWithChildren,
   CreditNotesRoute: CreditNotesRouteWithChildren,
   ExpensesRoute: ExpensesRouteWithChildren,
+  ForbiddenRoute: ForbiddenRoute,
   InvoicesRoute: InvoicesRouteWithChildren,
   ItemsRoute: ItemsRouteWithChildren,
   LoginRoute: LoginRoute,
@@ -1291,6 +1332,7 @@ const rootRouteChildren: RootRouteChildren = {
   PurchasesRoute: PurchasesRouteWithChildren,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRouteWithChildren,
+  RoleAccessRoute: RoleAccessRoute,
   CategoriesExpenseRoute: CategoriesExpenseRoute,
   NotificationsSettingsRoute: NotificationsSettingsRoute,
 }
