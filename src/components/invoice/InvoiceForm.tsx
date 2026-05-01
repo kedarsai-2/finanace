@@ -304,18 +304,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
   /**
    * Lets user enter a target invoice total directly without changing line prices.
-   * We resolve it as an overall flat discount amount.
-   * Backend enforces discount fields to be non-negative.
+   * We resolve it as an overall flat adjustment amount:
+   * positive => discount, negative => surcharge.
    */
   const updateInvoiceTotal = (nextTotal: number) => {
     const safeTarget = Math.max(0, Number.isFinite(nextTotal) ? nextTotal : 0);
-    const boundedTarget = Math.min(preDiscountTotal, safeTarget);
-    const requiredDiscount = Math.max(0, preDiscountTotal - boundedTarget);
+    const requiredDiscount = preDiscountTotal - safeTarget;
     setOverallDiscountKind("amount");
     setOverallDiscountValue(Number(requiredDiscount.toFixed(2)));
-    if (safeTarget > preDiscountTotal + 0.001) {
-      toast.error("Final total cannot exceed subtotal with current backend rules.");
-    }
   };
 
   /**
@@ -384,7 +380,10 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       if (l.discountKind === "percent" && l.discountValue > 100)
         return `Discount % cannot exceed 100 for ${l.name}`;
     }
-    if (overallDiscountValue < 0) return "Overall discount cannot be negative";
+    if (overallDiscountKind === "amount" && overallDiscountValue < 0 && totals.total < 0)
+      return "Final total cannot be negative";
+    if (overallDiscountKind === "percent" && overallDiscountValue < 0)
+      return "Overall discount % cannot be negative";
     if (overallDiscountKind === "percent" && overallDiscountValue > 100)
       return "Overall discount % cannot exceed 100";
     // Payment splits
@@ -857,7 +856,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
                   id="invoiceTargetTotal"
                   type="number"
                   min={0}
-                  max={preDiscountTotal}
                   step="0.01"
                   value={totals.total}
                   onChange={(e) => updateInvoiceTotal(Number(e.target.value))}

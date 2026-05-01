@@ -82,12 +82,10 @@ public class Invoice implements Serializable {
     private DiscountKind overallDiscountKind;
 
     @NotNull
-    @DecimalMin(value = "0")
     @Column(name = "overall_discount_value", precision = 21, scale = 2, nullable = false)
     private BigDecimal overallDiscountValue;
 
     @NotNull
-    @DecimalMin(value = "0")
     @Column(name = "overall_discount_amount", precision = 21, scale = 2, nullable = false)
     private BigDecimal overallDiscountAmount;
 

@@ -54,11 +54,9 @@ public class InvoiceDTO implements Serializable {
     private DiscountKind overallDiscountKind;
 
     @NotNull
-    @DecimalMin(value = "0")
     private BigDecimal overallDiscountValue;
 
     @NotNull
-    @DecimalMin(value = "0")
     private BigDecimal overallDiscountAmount;
 
     @NotNull
