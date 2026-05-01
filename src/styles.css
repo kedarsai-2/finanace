@@ -245,6 +245,29 @@
   .glass-card:hover::after {
     opacity: 1;
   }
+
+  /* Auto-apply interactive lift to standard card surfaces across the app. */
+  .rounded-xl.border.border-border.bg-card,
+  .rounded-2xl.border.border-border.bg-card,
+  .rounded-3xl.border.border-border.bg-card {
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease,
+      border-color 200ms ease;
+    box-shadow: var(--shadow-card);
+    will-change: transform;
+  }
+  .rounded-xl.border.border-border.bg-card:hover,
+  .rounded-2xl.border.border-border.bg-card:hover,
+  .rounded-3xl.border.border-border.bg-card:hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in oklab, white 52%, var(--color-primary) 48%);
+    box-shadow:
+      0 20px 40px -22px oklch(0.66 0.19 262 / 0.6),
+      0 12px 28px -18px oklch(0.7 0.2 290 / 0.5),
+      var(--shadow-card);
+  }
+
   @media (hover: none) {
     .glass-card:hover {
       transform: none;
@@ -253,6 +276,13 @@
     }
     .glass-card:hover::after {
       opacity: 0;
+    }
+    .rounded-xl.border.border-border.bg-card:hover,
+    .rounded-2xl.border.border-border.bg-card:hover,
+    .rounded-3xl.border.border-border.bg-card:hover {
+      transform: none;
+      border-color: var(--color-border);
+      box-shadow: var(--shadow-card);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -264,6 +294,16 @@
     }
     .glass-card::after {
       transition: none;
+    }
+    .rounded-xl.border.border-border.bg-card,
+    .rounded-2xl.border.border-border.bg-card,
+    .rounded-3xl.border.border-border.bg-card {
+      transition: none;
+    }
+    .rounded-xl.border.border-border.bg-card:hover,
+    .rounded-2xl.border.border-border.bg-card:hover,
+    .rounded-3xl.border.border-border.bg-card:hover {
+      transform: none;
     }
   }
 

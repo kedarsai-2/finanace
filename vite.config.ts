@@ -10,6 +10,9 @@ export default defineConfig({
   vite: {
     build: {
       manifest: true,
+      // Avoid collision with the app route "/assets" on static hosts (e.g. Vercel).
+      // Vite default assets directory is "/assets", which can conflict on hard refresh.
+      assetsDir: "_app",
     },
     server: {
       port: 5173,

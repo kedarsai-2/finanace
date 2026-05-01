@@ -161,7 +161,11 @@ function read(): Item[] {
 }
 
 export function useItems(businessId?: string | null) {
-  const [items, setItems] = useState<Item[]>(seed);
+  const [items, setItems] = useState<Item[]>(() => {
+    const token = getJwt();
+    if (USE_BACKEND && token) return [];
+    return seed;
+  });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
