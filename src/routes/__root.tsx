@@ -28,6 +28,7 @@ function ClickProbe() {
     (typeof window !== "undefined" ? window.location.pathname : "");
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     const handler = (e: MouseEvent) => {
       const el = e.target as HTMLElement | null;
       setLast({
@@ -203,7 +204,7 @@ function RootComponent() {
 
   return (
     <div className="flex min-h-screen w-full">
-      <ClickProbe />
+      {import.meta.env.DEV ? <ClickProbe /> : null}
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />

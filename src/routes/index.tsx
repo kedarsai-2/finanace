@@ -54,6 +54,7 @@ const RANGE_LABEL: Record<Range, string> = {
 
 function DashboardPage() {
   const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
@@ -63,7 +64,7 @@ function DashboardPage() {
   const { expenses } = useExpenses(scopedBusinessId);
   const { accounts } = useAccounts(
     scopedBusinessId,
-    businesses.map((b) => b.id),
+    businessIds,
   );
   const { transfers } = useTransfers(scopedBusinessId);
 

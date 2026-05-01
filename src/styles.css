@@ -179,6 +179,11 @@
     background-image: var(--gradient-ambient);
     background-attachment: fixed;
   }
+  @media (hover: none), (pointer: coarse) {
+    body {
+      background-attachment: scroll;
+    }
+  }
 }
 
 @layer components {
@@ -230,15 +235,36 @@
     );
   }
   .glass-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-7px);
     border-color: color-mix(in oklab, white 48%, var(--color-primary) 52%);
     box-shadow:
-      0 16px 36px -18px oklch(0.66 0.19 262 / 0.45),
-      0 10px 28px -18px oklch(0.7 0.2 290 / 0.34),
+      0 24px 48px -22px oklch(0.66 0.19 262 / 0.58),
+      0 14px 34px -20px oklch(0.7 0.2 290 / 0.46),
       var(--shadow-glass);
   }
   .glass-card:hover::after {
     opacity: 1;
+  }
+  @media (hover: none) {
+    .glass-card:hover {
+      transform: none;
+      border-color: var(--glass-border);
+      box-shadow: var(--shadow-glass);
+    }
+    .glass-card:hover::after {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glass-card {
+      transition: none;
+    }
+    .glass-card:hover {
+      transform: none;
+    }
+    .glass-card::after {
+      transition: none;
+    }
   }
 
   .primary-text {
@@ -304,6 +330,28 @@
 }
 
 @layer utilities {
+  .hover-lift {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
+    will-change: transform;
+  }
+  .hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 18px 36px -20px oklch(0.66 0.19 262 / 0.64),
+      0 10px 24px -16px oklch(0.7 0.2 290 / 0.52);
+  }
+  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+    .hover-lift {
+      transition: none;
+    }
+    .hover-lift:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

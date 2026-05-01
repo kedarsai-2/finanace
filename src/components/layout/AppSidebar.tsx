@@ -90,7 +90,7 @@ export function AppSidebar() {
               to={l.to}
               activeOptions={{ exact: l.to === "/" }}
               className={cn(
-                "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                "hover-lift group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
               )}
               activeProps={{
                 className:
