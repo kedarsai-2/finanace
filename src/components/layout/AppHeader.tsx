@@ -55,7 +55,11 @@ export function AppHeader() {
             side="left"
             className="w-64 max-w-[85vw] overflow-y-auto border-r-0 bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] p-0 text-sidebar-foreground"
           >
-            <Link to="/" onClick={() => setOpen(false)} className="px-4 py-5">
+            <Link
+              to="/"
+              onClick={() => setOpen(false)}
+              className="flex h-16 w-full items-center justify-center border-b border-white/40 px-4"
+            >
               <img
                 src="/qobox-wordmark.png"
                 alt="QOBOX"

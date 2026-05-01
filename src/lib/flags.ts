@@ -6,23 +6,27 @@ const cap =
     ? (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
     : undefined;
 const isNativeCapacitor = !!cap?.isNativePlatform?.();
-const NATIVE_DEFAULT_API_BASE_URL = "https://finanace-454d.onrender.com";
+
+// Production backend — always used for native APK builds.
+const PRODUCTION_BACKEND = "https://finanace-454d.onrender.com";
 
 // APK should always run against backend auth/data APIs.
 export const USE_BACKEND = envBackendEnabled || isNativeCapacitor;
 
+// For native builds, always pin to production backend.
+// For web, fall back to VITE_API_BASE_URL or local dev server.
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.toString()?.trim() || "";
 
-function normalizeApiBaseUrl(raw: string) {
-  if (!raw) return "";
-  // Android emulator can't reach host machine via localhost.
-  if (isNativeCapacitor && /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(raw)) {
-    return "http://10.0.2.2:8080";
+function resolveApiBaseUrl(): string {
+  if (isNativeCapacitor) {
+    // Never use localhost from device — it cannot reach host machine.
+    const base = configuredApiBase || PRODUCTION_BACKEND;
+    if (/^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base)) {
+      return "http://10.0.2.2:8080";
+    }
+    return base;
   }
-  return raw;
+  return configuredApiBase || "http://localhost:8080";
 }
 
-const effectiveApiBaseUrl =
-  configuredApiBase || (isNativeCapacitor ? NATIVE_DEFAULT_API_BASE_URL : "http://localhost:8080");
-
-export const API_BASE_URL = normalizeApiBaseUrl(effectiveApiBaseUrl);
+export const API_BASE_URL = resolveApiBaseUrl();

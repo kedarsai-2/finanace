@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">QOBOX</string>
+    <string name="title_activity_main">QOBOX</string>
+    <string name="package_name">com.qobox.app</string>
+    <string name="custom_url_scheme">com.qobox.app</string>
+</resources>
