@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260501190500-1" author="cursor">
+        <comment>Seed PERM_*_EDIT authorities for module-level edit control.</comment>
+
+        <sql>
+            insert into jhi_authority (name)
+            select authority_name
+            from (
+                values
+                    ('PERM_DASHBOARD_EDIT'),
+                    ('PERM_BUSINESSES_EDIT'),
+                    ('PERM_PARTIES_EDIT'),
+                    ('PERM_ITEMS_EDIT'),
+                    ('PERM_ASSETS_EDIT'),
+                    ('PERM_SALES_EDIT'),
+                    ('PERM_PURCHASES_EDIT'),
+                    ('PERM_PAYMENTS_EDIT'),
+                    ('PERM_ACCOUNTS_EDIT'),
+                    ('PERM_EXPENSES_EDIT'),
+                    ('PERM_REPORTS_EDIT'),
+                    ('PERM_AUDIT_EDIT'),
+                    ('PERM_ROLE_ACCESS_EDIT')
+            ) as t(authority_name)
+            where not exists (
+                select 1
+                from jhi_authority a
+                where a.name = t.authority_name
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -10,6 +10,8 @@ import { apiFetch } from "@/lib/api";
 import { getJwt, getSubjectFromToken } from "@/lib/auth";
 import {
   RBAC_MODULES,
+  deleteAuthorityForModule,
+  editAuthorityForModule,
   readAuthorityForModule,
   writeAuthorityForModule,
   type RbacModuleKey,
@@ -80,20 +82,28 @@ function roleLabel(role: string) {
 function roleTemplate(role: string): {
   read: Record<RbacModuleKey, boolean>;
   write: Record<RbacModuleKey, boolean>;
+  edit: Record<RbacModuleKey, boolean>;
+  del: Record<RbacModuleKey, boolean>;
 } {
   const read = {} as Record<RbacModuleKey, boolean>;
   const write = {} as Record<RbacModuleKey, boolean>;
+  const edit = {} as Record<RbacModuleKey, boolean>;
+  const del = {} as Record<RbacModuleKey, boolean>;
   for (const module of RBAC_MODULES) {
     read[module.key] = false;
     write[module.key] = false;
+    edit[module.key] = false;
+    del[module.key] = false;
   }
 
   if (role === "ROLE_ADMIN") {
     for (const module of RBAC_MODULES) {
       read[module.key] = true;
       write[module.key] = true;
+      edit[module.key] = true;
+      del[module.key] = true;
     }
-    return { read, write };
+    return { read, write, edit, del };
   }
 
   if (role === "ROLE_MANAGER" || role === "ROLE_USER") {
@@ -101,8 +111,10 @@ function roleTemplate(role: string): {
       if (module.key === "audit" || module.key === "role_access") continue;
       read[module.key] = true;
       write[module.key] = true;
+      edit[module.key] = true;
+      del[module.key] = true;
     }
-    return { read, write };
+    return { read, write, edit, del };
   }
 
   // ROLE_VIEWER
@@ -110,7 +122,7 @@ function roleTemplate(role: string): {
     if (module.key === "audit" || module.key === "role_access") continue;
     read[module.key] = true;
   }
-  return { read, write };
+  return { read, write, edit, del };
 }
 
 function RoleAccessPage() {
@@ -124,6 +136,7 @@ function RoleAccessPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<string>("ROLE_USER");
   const currentLogin = getSubjectFromToken(getJwt());
 
@@ -138,6 +151,12 @@ function RoleAccessPage() {
     {} as Record<RbacModuleKey, boolean>,
   );
   const [moduleWrite, setModuleWrite] = useState<Record<RbacModuleKey, boolean>>(
+    {} as Record<RbacModuleKey, boolean>,
+  );
+  const [moduleEdit, setModuleEdit] = useState<Record<RbacModuleKey, boolean>>(
+    {} as Record<RbacModuleKey, boolean>,
+  );
+  const [moduleDelete, setModuleDelete] = useState<Record<RbacModuleKey, boolean>>(
     {} as Record<RbacModuleKey, boolean>,
   );
 
@@ -180,16 +199,28 @@ function RoleAccessPage() {
     setSelectedHiddenTabs(map);
     const readMap = {} as Record<RbacModuleKey, boolean>;
     const writeMap = {} as Record<RbacModuleKey, boolean>;
+    const editMap = {} as Record<RbacModuleKey, boolean>;
+    const deleteMap = {} as Record<RbacModuleKey, boolean>;
     for (const module of RBAC_MODULES) {
       const canRead =
         !!selectedUser.authorities?.includes(readAuthorityForModule(module.key)) ||
-        !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key));
+        !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key)) ||
+        !!selectedUser.authorities?.includes(editAuthorityForModule(module.key)) ||
+        !!selectedUser.authorities?.includes(deleteAuthorityForModule(module.key));
       const canWrite = !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key));
+      const canEdit =
+        !!selectedUser.authorities?.includes(editAuthorityForModule(module.key)) ||
+        !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key));
+      const canDelete = !!selectedUser.authorities?.includes(deleteAuthorityForModule(module.key));
       readMap[module.key] = canRead;
       writeMap[module.key] = canWrite;
+      editMap[module.key] = canEdit;
+      deleteMap[module.key] = canDelete;
     }
     setModuleRead(readMap);
     setModuleWrite(writeMap);
+    setModuleEdit(editMap);
+    setModuleDelete(deleteMap);
   }, [selectedUser]);
 
   const toggleTab = (path: string, checked: boolean) => {
@@ -213,6 +244,8 @@ function RoleAccessPage() {
         const perms: string[] = [];
         if (tpl.read[module.key]) perms.push(readAuthorityForModule(module.key));
         if (tpl.write[module.key]) perms.push(writeAuthorityForModule(module.key));
+        if (tpl.edit[module.key]) perms.push(editAuthorityForModule(module.key));
+        if (tpl.del[module.key]) perms.push(deleteAuthorityForModule(module.key));
         return perms;
       });
       const hiddenTabs = TAB_OPTIONS.filter((tab) => !tpl.read[tab.pathToModule]).map(
@@ -235,6 +268,7 @@ function RoleAccessPage() {
           email: newEmail.trim() || undefined,
           firstName: newFirstName.trim() || undefined,
           lastName: newLastName.trim() || undefined,
+          password: newPassword.trim() || undefined,
           langKey: "en",
           activated: true,
           authorities: neededAuthorities,
@@ -247,6 +281,7 @@ function RoleAccessPage() {
       setNewEmail("");
       setNewFirstName("");
       setNewLastName("");
+      setNewPassword("");
       setNewRole("ROLE_USER");
       await loadAll();
       setSelectedLogin(createdLogin);
@@ -269,6 +304,8 @@ function RoleAccessPage() {
         const perms: string[] = [];
         if (moduleRead[module.key]) perms.push(readAuthorityForModule(module.key));
         if (moduleWrite[module.key]) perms.push(writeAuthorityForModule(module.key));
+        if (moduleEdit[module.key]) perms.push(editAuthorityForModule(module.key));
+        if (moduleDelete[module.key]) perms.push(deleteAuthorityForModule(module.key));
         return perms;
       });
       const neededAuthorities = [selectedRole, ...moduleAuthorities];
@@ -302,6 +339,8 @@ function RoleAccessPage() {
     const tpl = roleTemplate(selectedRole);
     setModuleRead(tpl.read);
     setModuleWrite(tpl.write);
+    setModuleEdit(tpl.edit);
+    setModuleDelete(tpl.del);
     const nextHidden: Record<string, true> = {};
     for (const tab of TAB_OPTIONS) {
       if (!tpl.read[tab.pathToModule]) nextHidden[tab.path] = true;
@@ -345,7 +384,7 @@ function RoleAccessPage() {
 
       <section className="mb-5 rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Create user</h2>
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-6">
           <Input
             placeholder="Login *"
             value={newLogin}
@@ -365,6 +404,12 @@ function RoleAccessPage() {
             placeholder="Last name"
             value={newLastName}
             onChange={(e) => setNewLastName(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="Temporary password (optional)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
           />
           <select
             className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -455,7 +500,7 @@ function RoleAccessPage() {
                       Apply role template
                     </Button>
                   </div>
-                  <div className="grid gap-2 md:grid-cols-2">
+                  <div className="grid gap-2">
                     {RBAC_MODULES.map((module) => (
                       <div
                         key={module.key}
@@ -472,6 +517,8 @@ function RoleAccessPage() {
                                 setModuleRead((prev) => ({ ...prev, [module.key]: checked }));
                                 if (!checked) {
                                   setModuleWrite((prev) => ({ ...prev, [module.key]: false }));
+                                  setModuleEdit((prev) => ({ ...prev, [module.key]: false }));
+                                  setModuleDelete((prev) => ({ ...prev, [module.key]: false }));
                                 }
                               }}
                             />
@@ -489,7 +536,39 @@ function RoleAccessPage() {
                                 }
                               }}
                             />
-                            Write
+                            Create
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <Checkbox
+                              checked={!!moduleEdit[module.key]}
+                              disabled={selectedIsBuiltInAdmin}
+                              onCheckedChange={(v) => {
+                                const checked = v === true;
+                                setModuleEdit((prev) => ({ ...prev, [module.key]: checked }));
+                                if (checked) {
+                                  setModuleRead((prev) => ({ ...prev, [module.key]: true }));
+                                } else {
+                                  setModuleDelete((prev) => ({ ...prev, [module.key]: false }));
+                                }
+                              }}
+                            />
+                            Edit
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <Checkbox
+                              checked={!!moduleDelete[module.key]}
+                              disabled={selectedIsBuiltInAdmin}
+                              onCheckedChange={(v) => {
+                                const checked = v === true;
+                                setModuleDelete((prev) => ({ ...prev, [module.key]: checked }));
+                                if (checked) {
+                                  setModuleRead((prev) => ({ ...prev, [module.key]: true }));
+                                  setModuleWrite((prev) => ({ ...prev, [module.key]: true }));
+                                  setModuleEdit((prev) => ({ ...prev, [module.key]: true }));
+                                }
+                              }}
+                            />
+                            Delete
                           </label>
                         </div>
                       </div>
@@ -520,6 +599,8 @@ function RoleAccessPage() {
                               if (!isChecked) {
                                 setModuleRead((prev) => ({ ...prev, [tab.pathToModule]: false }));
                                 setModuleWrite((prev) => ({ ...prev, [tab.pathToModule]: false }));
+                                setModuleEdit((prev) => ({ ...prev, [tab.pathToModule]: false }));
+                                setModuleDelete((prev) => ({ ...prev, [tab.pathToModule]: false }));
                               } else {
                                 setModuleRead((prev) => ({ ...prev, [tab.pathToModule]: true }));
                               }

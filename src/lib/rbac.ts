@@ -39,6 +39,14 @@ export function writeAuthorityForModule(module: RbacModuleKey) {
   return `PERM_${module.toUpperCase()}_WRITE`;
 }
 
+export function editAuthorityForModule(module: RbacModuleKey) {
+  return `PERM_${module.toUpperCase()}_EDIT`;
+}
+
+export function deleteAuthorityForModule(module: RbacModuleKey) {
+  return `PERM_${module.toUpperCase()}_DELETE`;
+}
+
 export function resolveRole(authorities: string[]): AppRole {
   if (authorities.includes("ROLE_ADMIN")) return "admin";
   if (authorities.includes("ROLE_VIEWER")) return "viewer";
@@ -83,23 +91,29 @@ export function canAccessPath(pathname: string, authorities: string[], isAuthed:
   if (pathname === "/login" || pathname === "/register" || pathname === "/forbidden") return true;
   if (!isAuthed) return false;
   if (authorities.includes("ROLE_ADMIN")) return true;
-  const isWritePath =
-    pathname.endsWith("/new") ||
-    pathname.endsWith("/edit") ||
-    pathname === "/accounts/transfer" ||
-    pathname === "/payments/new";
+  const isCreatePath =
+    pathname.endsWith("/new") || pathname === "/accounts/transfer" || pathname === "/payments/new";
+  const isEditPath = pathname.endsWith("/edit");
   const module = moduleForPath(pathname);
   const hasCustomModulePerms = authorities.some((a) => a.startsWith("PERM_"));
   if (!hasCustomModulePerms) {
     const role = resolveRole(authorities);
     if (module === "role_access") return hasPermission(role, "user.manage");
     if (module === "audit") return hasPermission(role, "audit.read");
-    return hasPermission(role, isWritePath ? "app.write" : "app.read");
+    return hasPermission(role, isCreatePath || isEditPath ? "app.write" : "app.read");
   }
 
   const canRead =
     authorities.includes(readAuthorityForModule(module)) ||
-    authorities.includes(writeAuthorityForModule(module));
+    authorities.includes(writeAuthorityForModule(module)) ||
+    authorities.includes(editAuthorityForModule(module)) ||
+    authorities.includes(deleteAuthorityForModule(module));
   const canWrite = authorities.includes(writeAuthorityForModule(module));
-  return isWritePath ? canWrite : canRead;
+  const canEdit =
+    authorities.includes(editAuthorityForModule(module)) ||
+    // Backward compatibility for older role mappings
+    authorities.includes(writeAuthorityForModule(module));
+  if (isCreatePath) return canWrite;
+  if (isEditPath) return canEdit;
+  return canRead;
 }
