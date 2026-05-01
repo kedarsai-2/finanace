@@ -16,7 +16,9 @@ import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
-import { getJwt } from "@/lib/auth";
+import { getAuthoritiesFromToken, getJwt } from "@/lib/auth";
+import { canAccessPath } from "@/lib/rbac";
+import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 
 function ClickProbe() {
   const [last, setLast] = useState<{ t: number; tag: string; prevented: boolean } | null>(null);
@@ -82,8 +84,17 @@ export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
     if (!USE_BACKEND) return;
     const token = getJwt();
-    if (!token && location.pathname !== "/login" && location.pathname !== "/register") {
+    if (
+      !token &&
+      location.pathname !== "/login" &&
+      location.pathname !== "/register" &&
+      location.pathname !== "/forbidden"
+    ) {
       throw redirect({ to: "/login" });
+    }
+    const authorities = getAuthoritiesFromToken(token);
+    if (!canAccessPath(location.pathname, authorities, !!token)) {
+      throw redirect({ href: "/forbidden" });
     }
   },
   head: () => ({
@@ -145,9 +156,18 @@ function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthed } = useAuth();
+  const { hiddenTabs, hydrated } = useMobileTabSettings();
 
-  const isAuthScreen = pathname === "/login" || pathname === "/register";
-  const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
+  const isPublicScreen = pathname === "/login" || pathname === "/register" || pathname === "/forbidden";
+  const shouldGate = USE_BACKEND && !isAuthed && !isPublicScreen;
+
+  useEffect(() => {
+    if (!USE_BACKEND || !isAuthed || !hydrated) return;
+    if (pathname === "/forbidden" || pathname === "/login" || pathname === "/register") return;
+    if (hiddenTabs[pathname]) {
+      void router.navigate({ href: "/forbidden" });
+    }
+  }, [hiddenTabs, hydrated, isAuthed, pathname, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -195,7 +215,7 @@ function RootComponent() {
     );
   }
 
-  if (isAuthScreen) {
+  if (isPublicScreen) {
     return (
       <div className="min-h-screen">
         <Outlet />

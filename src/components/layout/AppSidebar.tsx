@@ -18,11 +18,14 @@ import {
   Banknote,
   KeyRound,
   SlidersHorizontal,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { changeActionPassword } from "@/lib/actionPassword";
 import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 import { useAuth } from "@/hooks/useAuth";
+import { USE_BACKEND } from "@/lib/flags";
+import { canAccessPath } from "@/lib/rbac";
 import { toast } from "sonner";
 
 const navLinks = [
@@ -41,16 +44,21 @@ const navLinks = [
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/audit", label: "Audit", icon: History },
+  { to: "/role-access", label: "Role Access", icon: ShieldCheck },
 ] as const;
 
 export function AppSidebar() {
   const { hiddenTabs, hydrated, isNative, saveHiddenTabs } = useMobileTabSettings();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthed, authorities } = useAuth();
   const [showCustomize, setShowCustomize] = useState(false);
 
+  const permittedLinks = useMemo(
+    () => (USE_BACKEND ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed)) : navLinks),
+    [authorities, isAuthed],
+  );
   const visibleLinks = useMemo(
-    () => (isNative ? navLinks.filter((l) => !hiddenTabs[l.to]) : navLinks),
-    [hiddenTabs, isNative],
+    () => permittedLinks.filter((l) => !hiddenTabs[l.to]),
+    [hiddenTabs, permittedLinks],
   );
 
   const toggleTab = async (to: string) => {
@@ -78,7 +86,7 @@ export function AppSidebar() {
           return (
             <Link
               key={l.to}
-              to={l.to}
+              to={l.to as never}
               activeOptions={{ exact: l.to === "/" }}
               className={cn(
                 "hover-lift group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
+import { canAccessPath } from "@/lib/rbac";
 
 const navLinks = [
   { to: "/", label: "Dashboard" },
@@ -27,14 +28,18 @@ const navLinks = [
   { to: "/expenses", label: "Expenses" },
   { to: "/reports", label: "Reports" },
   { to: "/audit", label: "Audit" },
+  { to: "/role-access", label: "Role Access" },
 ] as const;
 
 export function AppHeader() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthed, logout } = useAuth();
-  const { hiddenTabs, isNative } = useMobileTabSettings();
-  const visibleLinks = isNative ? navLinks.filter((l) => !hiddenTabs[l.to]) : navLinks;
+  const { isAuthed, logout, authorities } = useAuth();
+  const { hiddenTabs } = useMobileTabSettings();
+  const permittedLinks = USE_BACKEND
+    ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed))
+    : navLinks;
+  const visibleLinks = permittedLinks.filter((l) => !hiddenTabs[l.to]);
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
@@ -56,7 +61,7 @@ export function AppHeader() {
               {visibleLinks.map((l) => (
                 <Link
                   key={l.to}
-                  to={l.to}
+                  to={l.to as never}
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: l.to === "/" }}
                   className={cn(

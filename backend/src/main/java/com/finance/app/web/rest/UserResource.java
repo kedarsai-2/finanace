@@ -4,6 +4,7 @@ import com.finance.app.config.Constants;
 import com.finance.app.domain.User;
 import com.finance.app.repository.UserRepository;
 import com.finance.app.security.AuthoritiesConstants;
+import com.finance.app.security.SecurityUtils;
 import com.finance.app.service.MailService;
 import com.finance.app.service.UserService;
 import com.finance.app.service.dto.AdminUserDTO;
@@ -118,6 +119,14 @@ public class UserResource {
             throw new EmailAlreadyUsedException();
         } else {
             User newUser = userService.createUser(userDTO);
+            String actor = SecurityUtils.getCurrentUserLogin().orElse("system");
+            LOG.info(
+                "RBAC_CHANGE create_user actor={} target={} authorities={} hiddenTabs={}",
+                actor,
+                newUser.getLogin(),
+                userDTO.getAuthorities(),
+                userDTO.getMobileHiddenTabs()
+            );
             mailService.sendCreationEmail(newUser);
             return ResponseEntity.created(new URI("/api/admin/users/" + newUser.getLogin()))
                 .headers(
@@ -151,6 +160,14 @@ public class UserResource {
             throw new LoginAlreadyUsedException();
         }
         Optional<AdminUserDTO> updatedUser = userService.updateUser(userDTO);
+        String actor = SecurityUtils.getCurrentUserLogin().orElse("system");
+        LOG.info(
+            "RBAC_CHANGE update_user actor={} target={} authorities={} hiddenTabs={}",
+            actor,
+            userDTO.getLogin(),
+            userDTO.getAuthorities(),
+            userDTO.getMobileHiddenTabs()
+        );
 
         return ResponseUtil.wrapOrNotFound(
             updatedUser,
@@ -204,6 +221,8 @@ public class UserResource {
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<Void> deleteUser(@PathVariable("login") @Pattern(regexp = Constants.LOGIN_REGEX) String login) {
         LOG.debug("REST request to delete User: {}", login);
+        String actor = SecurityUtils.getCurrentUserLogin().orElse("system");
+        LOG.info("RBAC_CHANGE delete_user actor={} target={}", actor, login);
         userService.deleteUser(login);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createAlert(applicationName, "A user is deleted with identifier " + login, login))

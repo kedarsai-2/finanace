@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260501153000-1" author="cursor">
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_DASHBOARD_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_DASHBOARD_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_BUSINESSES_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_BUSINESSES_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PARTIES_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PARTIES_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ITEMS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ITEMS_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ASSETS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ASSETS_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_SALES_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_SALES_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PURCHASES_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PURCHASES_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PAYMENTS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_PAYMENTS_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ACCOUNTS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ACCOUNTS_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_EXPENSES_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_EXPENSES_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_REPORTS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_REPORTS_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_AUDIT_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_AUDIT_WRITE"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ROLE_ACCESS_READ"/>
+        </insert>
+        <insert tableName="jhi_authority">
+            <column name="name" value="PERM_ROLE_ACCESS_WRITE"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

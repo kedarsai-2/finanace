@@ -83,6 +83,7 @@ export function useMobileTabSettings() {
   return useMemo(
     () => ({
       hiddenTabs,
+      hiddenTabList: Object.keys(hiddenTabs),
       hydrated,
       saveHiddenTabs,
       isNative,

@@ -1,19 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { clearJwt, getJwt, setJwt, subscribeAuth } from "@/lib/auth";
+import { clearJwt, getAuthoritiesFromToken, getJwt, setJwt, subscribeAuth } from "@/lib/auth";
 import { API_BASE_URL } from "@/lib/flags";
-
-function parseJwtClaims(token: string | null): Record<string, unknown> | null {
-  if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
 
 function normalizeAuthNetworkError(error: unknown): Error {
   if (!(error instanceof TypeError)) {
@@ -27,12 +14,7 @@ function normalizeAuthNetworkError(error: unknown): Error {
 export function useAuth() {
   const token = useSyncExternalStore(subscribeAuth, getJwt, () => null);
   const isAuthed = !!token;
-  const claims = parseJwtClaims(token);
-  const rawAuthorities = typeof claims?.auth === "string" ? claims.auth : "";
-  const authorities = rawAuthorities
-    .split(" ")
-    .map((x) => x.trim())
-    .filter(Boolean);
+  const authorities = getAuthoritiesFromToken(token);
   const isAdmin = authorities.includes("ROLE_ADMIN");
 
   const login = useCallback(async (username: string, password: string) => {
