@@ -8,7 +8,7 @@ import {
   useRouterState,
   redirect,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -22,8 +22,10 @@ function normalizeTabTitle(rawTitle: string) {
   const title = rawTitle.trim();
   if (!title) return title;
 
-  // Keep brand-only pages clean.
-  if (/^qobox(\s*[-—].*)?$/i.test(title)) return "QOBOX";
+  // During route transitions TanStack can briefly emit the root marketing title.
+  // Keep the tab stable and in requested format.
+  if (/^qobox\s*[-—]\s*/i.test(title)) return "Dashboard - QOBOX";
+  if (/^qobox$/i.test(title)) return "QOBOX";
 
   // Take the left-most semantic page segment and force "Page - QOBOX".
   const pageName = title.split(/\s[—-]\s/)[0]?.trim() || title;
@@ -161,7 +163,7 @@ function RootComponent() {
   const isAuthScreen = pathname === "/login" || pathname === "/register";
   const shouldGate = USE_BACKEND && !isAuthed && !isAuthScreen;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof document === "undefined") return;
     const current = (document.title || "").trim();
     if (!current) return;

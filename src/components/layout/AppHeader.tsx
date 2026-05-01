@@ -48,10 +48,9 @@ export function AppHeader() {
             <Link
               to="/"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-4 py-4"
+              className="px-4 py-4"
             >
-              <img src="/favicon.png" alt="QOBOX" className="h-9 w-9 object-contain" />
-              <span className="text-sm font-bold tracking-tight">QOBOX</span>
+              <img src="/qobox-wordmark.png" alt="QOBOX" className="h-10 w-auto object-contain" />
             </Link>
             <nav className="flex flex-col gap-0.5 px-2">
               {visibleLinks.map((l) => (

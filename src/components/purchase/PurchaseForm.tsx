@@ -707,12 +707,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   <Button
                     variant="outline"
                     className={cn(
-                      "h-10 w-full justify-between font-normal",
-                      !dueDate && "text-muted-foreground",
+                      "h-10 w-full justify-between font-normal text-white hover:text-white",
+                      !dueDate && "text-white/80",
                     )}
                   >
                     {dueDate ? format(dueDate, "dd MMM yyyy") : "Not set"}
-                    <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
+                    <CalendarIcon className="ml-2 h-4 w-4 text-white/85" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
