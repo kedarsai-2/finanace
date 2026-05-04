@@ -61,15 +61,15 @@ export function AppSidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
-      <Link to="/" className="flex h-16 items-center justify-center border-b border-white/40 px-4">
+      <Link to="/" className="flex h-20 items-center justify-center border-b border-white/25 px-4">
         <img
           src="/qobox-wordmark.png"
           alt="QOBOX"
-          className="h-10 w-auto max-w-[180px] object-contain"
+          className="h-11 w-auto max-w-[190px] bg-transparent object-contain mix-blend-multiply"
         />
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4 mt-4">
+      <nav className="mt-4 flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-4">
         {visibleLinks.map((l) => {
           const Icon = l.icon;
           return (
@@ -78,15 +78,15 @@ export function AppSidebar() {
               to={l.to as never}
               activeOptions={{ exact: l.to === "/" }}
               className={cn(
-                "hover-lift group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                "hover-lift group relative flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-white/10 hover:text-sidebar-foreground",
               )}
               activeProps={{
                 className:
-                  "bg-gradient-to-r from-sidebar-primary/55 via-[#a694ff]/45 to-transparent text-sidebar-foreground shadow-[inset_2px_0_0_0_var(--sidebar-primary)]",
+                  "bg-gradient-to-r from-white/30 via-white/12 to-transparent text-sidebar-foreground shadow-[inset_2px_0_0_0_rgba(255,255,255,0.55)]",
               }}
             >
-              <Icon className="h-4 w-4" />
-              <span>{l.label}</span>
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="text-base leading-6">{l.label}</span>
             </Link>
           );
         })}
