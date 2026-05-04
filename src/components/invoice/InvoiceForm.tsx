@@ -1330,9 +1330,7 @@ function PaymentSplitsEditor({
                   value={s.accountId ?? ""}
                   onValueChange={(v) => onChange(s.id, { accountId: v || undefined })}
                   disabled={
-                    disabled ||
-                    isLockedSource ||
-                    (s.mode === "cash" && accountOptions.length === 0)
+                    disabled || isLockedSource || (s.mode === "cash" && accountOptions.length === 0)
                   }
                 >
                   <SelectTrigger>

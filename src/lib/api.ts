@@ -12,7 +12,10 @@ export class ApiError extends Error {
   }
 }
 
-function normalizeNativeBody(body: BodyInit | null | undefined, contentType: string | undefined): unknown {
+function normalizeNativeBody(
+  body: BodyInit | null | undefined,
+  contentType: string | undefined,
+): unknown {
   if (!body) return undefined;
   if (typeof body === "string") {
     if (contentType?.includes("application/json")) {
@@ -72,7 +75,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       throw new ApiError(text || `HTTP ${nativeResponse.status}`, nativeResponse.status, text);
     }
 
-    if (nativeResponse.status === 204 || nativeResponse.data == null || nativeResponse.data === "") {
+    if (
+      nativeResponse.status === 204 ||
+      nativeResponse.data == null ||
+      nativeResponse.data === ""
+    ) {
       return undefined as T;
     }
 

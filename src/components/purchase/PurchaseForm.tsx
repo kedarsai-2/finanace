@@ -212,15 +212,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       initialSourceSplitsRef.current = {};
       seededPaymentsForPurchaseRef.current = null;
     }
-  }, [
-    existing,
-    hydrated,
-    activeId,
-    allPurchases,
-    ensureLines,
-    paymentRecords,
-    paymentsHydrated,
-  ]);
+  }, [existing, hydrated, activeId, allPurchases, ensureLines, paymentRecords, paymentsHydrated]);
 
   useEffect(() => {
     if (!purchaseAccountId && paymentAccounts[0]?.id) {

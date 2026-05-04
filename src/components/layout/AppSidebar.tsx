@@ -69,7 +69,7 @@ export function AppSidebar() {
         />
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4 mt-4">
         {visibleLinks.map((l) => {
           const Icon = l.icon;
           return (

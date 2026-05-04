@@ -29,13 +29,23 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
   const currency = business?.currency ?? "INR";
   const resolvedMode =
     lastPayment?.mode ??
-    (payToAccount?.type === "cash" ? "cash" : payToAccount ? "bank" : invoice.paidAmount > 0 ? "cash" : undefined);
+    (payToAccount?.type === "cash"
+      ? "cash"
+      : payToAccount
+        ? "bank"
+        : invoice.paidAmount > 0
+          ? "cash"
+          : undefined);
   const paymentModeLabel = resolvedMode ? PAYMENT_MODE_LABEL[resolvedMode] : "—";
   const paymentModeValue =
     resolvedMode === "cash"
       ? "CASH"
       : resolvedMode
-        ? (payToAccount?.name ?? lastPayment?.account ?? PAYMENT_MODE_LABEL[resolvedMode]).toUpperCase()
+        ? (
+            payToAccount?.name ??
+            lastPayment?.account ??
+            PAYMENT_MODE_LABEL[resolvedMode]
+          ).toUpperCase()
         : "—";
 
   return (
@@ -193,7 +203,10 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           <KV label="Total" value={formatCurrency(invoice.total, currency)} highlight />
           <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
           <KV label="Balance" value={formatCurrency(balance, currency)} />
-          <KV label={paymentModeLabel === "—" ? "Payment mode" : "Payment mode"} value={paymentModeValue} />
+          <KV
+            label={paymentModeLabel === "—" ? "Payment mode" : "Payment mode"}
+            value={paymentModeValue}
+          />
           <KV label="Previous Balance" value={formatCurrency(0, currency)} />
           <KV label="Current Balance" value={formatCurrency(0, currency)} />
         </div>
@@ -208,7 +221,9 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           ) : payToAccount ? (
             <div className="mt-1 space-y-0.5 leading-relaxed">
               <div>Bank Name : {payToAccount.name}</div>
-              {payToAccount.accountNumber && <div>Bank Account No. : {payToAccount.accountNumber}</div>}
+              {payToAccount.accountNumber && (
+                <div>Bank Account No. : {payToAccount.accountNumber}</div>
+              )}
               {payToAccount.ifsc && <div>Bank IFSC code : {payToAccount.ifsc}</div>}
               <div>Account holder&apos;s name : {business?.name ?? "—"}</div>
             </div>

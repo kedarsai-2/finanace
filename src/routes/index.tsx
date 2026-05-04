@@ -62,10 +62,7 @@ function DashboardPage() {
   const { purchases, returns } = usePurchases(scopedBusinessId);
   const { payments } = usePayments(scopedBusinessId);
   const { expenses } = useExpenses(scopedBusinessId);
-  const { accounts } = useAccounts(
-    scopedBusinessId,
-    businessIds,
-  );
+  const { accounts } = useAccounts(scopedBusinessId, businessIds);
   const { transfers } = useTransfers(scopedBusinessId);
 
   const [range, setRange] = useState<Range>("6m");

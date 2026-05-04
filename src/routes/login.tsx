@@ -85,7 +85,11 @@ function LoginPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full gap-2 primary-gradient primary-glow" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full gap-2 primary-gradient primary-glow"
+            disabled={loading}
+          >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Sign in
           </Button>

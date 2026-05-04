@@ -137,8 +137,8 @@ function PurchasesPage() {
     for (const p of purchases) {
       if (p.status === "cancelled") continue;
       total += p.total;
-       paid += Math.max(0, p.paidAmount ?? 0);
-       balance += Math.max(0, p.total - (p.paidAmount ?? 0));
+      paid += Math.max(0, p.paidAmount ?? 0);
+      balance += Math.max(0, p.total - (p.paidAmount ?? 0));
       count += 1;
     }
     return { total, paid, balance, count };

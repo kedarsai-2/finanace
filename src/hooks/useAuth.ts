@@ -5,7 +5,10 @@ import { API_BASE_URL } from "@/lib/flags";
 
 function normalizeAuthNetworkError(error: unknown): Error {
   const message = error instanceof Error ? error.message : "Request failed";
-  if (error instanceof TypeError || /network|timeout|unable to resolve host|failed to connect/i.test(message)) {
+  if (
+    error instanceof TypeError ||
+    /network|timeout|unable to resolve host|failed to connect/i.test(message)
+  ) {
     return new Error(
       "Cannot reach backend. The server may be starting up (wait 30s and retry), or check your internet connection.",
     );
@@ -60,10 +63,10 @@ export function useAuth() {
   const login = useCallback(async (username: string, password: string) => {
     let json: { id_token?: string };
     try {
-      json = await postJson<{ username: string; password: string; rememberMe: boolean }, { id_token?: string }>(
-        "/api/authenticate",
-        { username, password, rememberMe: true },
-      );
+      json = await postJson<
+        { username: string; password: string; rememberMe: boolean },
+        { id_token?: string }
+      >("/api/authenticate", { username, password, rememberMe: true });
     } catch (error) {
       throw normalizeAuthNetworkError(error);
     }
