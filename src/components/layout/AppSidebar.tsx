@@ -61,11 +61,11 @@ export function AppSidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
-      <Link to="/" className="flex h-20 items-center justify-center border-b border-white/25 px-4">
+      <Link to="/" className="flex h-16 items-center justify-center border-b border-white/20 px-4">
         <img
           src="/qobox-wordmark.png"
           alt="QOBOX"
-          className="h-11 w-auto max-w-[190px] bg-transparent object-contain mix-blend-multiply"
+          className="h-10 w-auto max-w-[180px] bg-transparent object-contain mix-blend-multiply brightness-125 contrast-110"
         />
       </Link>
 
