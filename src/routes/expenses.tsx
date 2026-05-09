@@ -141,6 +141,10 @@ function ExpensesPage() {
       return "bank";
     return "cash";
   };
+  const normalizeMobile = (raw: unknown): string | undefined => {
+    const digits = String(raw ?? "").replace(/\D/g, "");
+    return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
+  };
 
   const handleBulkImport = async (file?: File | null) => {
     if (!file) return;
@@ -177,7 +181,9 @@ function ExpensesPage() {
       let createdCategories = 0;
       let createdItems = 0;
       const partiesByName = new Map(
-        parties.map((p) => [p.name.trim().toLowerCase(), p] as const),
+        parties
+          .filter((p) => p.businessId === activeId)
+          .map((p) => [p.name.trim().toLowerCase(), p] as const),
       );
       const categoriesByName = new Map(
         categories.map((c) => [c.name.trim().toLowerCase(), c] as const),
@@ -212,7 +218,7 @@ function ExpensesPage() {
             id: "",
             businessId: activeId,
             name: partyNameRaw,
-            mobile: String(row["Party Phone No."] ?? row["Phone"] ?? "").trim(),
+            mobile: normalizeMobile(row["Party Phone No."] ?? row["Phone"]),
             gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
             state: String(row["State"] ?? "").trim() || undefined,
             city: String(row["City"] ?? "").trim() || undefined,

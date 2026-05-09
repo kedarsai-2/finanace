@@ -259,6 +259,10 @@ function InvoicesPage() {
     const parsed = new Date(value);
     return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
   };
+  const normalizeMobile = (raw: unknown): string | undefined => {
+    const digits = String(raw ?? "").replace(/\D/g, "");
+    return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
+  };
 
   const handleBulkImport = async (file?: File | null) => {
     if (!file) return;
@@ -344,7 +348,11 @@ function InvoicesPage() {
           return `${dateKey}|${partyKey}|${invoiceNoKey}|${Number(i.total).toFixed(2)}`;
         }),
       );
-      const partiesByName = new Map(parties.map((p) => [p.name.trim().toLowerCase(), p] as const));
+      const partiesByName = new Map(
+        parties
+          .filter((p) => p.businessId === activeId)
+          .map((p) => [p.name.trim().toLowerCase(), p] as const),
+      );
 
       for (const row of rows) {
         const mapped = mapSalesReportRowToInvoiceFields(row);
@@ -360,7 +368,7 @@ function InvoicesPage() {
             id: "",
             businessId: activeId,
             name: partyName,
-            mobile: String(mapped.partyPhoneNo ?? "").trim(),
+            mobile: normalizeMobile(mapped.partyPhoneNo) ?? "",
             gstNumber: String(mapped.gstin ?? "").trim() || undefined,
             openingBalance: 0,
             balance: 0,

@@ -235,6 +235,10 @@ function PurchasesPage() {
       return "bank";
     return "cash";
   };
+  const normalizeMobile = (raw: unknown): string | undefined => {
+    const digits = String(raw ?? "").replace(/\D/g, "");
+    return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
+  };
 
   const handleBulkImport = async (file?: File | null) => {
     if (!file) return;
@@ -292,7 +296,9 @@ function PurchasesPage() {
       let createdItems = 0;
       const existingForNumber = purchases.map((p) => ({ number: p.number, businessId: p.businessId }));
       const partiesByName = new Map(
-        parties.map((p) => [p.name.trim().toLowerCase(), p] as const),
+        parties
+          .filter((p) => p.businessId === activeId)
+          .map((p) => [p.name.trim().toLowerCase(), p] as const),
       );
       const itemNames = new Set(items.map((it) => it.name.trim().toLowerCase()).filter(Boolean));
       const purchaseKeys = new Set(
@@ -317,7 +323,7 @@ function PurchasesPage() {
             id: "",
             businessId: activeId,
             name: partyName,
-            mobile: String(row["Party Phone No."] ?? "").trim(),
+            mobile: normalizeMobile(row["Party Phone No."]) ?? "",
             gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
             state: String(row["State"] ?? "").trim() || undefined,
             city: String(row["City"] ?? "").trim() || undefined,
