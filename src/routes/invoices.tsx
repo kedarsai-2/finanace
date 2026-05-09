@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -145,6 +146,8 @@ function InvoicesPage() {
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
   const [importing, setImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(to) : undefined;
@@ -209,6 +212,24 @@ function InvoicesPage() {
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
+  const allVisibleSelected = visible.length > 0 && visible.every((i) => selectedIds.has(i.id));
+  const selectedCount = visible.filter((i) => selectedIds.has(i.id)).length;
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) visible.forEach((i) => next.add(i.id));
+      else visible.forEach((i) => next.delete(i.id));
+      return next;
+    });
+  };
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
   const monthOptions = useMemo(
     () =>
       Array.from({ length: 12 }).map((_, idx) => {
@@ -253,9 +274,35 @@ function InvoicesPage() {
       toast.error(message);
     }
   };
+  const confirmBulkDelete = async () => {
+    const ids = visible.map((i) => i.id).filter((id) => selectedIds.has(id));
+    if (!ids.length) return;
+    if (!verifyActionPassword()) return;
+    try {
+      for (const id of ids) {
+        await remove(id);
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setShowBulkDeleteConfirm(false);
+      toast.success(`Deleted ${ids.length} sales`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete selected sales";
+      toast.error(message);
+    }
+  };
   const parseDate = (raw: unknown) => {
     const value = String(raw ?? "").trim();
     if (!value) return new Date().toISOString();
+    const ddmmyyyy = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (ddmmyyyy) {
+      const [, dd, mm, yyyy] = ddmmyyyy;
+      const parsed = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+    }
     const parsed = new Date(value);
     return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
   };
@@ -339,6 +386,7 @@ function InvoicesPage() {
       let skipped = 0;
       let duplicates = 0;
       let createdParties = 0;
+      const importedDateKeys: string[] = [];
       const existingForNumber = invoices.map((i) => ({ number: i.number, businessId: i.businessId }));
       const invoiceKeys = new Set(
         invoices.map((i) => {
@@ -380,6 +428,7 @@ function InvoicesPage() {
 
         const importedDate = parseDate(row["Date"]);
         const dateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        importedDateKeys.push(dateKey);
         const invoiceNoKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
         const totalHint = Number(mapped.total ?? 0);
         const dedupeKey = `${dateKey}|${partyNameKey}|${invoiceNoKey}|${totalHint.toFixed(2)}`;
@@ -457,10 +506,15 @@ function InvoicesPage() {
       }
 
       if (created === 0) toast.error("No valid rows imported");
-      else
+      else {
+        if (importedDateKeys.length > 0) {
+          const sorted = [...importedDateKeys].sort();
+          setSearch({ from: sorted[0], to: sorted[sorted.length - 1] });
+        }
         toast.success(
-          `Imported ${created} sales${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
+          `Bulk import successful: Imported ${created} sales${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
         );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Bulk import failed";
       toast.error(message);
@@ -537,6 +591,17 @@ function InvoicesPage() {
               >
                 <Upload className="h-4 w-4" />
                 {importing ? "Importing..." : "Bulk Import"}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="lg"
+                className="gap-2"
+                disabled={selectedCount === 0}
+                onClick={() => setShowBulkDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Bulk Delete{selectedCount ? ` (${selectedCount})` : ""}
               </Button>
               <Button asChild size="lg" className="gap-2">
               <Link to="/invoices/new">
@@ -647,6 +712,10 @@ function InvoicesPage() {
             invoices={visible}
             currency={currency}
             paymentTypeByInvoiceId={paymentTypeByInvoiceId}
+            selectedIds={selectedIds}
+            allSelected={allVisibleSelected}
+            onToggleSelectAll={toggleSelectAllVisible}
+            onToggleSelectOne={toggleSelectOne}
             onDelete={setDeleting}
             onCancel={setCancelling}
           />
@@ -685,6 +754,25 @@ function InvoicesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Keep invoice</AlertDialogCancel>
             <AlertDialogAction onClick={confirmCancel}>Cancel invoice</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected sales?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will hide {selectedCount} selected sales records from your list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -830,18 +918,33 @@ function InvoicesTable({
   invoices,
   currency,
   paymentTypeByInvoiceId,
+  selectedIds,
+  allSelected,
+  onToggleSelectAll,
+  onToggleSelectOne,
   onDelete,
   onCancel,
 }: {
   invoices: Invoice[];
   currency: string;
   paymentTypeByInvoiceId: Map<string, Set<string>>;
+  selectedIds: Set<string>;
+  allSelected: boolean;
+  onToggleSelectAll: (checked: boolean) => void;
+  onToggleSelectOne: (id: string, checked: boolean) => void;
   onDelete: (i: Invoice) => void;
   onCancel: (i: Invoice) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[120px_100px_1.6fr_110px_110px_110px_180px] items-center gap-3 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[36px_120px_100px_1.6fr_110px_110px_110px_180px] items-center gap-3 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+        <span className="flex justify-center">
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={(v) => onToggleSelectAll(!!v)}
+            aria-label="Select all sales"
+          />
+        </span>
         <span>Invoice</span>
         <span>Date</span>
         <span>Party / Type</span>
@@ -866,8 +969,15 @@ function InvoicesTable({
           return (
             <li
               key={inv.id}
-              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[120px_100px_1.6fr_110px_110px_110px_180px] sm:gap-3"
+              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[36px_120px_100px_1.6fr_110px_110px_110px_180px] sm:gap-3"
             >
+              <div className="flex justify-start sm:justify-center">
+                <Checkbox
+                  checked={selectedIds.has(inv.id)}
+                  onCheckedChange={(v) => onToggleSelectOne(inv.id, !!v)}
+                  aria-label={`Select ${inv.number}`}
+                />
+              </div>
               <Link
                 to="/invoices/$id"
                 params={{ id: inv.id }}
