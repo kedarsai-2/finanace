@@ -38,10 +38,9 @@ public class Party implements Serializable {
     @Column(name = "type", nullable = false)
     private PartyType type;
 
-    @NotNull
     @Size(max = 10)
     @Pattern(regexp = "^[6-9][0-9]{9}$")
-    @Column(name = "mobile", length = 10, nullable = false)
+    @Column(name = "mobile", length = 10)
     private String mobile;
 
     @Size(max = 254)

@@ -17,12 +17,19 @@ export interface InvoiceLine {
   id: string;
   itemId?: string;
   name: string;
+  itemCode?: string;
+  hsnSac?: string;
+  category?: string;
+  challanOrderNo?: string;
   qty: number;
   unit: string;
   rate: number;
   discountKind: DiscountKind;
   discountValue: number;
   taxPercent: number;
+  taxAmount?: number;
+  transactionType?: string;
+  lineAmount?: number;
 }
 
 export interface Invoice {
@@ -35,6 +42,15 @@ export interface Invoice {
   dueDate?: string; // ISO
   paymentTermsDays?: number;
   invoiceType?: InvoiceType;
+  orderNo?: string;
+  invoiceNo?: string;
+  gstin?: string;
+  partyPhoneNo?: string;
+  transactionType?: string;
+  paymentType?: string;
+  receivedPaidAmount?: number;
+  balanceDue?: number;
+  paymentBreakupJson?: string;
   partyId: string;
   partyName: string; // denormalised for fast list rendering
   /** Cached at save time; used for GST type (intra/inter-state). */

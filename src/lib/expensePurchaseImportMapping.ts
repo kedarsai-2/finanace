@@ -1,4 +1,5 @@
 import type { Expense } from "@/types/expense";
+import type { Invoice, InvoiceLine } from "@/types/invoice";
 import type { Purchase, PurchaseLine } from "@/types/purchase";
 
 type Row = Record<string, unknown>;
@@ -48,6 +49,41 @@ export const PURCHASE_REPORT_HEADERS = [
 ] as const;
 
 export const PURCHASE_ITEM_HEADERS = [
+  "Date",
+  "Invoice No./Txn No.",
+  "Party Name",
+  "Item Name",
+  "Item Code",
+  "HSN/SAC",
+  "Category",
+  "Challan/Order No.",
+  "Quantity",
+  "Unit",
+  "UnitPrice",
+  "Discount Percent",
+  "Discount",
+  "Tax Percent",
+  "Tax",
+  "Transaction Type",
+  "Amount",
+] as const;
+
+export const SALES_REPORT_HEADERS = [
+  "Date",
+  "Order No",
+  "Invoice No",
+  "Party Name",
+  "GSTIN",
+  "Party Phone No.",
+  "Transaction Type",
+  "Total Amount",
+  "Payment Type",
+  "Received/Paid Amount",
+  "Balance Due",
+  "Description",
+] as const;
+
+export const SALES_ITEM_HEADERS = [
   "Date",
   "Invoice No./Txn No.",
   "Party Name",
@@ -141,6 +177,47 @@ export function mapPurchaseReportRowToPurchaseFields(row: Row): Partial<Purchase
 export function mapPurchaseItemRowToPurchaseLineFields(row: Row): Partial<PurchaseLine> {
   return {
     name: asText(pick(row, "Item Name")) ?? "",
+    hsnSac: asText(pick(row, "HSN/SAC", "HSN", "SAC")),
+    category: asText(pick(row, "Category")),
+    challanOrderNo: asText(pick(row, "Challan/Order No.", "Challan/Order No")),
+    qty: asNumber(pick(row, "Quantity")) ?? 0,
+    unit: asText(pick(row, "Unit")) ?? "pcs",
+    rate: asNumber(pick(row, "UnitPrice", "Unit Price")) ?? 0,
+    discountKind: "percent",
+    discountValue: asNumber(pick(row, "Discount Percent", "Discount")) ?? 0,
+    taxPercent: asNumber(pick(row, "Tax Percent")) ?? 0,
+    taxAmount: asNumber(pick(row, "Tax")),
+    transactionType: asText(pick(row, "Transaction Type")),
+    lineAmount: asNumber(pick(row, "Amount")),
+  };
+}
+
+export function mapSalesReportRowToInvoiceFields(row: Row): Partial<Invoice> {
+  const paymentBreakup = Object.fromEntries(
+    Object.entries(row)
+      .filter(([k, v]) => !SALES_REPORT_HEADERS.includes(k as (typeof SALES_REPORT_HEADERS)[number]))
+      .map(([k, v]) => [k, asNumber(v) ?? 0])
+      .filter(([, v]) => v > 0),
+  );
+  return {
+    orderNo: asText(pick(row, "Order No", "Order No.")),
+    invoiceNo: asText(pick(row, "Invoice No", "Invoice No.")),
+    gstin: asText(pick(row, "GSTIN", "GST No", "GST Number")),
+    partyPhoneNo: asText(pick(row, "Party Phone No.", "Party Phone No", "Phone")),
+    transactionType: asText(pick(row, "Transaction Type")),
+    total: asNumber(pick(row, "Total Amount")) ?? 0,
+    paymentType: asText(pick(row, "Payment Type")),
+    receivedPaidAmount: asNumber(pick(row, "Received/Paid Amount")),
+    balanceDue: asNumber(pick(row, "Balance Due")),
+    notes: asText(pick(row, "Description")),
+    paymentBreakupJson: Object.keys(paymentBreakup).length ? JSON.stringify(paymentBreakup) : undefined,
+  };
+}
+
+export function mapSalesItemRowToInvoiceLineFields(row: Row): Partial<InvoiceLine> {
+  return {
+    name: asText(pick(row, "Item Name")) ?? "",
+    itemCode: asText(pick(row, "Item Code")),
     hsnSac: asText(pick(row, "HSN/SAC", "HSN", "SAC")),
     category: asText(pick(row, "Category")),
     challanOrderNo: asText(pick(row, "Challan/Order No.", "Challan/Order No")),

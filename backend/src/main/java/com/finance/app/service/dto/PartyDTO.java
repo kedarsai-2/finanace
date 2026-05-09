@@ -22,7 +22,6 @@ public class PartyDTO implements Serializable {
     @NotNull
     private PartyType type;
 
-    @NotNull
     @Size(max = 10)
     @Pattern(regexp = "^[6-9][0-9]{9}$")
     private String mobile;

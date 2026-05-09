@@ -53,6 +53,42 @@ public class Invoice implements Serializable {
     @Column(name = "invoice_type", length = 20)
     private String invoiceType;
 
+    @Size(max = 120)
+    @Column(name = "order_no", length = 120)
+    private String orderNo;
+
+    @Size(max = 120)
+    @Column(name = "invoice_no", length = 120)
+    private String invoiceNo;
+
+    @Size(max = 40)
+    @Column(name = "gstin", length = 40)
+    private String gstin;
+
+    @Size(max = 30)
+    @Column(name = "party_phone_no", length = 30)
+    private String partyPhoneNo;
+
+    @Size(max = 80)
+    @Column(name = "transaction_type", length = 80)
+    private String transactionType;
+
+    @Size(max = 80)
+    @Column(name = "payment_type", length = 80)
+    private String paymentType;
+
+    @DecimalMin(value = "0")
+    @Column(name = "received_paid_amount", precision = 21, scale = 2)
+    private BigDecimal receivedPaidAmount;
+
+    @DecimalMin(value = "0")
+    @Column(name = "balance_due", precision = 21, scale = 2)
+    private BigDecimal balanceDue;
+
+    @Size(max = 4000)
+    @Column(name = "payment_breakup_json", length = 4000)
+    private String paymentBreakupJson;
+
     @NotNull
     @Size(max = 200)
     @Column(name = "party_name", length = 200, nullable = false)
@@ -259,6 +295,123 @@ public class Invoice implements Serializable {
 
     public void setInvoiceType(String invoiceType) {
         this.invoiceType = invoiceType;
+    }
+
+    public String getOrderNo() {
+        return this.orderNo;
+    }
+
+    public Invoice orderNo(String orderNo) {
+        this.setOrderNo(orderNo);
+        return this;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getInvoiceNo() {
+        return this.invoiceNo;
+    }
+
+    public Invoice invoiceNo(String invoiceNo) {
+        this.setInvoiceNo(invoiceNo);
+        return this;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
+    }
+
+    public String getGstin() {
+        return this.gstin;
+    }
+
+    public Invoice gstin(String gstin) {
+        this.setGstin(gstin);
+        return this;
+    }
+
+    public void setGstin(String gstin) {
+        this.gstin = gstin;
+    }
+
+    public String getPartyPhoneNo() {
+        return this.partyPhoneNo;
+    }
+
+    public Invoice partyPhoneNo(String partyPhoneNo) {
+        this.setPartyPhoneNo(partyPhoneNo);
+        return this;
+    }
+
+    public void setPartyPhoneNo(String partyPhoneNo) {
+        this.partyPhoneNo = partyPhoneNo;
+    }
+
+    public String getTransactionType() {
+        return this.transactionType;
+    }
+
+    public Invoice transactionType(String transactionType) {
+        this.setTransactionType(transactionType);
+        return this;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public String getPaymentType() {
+        return this.paymentType;
+    }
+
+    public Invoice paymentType(String paymentType) {
+        this.setPaymentType(paymentType);
+        return this;
+    }
+
+    public void setPaymentType(String paymentType) {
+        this.paymentType = paymentType;
+    }
+
+    public BigDecimal getReceivedPaidAmount() {
+        return this.receivedPaidAmount;
+    }
+
+    public Invoice receivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.setReceivedPaidAmount(receivedPaidAmount);
+        return this;
+    }
+
+    public void setReceivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.receivedPaidAmount = receivedPaidAmount;
+    }
+
+    public BigDecimal getBalanceDue() {
+        return this.balanceDue;
+    }
+
+    public Invoice balanceDue(BigDecimal balanceDue) {
+        this.setBalanceDue(balanceDue);
+        return this;
+    }
+
+    public void setBalanceDue(BigDecimal balanceDue) {
+        this.balanceDue = balanceDue;
+    }
+
+    public String getPaymentBreakupJson() {
+        return this.paymentBreakupJson;
+    }
+
+    public Invoice paymentBreakupJson(String paymentBreakupJson) {
+        this.setPaymentBreakupJson(paymentBreakupJson);
+        return this;
+    }
+
+    public void setPaymentBreakupJson(String paymentBreakupJson) {
+        this.paymentBreakupJson = paymentBreakupJson;
     }
 
     public String getPartyName() {

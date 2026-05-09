@@ -48,6 +48,15 @@ type InvoiceDTO = {
   dueDate?: string | null;
   paymentTermsDays?: number | null;
   invoiceType?: "STANDARD" | "SUBSCRIPTION" | "ADVANCE" | null;
+  orderNo?: string | null;
+  invoiceNo?: string | null;
+  gstin?: string | null;
+  partyPhoneNo?: string | null;
+  transactionType?: string | null;
+  paymentType?: string | null;
+  receivedPaidAmount?: number | null;
+  balanceDue?: number | null;
+  paymentBreakupJson?: string | null;
   partyName: string;
   partyState?: string | null;
   businessState?: string | null;
@@ -78,12 +87,19 @@ type InvoiceDTO = {
 type InvoiceLineDTO = {
   id?: number;
   name: string;
+  itemCode?: string | null;
+  hsnSac?: string | null;
+  category?: string | null;
+  challanOrderNo?: string | null;
   qty: number;
   unit: string;
   rate: number;
   discountKind: BackendDiscountKind;
   discountValue: number;
   taxPercent: number;
+  taxAmount?: number | null;
+  transactionType?: string | null;
+  lineAmount?: number | null;
   lineOrder?: number | null;
   item?: { id: number } | null;
   invoice: { id: number };
@@ -133,6 +149,15 @@ function dtoToInvoice(dto: InvoiceDTO): Invoice {
     dueDate: dto.dueDate ?? undefined,
     paymentTermsDays: dto.paymentTermsDays ?? undefined,
     invoiceType,
+    orderNo: dto.orderNo ?? undefined,
+    invoiceNo: dto.invoiceNo ?? undefined,
+    gstin: dto.gstin ?? undefined,
+    partyPhoneNo: dto.partyPhoneNo ?? undefined,
+    transactionType: dto.transactionType ?? undefined,
+    paymentType: dto.paymentType ?? undefined,
+    receivedPaidAmount: dto.receivedPaidAmount ?? undefined,
+    balanceDue: dto.balanceDue ?? undefined,
+    paymentBreakupJson: dto.paymentBreakupJson ?? undefined,
     partyId,
     partyName: dto.partyName ?? "",
     partyState: dto.partyState ?? undefined,
@@ -167,12 +192,19 @@ function lineDtoToLine(dto: InvoiceLineDTO): InvoiceLine {
     id: toStrId(dto.id),
     itemId: dto.item?.id != null ? toStrId(dto.item.id) : undefined,
     name: dto.name ?? "",
+    itemCode: dto.itemCode ?? undefined,
+    hsnSac: dto.hsnSac ?? undefined,
+    category: dto.category ?? undefined,
+    challanOrderNo: dto.challanOrderNo ?? undefined,
     qty: Number(dto.qty ?? 0),
     unit: dto.unit ?? "pcs",
     rate: Number(dto.rate ?? 0),
     discountKind: fromBackendDiscountKind(dto.discountKind),
     discountValue: Number(dto.discountValue ?? 0),
     taxPercent: Number(dto.taxPercent ?? 0),
+    taxAmount: dto.taxAmount ?? undefined,
+    transactionType: dto.transactionType ?? undefined,
+    lineAmount: dto.lineAmount ?? undefined,
   };
 }
 
@@ -199,6 +231,15 @@ function invoiceToDto(inv: Invoice): InvoiceDTO {
         : inv.invoiceType === "advance"
           ? "ADVANCE"
           : "STANDARD",
+    orderNo: inv.orderNo ?? null,
+    invoiceNo: inv.invoiceNo ?? null,
+    gstin: inv.gstin ?? null,
+    partyPhoneNo: inv.partyPhoneNo ?? null,
+    transactionType: inv.transactionType ?? null,
+    paymentType: inv.paymentType ?? null,
+    receivedPaidAmount: inv.receivedPaidAmount ?? null,
+    balanceDue: inv.balanceDue ?? null,
+    paymentBreakupJson: inv.paymentBreakupJson ?? null,
     partyName: inv.partyName,
     partyState: inv.partyState ?? null,
     businessState: inv.businessState ?? null,
@@ -232,12 +273,19 @@ function lineToDto(invoiceId: string, line: InvoiceLine, lineOrder: number): Inv
   return {
     id: toNumId(line.id) ?? undefined,
     name: line.name,
+    itemCode: line.itemCode ?? null,
+    hsnSac: line.hsnSac ?? null,
+    category: line.category ?? null,
+    challanOrderNo: line.challanOrderNo ?? null,
     qty: line.qty,
     unit: line.unit,
     rate: line.rate,
     discountKind: toBackendDiscountKind(line.discountKind),
     discountValue: line.discountValue,
     taxPercent: line.taxPercent,
+    taxAmount: line.taxAmount ?? null,
+    transactionType: line.transactionType ?? null,
+    lineAmount: line.lineAmount ?? null,
     lineOrder,
     item: itemId == null ? null : { id: itemId },
     invoice: { id: invId },

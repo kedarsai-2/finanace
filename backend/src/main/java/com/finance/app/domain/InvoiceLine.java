@@ -33,6 +33,22 @@ public class InvoiceLine implements Serializable {
     @Column(name = "name", length = 200, nullable = false)
     private String name;
 
+    @Size(max = 120)
+    @Column(name = "item_code", length = 120)
+    private String itemCode;
+
+    @Size(max = 60)
+    @Column(name = "hsn_sac", length = 60)
+    private String hsnSac;
+
+    @Size(max = 120)
+    @Column(name = "category", length = 120)
+    private String category;
+
+    @Size(max = 120)
+    @Column(name = "challan_order_no", length = 120)
+    private String challanOrderNo;
+
     @NotNull
     @DecimalMin(value = "0")
     @Column(name = "qty", precision = 21, scale = 2, nullable = false)
@@ -63,6 +79,18 @@ public class InvoiceLine implements Serializable {
     @DecimalMax(value = "100")
     @Column(name = "tax_percent", precision = 21, scale = 2, nullable = false)
     private BigDecimal taxPercent;
+
+    @DecimalMin(value = "0")
+    @Column(name = "tax_amount", precision = 21, scale = 2)
+    private BigDecimal taxAmount;
+
+    @Size(max = 80)
+    @Column(name = "transaction_type", length = 80)
+    private String transactionType;
+
+    @DecimalMin(value = "0")
+    @Column(name = "line_amount", precision = 21, scale = 2)
+    private BigDecimal lineAmount;
 
     @Min(value = 0)
     @Column(name = "line_order")
@@ -103,6 +131,58 @@ public class InvoiceLine implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getItemCode() {
+        return this.itemCode;
+    }
+
+    public InvoiceLine itemCode(String itemCode) {
+        this.setItemCode(itemCode);
+        return this;
+    }
+
+    public void setItemCode(String itemCode) {
+        this.itemCode = itemCode;
+    }
+
+    public String getHsnSac() {
+        return this.hsnSac;
+    }
+
+    public InvoiceLine hsnSac(String hsnSac) {
+        this.setHsnSac(hsnSac);
+        return this;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public String getCategory() {
+        return this.category;
+    }
+
+    public InvoiceLine category(String category) {
+        this.setCategory(category);
+        return this;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getChallanOrderNo() {
+        return this.challanOrderNo;
+    }
+
+    public InvoiceLine challanOrderNo(String challanOrderNo) {
+        this.setChallanOrderNo(challanOrderNo);
+        return this;
+    }
+
+    public void setChallanOrderNo(String challanOrderNo) {
+        this.challanOrderNo = challanOrderNo;
     }
 
     public BigDecimal getQty() {
@@ -181,6 +261,45 @@ public class InvoiceLine implements Serializable {
 
     public void setTaxPercent(BigDecimal taxPercent) {
         this.taxPercent = taxPercent;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return this.taxAmount;
+    }
+
+    public InvoiceLine taxAmount(BigDecimal taxAmount) {
+        this.setTaxAmount(taxAmount);
+        return this;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public String getTransactionType() {
+        return this.transactionType;
+    }
+
+    public InvoiceLine transactionType(String transactionType) {
+        this.setTransactionType(transactionType);
+        return this;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public BigDecimal getLineAmount() {
+        return this.lineAmount;
+    }
+
+    public InvoiceLine lineAmount(BigDecimal lineAmount) {
+        this.setLineAmount(lineAmount);
+        return this;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
     }
 
     public Integer getLineOrder() {

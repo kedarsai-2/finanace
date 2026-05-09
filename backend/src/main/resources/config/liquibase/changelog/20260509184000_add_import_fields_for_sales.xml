@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260509184000-1" author="cursor">
+        <addColumn tableName="invoice">
+            <column name="order_no" type="varchar(120)"/>
+            <column name="invoice_no" type="varchar(120)"/>
+            <column name="gstin" type="varchar(40)"/>
+            <column name="party_phone_no" type="varchar(30)"/>
+            <column name="transaction_type" type="varchar(80)"/>
+            <column name="payment_type" type="varchar(80)"/>
+            <column name="received_paid_amount" type="numeric(21,2)"/>
+            <column name="balance_due" type="numeric(21,2)"/>
+            <column name="payment_breakup_json" type="varchar(4000)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20260509184000-2" author="cursor">
+        <addColumn tableName="invoice_line">
+            <column name="item_code" type="varchar(120)"/>
+            <column name="hsn_sac" type="varchar(60)"/>
+            <column name="category" type="varchar(120)"/>
+            <column name="challan_order_no" type="varchar(120)"/>
+            <column name="tax_amount" type="numeric(21,2)"/>
+            <column name="transaction_type" type="varchar(80)"/>
+            <column name="line_amount" type="numeric(21,2)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

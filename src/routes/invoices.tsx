@@ -9,8 +9,20 @@ import {
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
-import { Plus, Search, Pencil, Trash2, FileText, Ban, CalendarIcon, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  FileText,
+  Ban,
+  CalendarIcon,
+  CircleHelp,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +44,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { verifyActionPassword } from "@/lib/actionPassword";
@@ -39,15 +52,25 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
 import { formatCurrency } from "@/hooks/useParties";
+import { useParties } from "@/hooks/useParties";
+import { useItems } from "@/hooks/useItems";
 import { usePayments } from "@/hooks/usePayments";
 import { PAYMENT_MODE_LABEL } from "@/types/payment";
 import {
+  computeTotals,
+  nextInvoiceNumber,
   paymentStatusOf,
   type Invoice,
   type InvoiceType,
   type InvoiceStatus,
   type PaymentStatus,
 } from "@/types/invoice";
+import {
+  SALES_ITEM_HEADERS,
+  SALES_REPORT_HEADERS,
+  mapSalesItemRowToInvoiceLineFields,
+  mapSalesReportRowToInvoiceFields,
+} from "@/lib/expensePurchaseImportMapping";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -113,12 +136,15 @@ function InvoicesPage() {
   const navigate = useNavigate({ from: "/invoices" });
   const { q, status, payment, type, from, to } = Route.useSearch();
   const { activeId, scopedBusinessId, isAll, businesses } = useBusinesses();
-  const { invoices, hydrated, remove, cancel } = useInvoices(scopedBusinessId);
+  const { invoices, hydrated, remove, cancel, upsert } = useInvoices(scopedBusinessId);
+  const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
+  const { items, upsert: upsertItem } = useItems(scopedBusinessId);
   const { payments } = usePayments(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [cancelling, setCancelling] = useState<Invoice | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(to) : undefined;
@@ -227,6 +253,213 @@ function InvoicesPage() {
       toast.error(message);
     }
   };
+  const parseDate = (raw: unknown) => {
+    const value = String(raw ?? "").trim();
+    if (!value) return new Date().toISOString();
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  };
+
+  const handleBulkImport = async (file?: File | null) => {
+    if (!file) return;
+    if (!activeId) {
+      toast.error("Select an active business first");
+      return;
+    }
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: "array" });
+      const mainSheet = workbook.Sheets["Sale Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
+      if (!mainSheet) throw new Error("No sheet found in file");
+      const itemSheet = workbook.Sheets["Item Details"];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, {
+        defval: "",
+        range: 3,
+      });
+      const itemRows = itemSheet
+        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "", range: 2 })
+        : [];
+      if (rows.length === 0) throw new Error("File has no rows");
+
+      const linesByRef = new Map<string, Invoice["lines"]>();
+      const itemNames = new Set(items.map((it) => it.name.trim().toLowerCase()).filter(Boolean));
+      let createdItems = 0;
+      for (const row of itemRows) {
+        const ref = String(row["Invoice No./Txn No."] ?? row["Challan/Order No."] ?? "")
+          .trim()
+          .toLowerCase();
+        if (!ref) continue;
+        const mapped = mapSalesItemRowToInvoiceLineFields(row);
+        if (!mapped.name) continue;
+        const line = {
+          id: `sil_${Math.random().toString(36).slice(2, 9)}`,
+          name: mapped.name,
+          itemCode: mapped.itemCode,
+          hsnSac: mapped.hsnSac,
+          category: mapped.category,
+          challanOrderNo: mapped.challanOrderNo,
+          qty: mapped.qty ?? 1,
+          unit: mapped.unit ?? "pcs",
+          rate: mapped.rate ?? 0,
+          discountKind: "percent" as const,
+          discountValue: mapped.discountValue ?? 0,
+          taxPercent: mapped.taxPercent ?? 0,
+          taxAmount: mapped.taxAmount,
+          transactionType: mapped.transactionType,
+          lineAmount: mapped.lineAmount,
+        };
+        const list = linesByRef.get(ref) ?? [];
+        list.push(line);
+        linesByRef.set(ref, list);
+
+        const itemNameKey = mapped.name.trim().toLowerCase();
+        if (!itemNameKey || itemNames.has(itemNameKey)) continue;
+        await upsertItem({
+          id: "",
+          businessId: activeId,
+          name: mapped.name,
+          sku: mapped.itemCode,
+          type: "product",
+          sellingPrice: Number(mapped.rate ?? 0),
+          purchasePrice: Number(mapped.rate ?? 0),
+          taxPercent: Number(mapped.taxPercent ?? 0),
+          unit: String(mapped.unit ?? "pcs"),
+          active: true,
+        });
+        itemNames.add(itemNameKey);
+        createdItems += 1;
+      }
+
+      let created = 0;
+      let skipped = 0;
+      let duplicates = 0;
+      let createdParties = 0;
+      const existingForNumber = invoices.map((i) => ({ number: i.number, businessId: i.businessId }));
+      const invoiceKeys = new Set(
+        invoices.map((i) => {
+          const dateKey = format(new Date(i.date), "yyyy-MM-dd");
+          const partyKey = i.partyName.trim().toLowerCase();
+          const invoiceNoKey = (i.invoiceNo ?? "").trim().toLowerCase();
+          return `${dateKey}|${partyKey}|${invoiceNoKey}|${Number(i.total).toFixed(2)}`;
+        }),
+      );
+      const partiesByName = new Map(parties.map((p) => [p.name.trim().toLowerCase(), p] as const));
+
+      for (const row of rows) {
+        const mapped = mapSalesReportRowToInvoiceFields(row);
+        const partyName = String(row["Party Name"] ?? "").trim();
+        if (!partyName) {
+          skipped += 1;
+          continue;
+        }
+        const partyNameKey = partyName.toLowerCase();
+        let party = partiesByName.get(partyNameKey);
+        if (!party) {
+          const saved = await upsertParty({
+            id: "",
+            businessId: activeId,
+            name: partyName,
+            mobile: String(mapped.partyPhoneNo ?? "").trim(),
+            gstNumber: String(mapped.gstin ?? "").trim() || undefined,
+            openingBalance: 0,
+            balance: 0,
+          });
+          party = saved;
+          partiesByName.set(partyNameKey, saved);
+          createdParties += 1;
+        }
+
+        const importedDate = parseDate(row["Date"]);
+        const dateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        const invoiceNoKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
+        const totalHint = Number(mapped.total ?? 0);
+        const dedupeKey = `${dateKey}|${partyNameKey}|${invoiceNoKey}|${totalHint.toFixed(2)}`;
+        if (invoiceKeys.has(dedupeKey)) {
+          duplicates += 1;
+          continue;
+        }
+
+        const refA = String(row["Invoice No"] ?? "").trim().toLowerCase();
+        const refB = String(row["Order No"] ?? "").trim().toLowerCase();
+        const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
+        const lines =
+          sourceLines.length > 0
+            ? sourceLines
+            : [
+                {
+                  id: `sil_${Math.random().toString(36).slice(2, 9)}`,
+                  name: "Imported line",
+                  qty: 1,
+                  unit: "pcs",
+                  rate: totalHint,
+                  discountKind: "percent" as const,
+                  discountValue: 0,
+                  taxPercent: 0,
+                },
+              ];
+        const computed = computeTotals({
+          lines,
+          overallDiscountKind: "percent",
+          overallDiscountValue: 0,
+        });
+        const total = totalHint > 0 ? totalHint : computed.total;
+        const paidAmount = Number(mapped.receivedPaidAmount ?? 0);
+        const number = nextInvoiceNumber(existingForNumber, activeId);
+        existingForNumber.push({ number, businessId: activeId });
+
+        await upsert({
+          id: `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          businessId: activeId,
+          number,
+          date: importedDate,
+          invoiceType: "standard",
+          orderNo: mapped.orderNo,
+          invoiceNo: mapped.invoiceNo,
+          gstin: mapped.gstin,
+          partyPhoneNo: mapped.partyPhoneNo,
+          transactionType: mapped.transactionType,
+          paymentType: mapped.paymentType,
+          receivedPaidAmount: mapped.receivedPaidAmount,
+          balanceDue: mapped.balanceDue,
+          paymentBreakupJson: mapped.paymentBreakupJson,
+          partyId: party.id,
+          partyName: party.name,
+          partyState: party.state,
+          businessState: activeBusiness?.state,
+          lines,
+          subtotal: computed.subtotal,
+          itemDiscountTotal: computed.itemDiscountTotal,
+          overallDiscountKind: "percent",
+          overallDiscountValue: 0,
+          overallDiscountAmount: 0,
+          taxableValue: total,
+          cgst: 0,
+          sgst: 0,
+          igst: 0,
+          taxTotal: 0,
+          total,
+          paidAmount,
+          status: "draft",
+          notes: mapped.notes,
+          createdAt: new Date().toISOString(),
+        });
+        invoiceKeys.add(dedupeKey);
+        created += 1;
+      }
+
+      if (created === 0) toast.error("No valid rows imported");
+      else
+        toast.success(
+          `Imported ${created} sales${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
+        );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Bulk import failed";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const currency = activeBusiness?.currency ?? "INR";
 
@@ -246,12 +479,64 @@ function InvoicesPage() {
                   : "Loading…"}
               </p>
             </div>
-            <Button asChild size="lg" className="gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="outline" size="lg" className="gap-2">
+                    <CircleHelp className="h-4 w-4" />
+                    Import Columns
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Expected Sales Excel Columns</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Keep sheet names as <strong>Sale Report</strong> and{" "}
+                      <strong>Item Details</strong> for best results.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <p className="mb-1 font-medium text-foreground">Sale Report</p>
+                      <p className="text-muted-foreground">{SALES_REPORT_HEADERS.join(", ")}</p>
+                    </div>
+                    <div>
+                      <p className="mb-1 font-medium text-foreground">Item Details</p>
+                      <p className="text-muted-foreground">{SALES_ITEM_HEADERS.join(", ")}</p>
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogAction>Got it</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                disabled={importing}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = ".csv,.xlsx,.xls";
+                  input.onchange = () => {
+                    const file = input.files?.[0] ?? null;
+                    void handleBulkImport(file);
+                  };
+                  input.click();
+                }}
+              >
+                <Upload className="h-4 w-4" />
+                {importing ? "Importing..." : "Bulk Import"}
+              </Button>
+              <Button asChild size="lg" className="gap-2">
               <Link to="/invoices/new">
                 <Plus className="h-4 w-4" />
                 Create Sale
               </Link>
             </Button>
+            </div>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">

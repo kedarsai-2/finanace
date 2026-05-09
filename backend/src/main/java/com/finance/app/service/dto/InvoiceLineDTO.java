@@ -18,6 +18,18 @@ public class InvoiceLineDTO implements Serializable {
     @Size(max = 200)
     private String name;
 
+    @Size(max = 120)
+    private String itemCode;
+
+    @Size(max = 60)
+    private String hsnSac;
+
+    @Size(max = 120)
+    private String category;
+
+    @Size(max = 120)
+    private String challanOrderNo;
+
     @NotNull
     @DecimalMin(value = "0")
     private BigDecimal qty;
@@ -42,6 +54,15 @@ public class InvoiceLineDTO implements Serializable {
     @DecimalMax(value = "100")
     private BigDecimal taxPercent;
 
+    @DecimalMin(value = "0")
+    private BigDecimal taxAmount;
+
+    @Size(max = 80)
+    private String transactionType;
+
+    @DecimalMin(value = "0")
+    private BigDecimal lineAmount;
+
     @Min(value = 0)
     private Integer lineOrder;
 
@@ -64,6 +85,38 @@ public class InvoiceLineDTO implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getItemCode() {
+        return itemCode;
+    }
+
+    public void setItemCode(String itemCode) {
+        this.itemCode = itemCode;
+    }
+
+    public String getHsnSac() {
+        return hsnSac;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getChallanOrderNo() {
+        return challanOrderNo;
+    }
+
+    public void setChallanOrderNo(String challanOrderNo) {
+        this.challanOrderNo = challanOrderNo;
     }
 
     public BigDecimal getQty() {
@@ -112,6 +165,30 @@ public class InvoiceLineDTO implements Serializable {
 
     public void setTaxPercent(BigDecimal taxPercent) {
         this.taxPercent = taxPercent;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return taxAmount;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public String getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public BigDecimal getLineAmount() {
+        return lineAmount;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
     }
 
     public Integer getLineOrder() {

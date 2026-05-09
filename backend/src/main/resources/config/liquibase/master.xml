@@ -52,4 +52,6 @@
     <include file="config/liquibase/changelog/20260501184500_seed_rbac_delete_permissions.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260501190500_seed_rbac_edit_permissions.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260509160500_add_import_fields_for_expense_purchase.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260509184000_add_import_fields_for_sales.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260509185500_make_party_mobile_optional.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

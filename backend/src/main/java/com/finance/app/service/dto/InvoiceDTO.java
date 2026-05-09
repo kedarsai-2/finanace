@@ -32,6 +32,33 @@ public class InvoiceDTO implements Serializable {
     @Size(max = 20)
     private String invoiceType;
 
+    @Size(max = 120)
+    private String orderNo;
+
+    @Size(max = 120)
+    private String invoiceNo;
+
+    @Size(max = 40)
+    private String gstin;
+
+    @Size(max = 30)
+    private String partyPhoneNo;
+
+    @Size(max = 80)
+    private String transactionType;
+
+    @Size(max = 80)
+    private String paymentType;
+
+    @DecimalMin(value = "0")
+    private BigDecimal receivedPaidAmount;
+
+    @DecimalMin(value = "0")
+    private BigDecimal balanceDue;
+
+    @Size(max = 4000)
+    private String paymentBreakupJson;
+
     @NotNull
     @Size(max = 200)
     private String partyName;
@@ -157,6 +184,78 @@ public class InvoiceDTO implements Serializable {
 
     public void setInvoiceType(String invoiceType) {
         this.invoiceType = invoiceType;
+    }
+
+    public String getOrderNo() {
+        return orderNo;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getInvoiceNo() {
+        return invoiceNo;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
+    }
+
+    public String getGstin() {
+        return gstin;
+    }
+
+    public void setGstin(String gstin) {
+        this.gstin = gstin;
+    }
+
+    public String getPartyPhoneNo() {
+        return partyPhoneNo;
+    }
+
+    public void setPartyPhoneNo(String partyPhoneNo) {
+        this.partyPhoneNo = partyPhoneNo;
+    }
+
+    public String getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public String getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(String paymentType) {
+        this.paymentType = paymentType;
+    }
+
+    public BigDecimal getReceivedPaidAmount() {
+        return receivedPaidAmount;
+    }
+
+    public void setReceivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.receivedPaidAmount = receivedPaidAmount;
+    }
+
+    public BigDecimal getBalanceDue() {
+        return balanceDue;
+    }
+
+    public void setBalanceDue(BigDecimal balanceDue) {
+        this.balanceDue = balanceDue;
+    }
+
+    public String getPaymentBreakupJson() {
+        return paymentBreakupJson;
+    }
+
+    public void setPaymentBreakupJson(String paymentBreakupJson) {
+        this.paymentBreakupJson = paymentBreakupJson;
     }
 
     public String getPartyName() {
