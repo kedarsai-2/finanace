@@ -46,6 +46,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
+import { useItems } from "@/hooks/useItems";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
 import { DEFAULT_EXPENSE_TYPES } from "@/types/expense";
@@ -82,8 +83,9 @@ function ExpensesPage() {
 
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const { parties } = useParties(activeId);
-  const { categories } = useExpenseCategories(activeId);
+  const { parties, upsert: upsertParty } = useParties(activeId);
+  const { categories, upsert: upsertCategory } = useExpenseCategories(activeId);
+  const { items, upsert: upsertItem } = useItems(activeId);
   const { expenses, add, remove } = useExpenses(activeId);
 
   const accountById = useMemo(
@@ -170,6 +172,27 @@ function ExpensesPage() {
 
       let created = 0;
       let skipped = 0;
+      let duplicates = 0;
+      let createdParties = 0;
+      let createdCategories = 0;
+      let createdItems = 0;
+      const partiesByName = new Map(
+        parties.map((p) => [p.name.trim().toLowerCase(), p] as const),
+      );
+      const categoriesByName = new Map(
+        categories.map((c) => [c.name.trim().toLowerCase(), c] as const),
+      );
+      const itemNames = new Set(
+        items.map((it) => it.name.trim().toLowerCase()).filter(Boolean),
+      );
+      const expenseKeys = new Set(
+        expenses.map((e) => {
+          const dateKey = format(new Date(e.date), "yyyy-MM-dd");
+          const partyKey = (e.partyId ? partyById[e.partyId]?.name : "")?.trim().toLowerCase() ?? "";
+          const refKey = (e.reference ?? "").trim().toLowerCase();
+          return `${dateKey}|${partyKey}|${refKey}|${Number(e.amount).toFixed(2)}`;
+        }),
+      );
       for (const row of rows) {
         const mapped = mapExpenseReportRowToExpenseFields(row);
         const amount = Number(mapped.amount ?? 0);
@@ -181,15 +204,71 @@ function ExpensesPage() {
         const itemMeta = itemMetaByKey.get(key);
         const itemMapped = itemMeta ? mapExpenseItemRowToExpenseFields(itemMeta) : {};
 
-        const partyName = String(row["Party Name"] ?? "").trim().toLowerCase();
-        const party = parties.find((p) => p.name.trim().toLowerCase() === partyName);
+        const partyNameRaw = String(row["Party Name"] ?? "").trim();
+        const partyNameKey = partyNameRaw.toLowerCase();
+        let party = partyNameKey ? partiesByName.get(partyNameKey) : undefined;
+        if (!party && partyNameRaw) {
+          const savedParty = await upsertParty({
+            id: "",
+            businessId: activeId,
+            name: partyNameRaw,
+            mobile: String(row["Party Phone No."] ?? row["Phone"] ?? "").trim(),
+            gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
+            state: String(row["State"] ?? "").trim() || undefined,
+            city: String(row["City"] ?? "").trim() || undefined,
+            openingBalance: 0,
+            balance: 0,
+          });
+          party = savedParty;
+          partiesByName.set(partyNameKey, savedParty);
+          createdParties += 1;
+        }
         const category =
           (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
+        const importedDate = parseDate(row["Date"]);
+        const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        const dedupePartyKey = partyNameRaw.trim().toLowerCase();
+        const dedupeRefKey = String(mapped.reference ?? "").trim().toLowerCase();
+        const expenseKey = `${importedDateKey}|${dedupePartyKey}|${dedupeRefKey}|${Number(amount).toFixed(2)}`;
+        if (expenseKeys.has(expenseKey)) {
+          duplicates += 1;
+          continue;
+        }
+        const categoryKey = category.toLowerCase();
+        if (category && !categoriesByName.has(categoryKey)) {
+          const savedCategory = await upsertCategory({
+            id: "",
+            businessId: activeId,
+            name: category,
+            createdAt: new Date().toISOString(),
+          });
+          categoriesByName.set(categoryKey, savedCategory);
+          createdCategories += 1;
+        }
+        const itemName = (itemMapped.itemName ?? "").trim();
+        const itemNameKey = itemName.toLowerCase();
+        if (itemName && !itemNames.has(itemNameKey)) {
+          await upsertItem({
+            id: "",
+            businessId: activeId,
+            name: itemName,
+            type: "product",
+            sku: String(itemMeta?.["Item Code"] ?? "").trim() || undefined,
+            sellingPrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
+            purchasePrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
+            taxPercent: Number(itemMapped.taxPercent ?? 0),
+            unit: String(itemMeta?.["Unit"] ?? "pcs").trim() || "pcs",
+            description: itemMapped.itemDescription,
+            active: true,
+          });
+          itemNames.add(itemNameKey);
+          createdItems += 1;
+        }
 
         await add({
           id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
           businessId: activeId,
-          date: parseDate(row["Date"]),
+          date: importedDate,
           amount,
           type: "indirect",
           category,
@@ -212,11 +291,15 @@ function ExpensesPage() {
           lineAmount: itemMapped.lineAmount,
           createdAt: new Date().toISOString(),
         });
+        expenseKeys.add(expenseKey);
         created += 1;
       }
 
       if (created === 0) toast.error("No valid rows imported");
-      else toast.success(`Imported ${created} expenses${skipped ? ` (${skipped} skipped)` : ""}`);
+      else
+        toast.success(
+          `Imported ${created} expenses${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdCategories} categories • +${createdItems} items/assets`,
+        );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Bulk import failed";
       toast.error(message);

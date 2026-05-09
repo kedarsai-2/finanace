@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
+import { useItems } from "@/hooks/useItems";
 import { usePurchases } from "@/hooks/usePurchases";
 import { formatCurrency, useParties } from "@/hooks/useParties";
 import type { Purchase, PurchaseStatus } from "@/types/purchase";
@@ -138,7 +139,8 @@ function PurchasesPage() {
   const { q, status, from, to } = Route.useSearch();
   const { activeId, scopedBusinessId, businesses } = useBusinesses();
   const { purchases, hydrated, upsert, remove, cancel } = usePurchases(scopedBusinessId);
-  const { parties } = useParties(scopedBusinessId);
+  const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
+  const { items, upsert: upsertItem } = useItems(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);
@@ -285,20 +287,59 @@ function PurchasesPage() {
 
       let created = 0;
       let skipped = 0;
+      let duplicates = 0;
+      let createdParties = 0;
+      let createdItems = 0;
       const existingForNumber = purchases.map((p) => ({ number: p.number, businessId: p.businessId }));
+      const partiesByName = new Map(
+        parties.map((p) => [p.name.trim().toLowerCase(), p] as const),
+      );
+      const itemNames = new Set(items.map((it) => it.name.trim().toLowerCase()).filter(Boolean));
+      const purchaseKeys = new Set(
+        purchases.map((p) => {
+          const dateKey = format(new Date(p.date), "yyyy-MM-dd");
+          const partyKey = p.partyName.trim().toLowerCase();
+          const orderKey = (p.orderNo ?? "").trim().toLowerCase();
+          const invoiceKey = (p.invoiceNo ?? "").trim().toLowerCase();
+          return `${dateKey}|${partyKey}|${orderKey}|${invoiceKey}|${Number(p.total).toFixed(2)}`;
+        }),
+      );
       for (const row of rows) {
         const partyName = String(row["Party Name"] ?? "").trim();
         if (!partyName) {
           skipped += 1;
           continue;
         }
-        const party = parties.find((p) => p.name.trim().toLowerCase() === partyName.toLowerCase());
+        const partyNameKey = partyName.toLowerCase();
+        let party = partiesByName.get(partyNameKey);
         if (!party) {
-          skipped += 1;
-          continue;
+          const savedParty = await upsertParty({
+            id: "",
+            businessId: activeId,
+            name: partyName,
+            mobile: String(row["Party Phone No."] ?? "").trim(),
+            gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
+            state: String(row["State"] ?? "").trim() || undefined,
+            city: String(row["City"] ?? "").trim() || undefined,
+            openingBalance: 0,
+            balance: 0,
+          });
+          party = savedParty;
+          partiesByName.set(partyNameKey, savedParty);
+          createdParties += 1;
         }
 
         const mapped = mapPurchaseReportRowToPurchaseFields(row);
+        const importedDate = parseDate(row["Date"]);
+        const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        const orderKey = String(mapped.orderNo ?? "").trim().toLowerCase();
+        const invoiceKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
+        const totalKey = Number(mapped.total ?? 0).toFixed(2);
+        const purchaseKey = `${importedDateKey}|${partyNameKey}|${orderKey}|${invoiceKey}|${totalKey}`;
+        if (purchaseKeys.has(purchaseKey)) {
+          duplicates += 1;
+          continue;
+        }
         const refA = String(row["Invoice No"] ?? "").trim().toLowerCase();
         const refB = String(row["Order No"] ?? "").trim().toLowerCase();
         const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
@@ -318,6 +359,24 @@ function PurchasesPage() {
                   taxPercent: 0,
                 },
               ];
+        for (const line of lines) {
+          const itemNameKey = line.name.trim().toLowerCase();
+          if (!itemNameKey || itemNameKey === "imported line" || itemNames.has(itemNameKey)) continue;
+          await upsertItem({
+            id: "",
+            businessId: activeId,
+            name: line.name,
+            type: "product",
+            sku: undefined,
+            sellingPrice: Number(line.rate ?? 0),
+            purchasePrice: Number(line.rate ?? 0),
+            taxPercent: Number(line.taxPercent ?? 0),
+            unit: String(line.unit ?? "pcs"),
+            active: true,
+          });
+          itemNames.add(itemNameKey);
+          createdItems += 1;
+        }
 
         const computed = computeTotals({
           lines,
@@ -335,7 +394,7 @@ function PurchasesPage() {
           number,
           orderNo: mapped.orderNo,
           invoiceNo: mapped.invoiceNo,
-          date: parseDate(row["Date"]),
+          date: importedDate,
           partyId: party.id,
           partyName: party.name,
           partyState: party.state,
@@ -358,13 +417,16 @@ function PurchasesPage() {
           purchasePaymentMode: parsePaymentMode(row["Payment Type"]),
           createdAt: new Date().toISOString(),
         });
+        purchaseKeys.add(purchaseKey);
         created += 1;
       }
 
       if (created === 0) {
-        toast.error("No valid rows imported. Ensure Party Name matches existing parties.");
+        toast.error("No valid rows imported.");
       } else {
-        toast.success(`Imported ${created} purchases${skipped ? ` (${skipped} skipped)` : ""}`);
+        toast.success(
+          `Imported ${created} purchases${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
+        );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Bulk import failed";
