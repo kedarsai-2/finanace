@@ -34,6 +34,45 @@ public class ExpenseDTO implements Serializable {
     @Size(max = 2000)
     private String notes;
 
+    @DecimalMin(value = "0")
+    private BigDecimal receivedPaidAmount;
+
+    @DecimalMin(value = "0")
+    private BigDecimal balanceDue;
+
+    @Size(max = 120)
+    private String orderNo;
+
+    @Size(max = 200)
+    private String itemName;
+
+    @Size(max = 2000)
+    private String itemDescription;
+
+    @Size(max = 64)
+    private String hsnSac;
+
+    @DecimalMin(value = "0")
+    private BigDecimal quantity;
+
+    @DecimalMin(value = "0")
+    private BigDecimal unitPrice;
+
+    @DecimalMin(value = "0")
+    private BigDecimal discountPercent;
+
+    @DecimalMin(value = "0")
+    private BigDecimal discountAmount;
+
+    @DecimalMin(value = "0")
+    private BigDecimal taxPercent;
+
+    @DecimalMin(value = "0")
+    private BigDecimal taxAmount;
+
+    @DecimalMin(value = "0")
+    private BigDecimal lineAmount;
+
     private String proofDataUrl;
 
     @Size(max = 255)
@@ -105,6 +144,110 @@ public class ExpenseDTO implements Serializable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public BigDecimal getReceivedPaidAmount() {
+        return receivedPaidAmount;
+    }
+
+    public void setReceivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.receivedPaidAmount = receivedPaidAmount;
+    }
+
+    public BigDecimal getBalanceDue() {
+        return balanceDue;
+    }
+
+    public void setBalanceDue(BigDecimal balanceDue) {
+        this.balanceDue = balanceDue;
+    }
+
+    public String getOrderNo() {
+        return orderNo;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getItemDescription() {
+        return itemDescription;
+    }
+
+    public void setItemDescription(String itemDescription) {
+        this.itemDescription = itemDescription;
+    }
+
+    public String getHsnSac() {
+        return hsnSac;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public BigDecimal getDiscountPercent() {
+        return discountPercent;
+    }
+
+    public void setDiscountPercent(BigDecimal discountPercent) {
+        this.discountPercent = discountPercent;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public BigDecimal getTaxPercent() {
+        return taxPercent;
+    }
+
+    public void setTaxPercent(BigDecimal taxPercent) {
+        this.taxPercent = taxPercent;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return taxAmount;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public BigDecimal getLineAmount() {
+        return lineAmount;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
     }
 
     public String getProofDataUrl() {
@@ -203,6 +346,19 @@ public class ExpenseDTO implements Serializable {
             ", mode='" + getMode() + "'" +
             ", reference='" + getReference() + "'" +
             ", notes='" + getNotes() + "'" +
+            ", receivedPaidAmount=" + getReceivedPaidAmount() +
+            ", balanceDue=" + getBalanceDue() +
+            ", orderNo='" + getOrderNo() + "'" +
+            ", itemName='" + getItemName() + "'" +
+            ", itemDescription='" + getItemDescription() + "'" +
+            ", hsnSac='" + getHsnSac() + "'" +
+            ", quantity=" + getQuantity() +
+            ", unitPrice=" + getUnitPrice() +
+            ", discountPercent=" + getDiscountPercent() +
+            ", discountAmount=" + getDiscountAmount() +
+            ", taxPercent=" + getTaxPercent() +
+            ", taxAmount=" + getTaxAmount() +
+            ", lineAmount=" + getLineAmount() +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

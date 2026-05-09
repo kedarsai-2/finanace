@@ -157,7 +157,7 @@ function PartyReport() {
       </section>
 
       {/* Aging */}
-      <section className="mb-4 overflow-hidden rounded-xl border border-border bg-card">
+      <section className="mb-4 overflow-x-auto rounded-xl border border-border bg-card">
         <div className="border-b border-border px-4 py-3 text-sm font-semibold">Aging</div>
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
@@ -184,7 +184,7 @@ function PartyReport() {
       </section>
 
       {/* Ledger */}
-      <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <section className="overflow-x-auto rounded-xl border border-border bg-card">
         <div className="border-b border-border px-4 py-3 text-sm font-semibold">Ledger</div>
         {ledgerRows.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-muted-foreground">

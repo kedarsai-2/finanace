@@ -504,11 +504,11 @@ function RoleAccessPage() {
                     {RBAC_MODULES.map((module) => (
                       <div
                         key={module.key}
-                        className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                        className="flex flex-col gap-2 rounded-lg border border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <span className="text-sm">{module.label}</span>
-                        <div className="flex items-center gap-4 text-xs">
-                          <label className="flex items-center gap-1.5">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:flex sm:flex-wrap sm:items-center">
+                          <label className="flex items-center gap-1.5 whitespace-nowrap">
                             <Checkbox
                               checked={!!moduleRead[module.key]}
                               disabled={selectedIsBuiltInAdmin}
@@ -524,7 +524,7 @@ function RoleAccessPage() {
                             />
                             Read
                           </label>
-                          <label className="flex items-center gap-1.5">
+                          <label className="flex items-center gap-1.5 whitespace-nowrap">
                             <Checkbox
                               checked={!!moduleWrite[module.key]}
                               disabled={selectedIsBuiltInAdmin}
@@ -538,7 +538,7 @@ function RoleAccessPage() {
                             />
                             Create
                           </label>
-                          <label className="flex items-center gap-1.5">
+                          <label className="flex items-center gap-1.5 whitespace-nowrap">
                             <Checkbox
                               checked={!!moduleEdit[module.key]}
                               disabled={selectedIsBuiltInAdmin}
@@ -554,7 +554,7 @@ function RoleAccessPage() {
                             />
                             Edit
                           </label>
-                          <label className="flex items-center gap-1.5">
+                          <label className="flex items-center gap-1.5 whitespace-nowrap">
                             <Checkbox
                               checked={!!moduleDelete[module.key]}
                               disabled={selectedIsBuiltInAdmin}

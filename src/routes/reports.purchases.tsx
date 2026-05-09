@@ -111,7 +111,7 @@ function PurchaseReport() {
         </>
       }
     >
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         {rows.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">
             No purchases match the filters

@@ -38,6 +38,14 @@ public class Purchase implements Serializable {
     @Column(name = "number", length = 32, nullable = false)
     private String number;
 
+    @Size(max = 120)
+    @Column(name = "order_no", length = 120)
+    private String orderNo;
+
+    @Size(max = 120)
+    @Column(name = "invoice_no", length = 120)
+    private String invoiceNo;
+
     @NotNull
     @Column(name = "date", nullable = false)
     private Instant date;
@@ -220,6 +228,32 @@ public class Purchase implements Serializable {
 
     public void setNumber(String number) {
         this.number = number;
+    }
+
+    public String getOrderNo() {
+        return this.orderNo;
+    }
+
+    public Purchase orderNo(String orderNo) {
+        this.setOrderNo(orderNo);
+        return this;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getInvoiceNo() {
+        return this.invoiceNo;
+    }
+
+    public Purchase invoiceNo(String invoiceNo) {
+        this.setInvoiceNo(invoiceNo);
+        return this;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
     }
 
     public Instant getDate() {
@@ -681,6 +715,8 @@ public class Purchase implements Serializable {
         return "Purchase{" +
             "id=" + getId() +
             ", number='" + getNumber() + "'" +
+            ", orderNo='" + getOrderNo() + "'" +
+            ", invoiceNo='" + getInvoiceNo() + "'" +
             ", date='" + getDate() + "'" +
             ", dueDate='" + getDueDate() + "'" +
             ", partyName='" + getPartyName() + "'" +

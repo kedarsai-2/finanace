@@ -5,7 +5,6 @@ import com.finance.app.domain.User;
 import com.finance.app.repository.UserRepository;
 import com.finance.app.security.AuthoritiesConstants;
 import com.finance.app.security.SecurityUtils;
-import com.finance.app.service.MailService;
 import com.finance.app.service.UserService;
 import com.finance.app.service.dto.AdminUserDTO;
 import com.finance.app.web.rest.errors.BadRequestAlertException;
@@ -85,19 +84,15 @@ public class UserResource {
 
     private final UserRepository userRepository;
 
-    private final MailService mailService;
-
-    public UserResource(UserService userService, UserRepository userRepository, MailService mailService) {
+    public UserResource(UserService userService, UserRepository userRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
-        this.mailService = mailService;
     }
 
     /**
      * {@code POST  /admin/users}  : Creates a new user.
      * <p>
-     * Creates a new user if the login and email are not already used, and sends a
-     * mail with an activation link.
+     * Creates a new user if the login and email are not already used.
      * The user needs to be activated on creation.
      *
      * @param userDTO the user to create.
@@ -127,7 +122,6 @@ public class UserResource {
                 userDTO.getAuthorities(),
                 userDTO.getMobileHiddenTabs()
             );
-            mailService.sendCreationEmail(newUser);
             return ResponseEntity.created(new URI("/api/admin/users/" + newUser.getLogin()))
                 .headers(
                     HeaderUtil.createAlert(applicationName, "A user is created with identifier " + newUser.getLogin(), newUser.getLogin())

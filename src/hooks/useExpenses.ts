@@ -16,6 +16,19 @@ type ExpenseDTO = {
   mode?: "CASH" | "BANK" | "UPI" | null;
   reference?: string | null;
   notes?: string | null;
+  receivedPaidAmount?: number | null;
+  balanceDue?: number | null;
+  orderNo?: string | null;
+  itemName?: string | null;
+  itemDescription?: string | null;
+  hsnSac?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  taxPercent?: number | null;
+  taxAmount?: number | null;
+  lineAmount?: number | null;
   proofDataUrl?: string | null;
   proofName?: string | null;
   deleted?: boolean | null;
@@ -56,6 +69,21 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
     mode,
     reference: dto.reference ?? undefined,
     notes: dto.notes ?? undefined,
+    receivedPaidAmount:
+      dto.receivedPaidAmount == null ? undefined : Number(dto.receivedPaidAmount),
+    balanceDue: dto.balanceDue == null ? undefined : Number(dto.balanceDue),
+    orderNo: dto.orderNo ?? undefined,
+    itemName: dto.itemName ?? undefined,
+    itemDescription: dto.itemDescription ?? undefined,
+    hsnSac: dto.hsnSac ?? undefined,
+    quantity: dto.quantity == null ? undefined : Number(dto.quantity),
+    unitPrice: dto.unitPrice == null ? undefined : Number(dto.unitPrice),
+    discountPercent:
+      dto.discountPercent == null ? undefined : Number(dto.discountPercent),
+    discountAmount: dto.discountAmount == null ? undefined : Number(dto.discountAmount),
+    taxPercent: dto.taxPercent == null ? undefined : Number(dto.taxPercent),
+    taxAmount: dto.taxAmount == null ? undefined : Number(dto.taxAmount),
+    lineAmount: dto.lineAmount == null ? undefined : Number(dto.lineAmount),
     proofDataUrl: dto.proofDataUrl ?? undefined,
     proofName: dto.proofName ?? undefined,
     deleted: dto.deleted ?? undefined,
@@ -76,6 +104,19 @@ function expenseToDto(e: Expense): ExpenseDTO {
     mode,
     reference: e.reference ?? null,
     notes: e.notes ?? null,
+    receivedPaidAmount: e.receivedPaidAmount ?? null,
+    balanceDue: e.balanceDue ?? null,
+    orderNo: e.orderNo ?? null,
+    itemName: e.itemName ?? null,
+    itemDescription: e.itemDescription ?? null,
+    hsnSac: e.hsnSac ?? null,
+    quantity: e.quantity ?? null,
+    unitPrice: e.unitPrice ?? null,
+    discountPercent: e.discountPercent ?? null,
+    discountAmount: e.discountAmount ?? null,
+    taxPercent: e.taxPercent ?? null,
+    taxAmount: e.taxAmount ?? null,
+    lineAmount: e.lineAmount ?? null,
     proofDataUrl: e.proofDataUrl ?? null,
     proofName: e.proofName ?? null,
     deleted: e.deleted ?? false,

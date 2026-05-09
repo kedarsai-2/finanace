@@ -344,7 +344,7 @@ function AccountDetailsPage() {
         </div>
       </section>
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         {filteredRows.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">
             No transactions found

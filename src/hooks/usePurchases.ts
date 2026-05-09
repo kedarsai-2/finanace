@@ -25,6 +25,8 @@ type BackendPurchaseKind = "PURCHASE" | "RETURN";
 type PurchaseDTO = {
   id?: number;
   number: string;
+  orderNo?: string | null;
+  invoiceNo?: string | null;
   date: string;
   dueDate?: string | null;
   partyName: string;
@@ -67,6 +69,12 @@ type PurchaseLineDTO = {
   discountKind: BackendDiscountKind;
   discountValue: number;
   taxPercent: number;
+  hsnSac?: string | null;
+  category?: string | null;
+  challanOrderNo?: string | null;
+  taxAmount?: number | null;
+  transactionType?: string | null;
+  lineAmount?: number | null;
   lineOrder?: number | null;
   item?: { id: number } | null;
   purchase: { id: number };
@@ -108,6 +116,8 @@ function dtoToPurchase(dto: PurchaseDTO): Purchase {
     updatedAt: dto.updatedAt ?? undefined,
     businessId: toStrId(dto.business?.id),
     number: dto.number ?? "",
+    orderNo: dto.orderNo ?? undefined,
+    invoiceNo: dto.invoiceNo ?? undefined,
     date: dto.date,
     dueDate: dto.dueDate ?? undefined,
     partyId: toStrId(dto.party?.id),
@@ -154,6 +164,12 @@ function lineDtoToLine(dto: PurchaseLineDTO): PurchaseLine {
     discountKind: fromBackendDiscountKind(dto.discountKind),
     discountValue: Number(dto.discountValue ?? 0),
     taxPercent: Number(dto.taxPercent ?? 0),
+    hsnSac: dto.hsnSac ?? undefined,
+    category: dto.category ?? undefined,
+    challanOrderNo: dto.challanOrderNo ?? undefined,
+    taxAmount: dto.taxAmount == null ? undefined : Number(dto.taxAmount),
+    transactionType: dto.transactionType ?? undefined,
+    lineAmount: dto.lineAmount == null ? undefined : Number(dto.lineAmount),
   };
 }
 
@@ -187,6 +203,8 @@ function purchaseToDto(p: Purchase): PurchaseDTO {
     createdAt: p.createdAt ?? null,
     updatedAt: p.updatedAt ?? null,
     number: p.number,
+    orderNo: p.orderNo ?? null,
+    invoiceNo: p.invoiceNo ?? null,
     date: p.date,
     dueDate: p.dueDate ?? null,
     partyName: p.partyName,
@@ -241,6 +259,12 @@ function lineToDto(purchaseId: string, line: PurchaseLine, lineOrder: number): P
     discountKind: toBackendDiscountKind(line.discountKind),
     discountValue: line.discountValue,
     taxPercent: line.taxPercent,
+    hsnSac: line.hsnSac ?? null,
+    category: line.category ?? null,
+    challanOrderNo: line.challanOrderNo ?? null,
+    taxAmount: line.taxAmount ?? null,
+    transactionType: line.transactionType ?? null,
+    lineAmount: line.lineAmount ?? null,
     lineOrder,
     item: itemId == null ? null : { id: itemId },
     purchase: { id: purId },

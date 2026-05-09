@@ -9,8 +9,20 @@ import {
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus, Search, Pencil, Trash2, ShoppingCart, Ban, CalendarIcon, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  ShoppingCart,
+  Ban,
+  CalendarIcon,
+  CircleHelp,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,14 +37,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { usePurchases } from "@/hooks/usePurchases";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatCurrency, useParties } from "@/hooks/useParties";
 import type { Purchase, PurchaseStatus } from "@/types/purchase";
+import { computeTotals } from "@/types/invoice";
+import { nextPurchaseNumber } from "@/types/purchase";
+import {
+  PURCHASE_ITEM_HEADERS,
+  PURCHASE_REPORT_HEADERS,
+  mapPurchaseItemRowToPurchaseLineFields,
+  mapPurchaseReportRowToPurchaseFields,
+} from "@/lib/expensePurchaseImportMapping";
 
 function purchasePaymentTypeLabel(mode?: Purchase["purchasePaymentMode"]) {
   if (mode === "cash") return "Cash";
@@ -106,11 +127,13 @@ function PurchasesPage() {
   const navigate = useNavigate({ from: "/purchases" });
   const { q, status, from, to } = Route.useSearch();
   const { activeId, scopedBusinessId, businesses } = useBusinesses();
-  const { purchases, hydrated, remove, cancel } = usePurchases(scopedBusinessId);
+  const { purchases, hydrated, upsert, remove, cancel } = usePurchases(scopedBusinessId);
+  const { parties } = useParties(scopedBusinessId);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);
   const [cancelling, setCancelling] = useState<Purchase | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(to) : undefined;
@@ -146,6 +169,161 @@ function PurchasesPage() {
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
+
+  const parseDate = (raw: unknown) => {
+    const value = String(raw ?? "").trim();
+    if (!value) return new Date().toISOString();
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  };
+
+  const parsePaymentMode = (raw: unknown): Purchase["purchasePaymentMode"] => {
+    const v = String(raw ?? "").trim().toLowerCase();
+    if (v.includes("cheque") || v.includes("check")) return "cheque";
+    if (v.includes("bank") || v.includes("upi") || v.includes("online") || v.includes("card"))
+      return "bank";
+    return "cash";
+  };
+
+  const handleBulkImport = async (file?: File | null) => {
+    if (!file) return;
+    if (!activeId) {
+      toast.error("Select an active business first");
+      return;
+    }
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: "array" });
+      const mainSheet =
+        workbook.Sheets["Purchase Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
+      if (!mainSheet) throw new Error("No sheet found in file");
+      const itemSheet = workbook.Sheets["Item Details"];
+
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
+      const itemRows = itemSheet
+        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "" })
+        : [];
+      if (rows.length === 0) throw new Error("File has no rows");
+
+      const linesByRef = new Map<string, Purchase["lines"]>();
+      for (const row of itemRows) {
+        const ref = String(row["Invoice No./Txn No."] ?? row["Challan/Order No."] ?? "")
+          .trim()
+          .toLowerCase();
+        if (!ref) continue;
+        const mapped = mapPurchaseItemRowToPurchaseLineFields(row);
+        const line = {
+          id: `pl_${Math.random().toString(36).slice(2, 9)}`,
+          name: mapped.name || "Imported line",
+          qty: mapped.qty ?? 1,
+          unit: mapped.unit ?? "pcs",
+          rate: mapped.rate ?? 0,
+          discountKind: "percent" as const,
+          discountValue: mapped.discountValue ?? 0,
+          taxPercent: mapped.taxPercent ?? 0,
+          hsnSac: mapped.hsnSac,
+          category: mapped.category,
+          challanOrderNo: mapped.challanOrderNo,
+          taxAmount: mapped.taxAmount,
+          transactionType: mapped.transactionType,
+          lineAmount: mapped.lineAmount,
+        };
+        const list = linesByRef.get(ref) ?? [];
+        list.push(line);
+        linesByRef.set(ref, list);
+      }
+
+      let created = 0;
+      let skipped = 0;
+      const existingForNumber = purchases.map((p) => ({ number: p.number, businessId: p.businessId }));
+      for (const row of rows) {
+        const partyName = String(row["Party Name"] ?? "").trim();
+        if (!partyName) {
+          skipped += 1;
+          continue;
+        }
+        const party = parties.find((p) => p.name.trim().toLowerCase() === partyName.toLowerCase());
+        if (!party) {
+          skipped += 1;
+          continue;
+        }
+
+        const mapped = mapPurchaseReportRowToPurchaseFields(row);
+        const refA = String(row["Invoice No"] ?? "").trim().toLowerCase();
+        const refB = String(row["Order No"] ?? "").trim().toLowerCase();
+        const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
+        const fallbackTotal = Number(mapped.total ?? 0);
+        const lines =
+          sourceLines.length > 0
+            ? sourceLines
+            : [
+                {
+                  id: `pl_${Math.random().toString(36).slice(2, 9)}`,
+                  name: "Imported line",
+                  qty: 1,
+                  unit: "pcs",
+                  rate: fallbackTotal,
+                  discountKind: "percent" as const,
+                  discountValue: 0,
+                  taxPercent: 0,
+                },
+              ];
+
+        const computed = computeTotals({
+          lines,
+          overallDiscountKind: "percent",
+          overallDiscountValue: 0,
+        });
+        const total = fallbackTotal > 0 ? fallbackTotal : computed.total;
+        const paidAmount = Number(mapped.paidAmount ?? 0);
+        const number = nextPurchaseNumber(existingForNumber, activeId);
+        existingForNumber.push({ number, businessId: activeId });
+
+        await upsert({
+          id: `pur_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          businessId: activeId,
+          number,
+          orderNo: mapped.orderNo,
+          invoiceNo: mapped.invoiceNo,
+          date: parseDate(row["Date"]),
+          partyId: party.id,
+          partyName: party.name,
+          partyState: party.state,
+          businessState: activeBusiness?.state,
+          lines,
+          subtotal: computed.subtotal,
+          itemDiscountTotal: computed.itemDiscountTotal,
+          overallDiscountKind: "percent",
+          overallDiscountValue: 0,
+          overallDiscountAmount: 0,
+          taxableValue: total,
+          cgst: 0,
+          sgst: 0,
+          igst: 0,
+          taxTotal: 0,
+          total,
+          paidAmount,
+          status: "draft",
+          notes: mapped.notes,
+          purchasePaymentMode: parsePaymentMode(row["Payment Type"]),
+          createdAt: new Date().toISOString(),
+        });
+        created += 1;
+      }
+
+      if (created === 0) {
+        toast.error("No valid rows imported. Ensure Party Name matches existing parties.");
+      } else {
+        toast.success(`Imported ${created} purchases${skipped ? ` (${skipped} skipped)` : ""}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Bulk import failed";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -197,6 +375,56 @@ function PurchasesPage() {
                 <Plus className="h-4 w-4" />
                 Add Purchase
               </Link>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="outline" size="lg" className="gap-2">
+                  <CircleHelp className="h-4 w-4" />
+                  Import Columns
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Expected Purchase Excel Columns</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Keep sheet names as <strong>Purchase Report</strong> and{" "}
+                    <strong>Item Details</strong> for best results.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p className="mb-1 font-medium text-foreground">Purchase Report</p>
+                    <p className="text-muted-foreground">{PURCHASE_REPORT_HEADERS.join(", ")}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 font-medium text-foreground">Item Details</p>
+                    <p className="text-muted-foreground">{PURCHASE_ITEM_HEADERS.join(", ")}</p>
+                  </div>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogAction>Got it</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="gap-2"
+              disabled={importing}
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".csv,.xlsx,.xls";
+                input.onchange = () => {
+                  const file = input.files?.[0] ?? null;
+                  void handleBulkImport(file);
+                };
+                input.click();
+              }}
+            >
+              <Upload className="h-4 w-4" />
+              {importing ? "Importing..." : "Bulk Import"}
             </Button>
           </div>
 

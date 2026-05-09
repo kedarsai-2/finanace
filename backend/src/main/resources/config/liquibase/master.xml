@@ -51,4 +51,5 @@
     <include file="config/liquibase/changelog/20260501181000_restore_builtin_admin_access.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260501184500_seed_rbac_delete_permissions.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260501190500_seed_rbac_edit_permissions.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260509160500_add_import_fields_for_expense_purchase.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

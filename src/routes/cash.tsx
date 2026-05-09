@@ -256,7 +256,7 @@ function CashPage() {
           </section>
 
           {/* Recent transactions */}
-          <section className="overflow-hidden rounded-xl border border-border">
+          <section className="overflow-x-auto rounded-xl border border-border">
             <header className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
               <div>
                 <h2 className="text-sm font-semibold">Recent cash transactions</h2>

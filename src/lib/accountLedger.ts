@@ -55,6 +55,10 @@ export function buildAccountTxns(args: {
     if (!belongsToAccount) continue;
     const isIn = p.direction === "in";
     const isSales = isIn && p.allocations.length > 0;
+    const isPurchaseLinked = p.allocations.some((a) => {
+      const docNo = (a.docNumber ?? "").toUpperCase();
+      return docNo.startsWith("PUR-") || docNo.startsWith("PRET-");
+    });
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
     const docRefLink = (() => {
       const docNo = (singleAlloc?.docNumber ?? "").toUpperCase();
@@ -71,12 +75,19 @@ export function buildAccountTxns(args: {
       accountId: account.id,
       date: p.date,
       kind: isIn ? "payment-in" : "payment-out",
-      amount: isIn ? p.amount : -p.amount,
+      // Purchase-linked entries are visible in ledger but do not affect account balance.
+      amount: isPurchaseLinked ? 0 : isIn ? p.amount : -p.amount,
       refNo: p.allocations.map((a) => a.docNumber).join(", ") || p.reference,
       // If the payment is allocated to a single document, link directly to it.
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
-      note: isIn ? (isSales ? "Sales received" : "Payment received") : "Payment made",
+      note: isPurchaseLinked
+        ? "Purchase transaction (no balance impact)"
+        : isIn
+          ? isSales
+            ? "Sales received"
+            : "Payment received"
+          : "Payment made",
     });
   }
 
@@ -128,9 +139,10 @@ export function buildAccountTxns(args: {
       accountId: account.id,
       date: e.date,
       kind: "expense",
-      amount: -e.amount,
+      // Expense entries are recorded in account history but should not change balance.
+      amount: 0,
       refNo: e.category,
-      note: e.notes || "Expense",
+      note: e.notes || "Expense (no balance impact)",
     });
   }
 

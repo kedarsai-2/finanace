@@ -21,6 +21,12 @@ public class PurchaseDTO implements Serializable {
     @Size(max = 32)
     private String number;
 
+    @Size(max = 120)
+    private String orderNo;
+
+    @Size(max = 120)
+    private String invoiceNo;
+
     @NotNull
     private Instant date;
 
@@ -131,6 +137,22 @@ public class PurchaseDTO implements Serializable {
 
     public void setNumber(String number) {
         this.number = number;
+    }
+
+    public String getOrderNo() {
+        return orderNo;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getInvoiceNo() {
+        return invoiceNo;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
     }
 
     public Instant getDate() {
@@ -408,6 +430,8 @@ public class PurchaseDTO implements Serializable {
         return "PurchaseDTO{" +
             "id=" + getId() +
             ", number='" + getNumber() + "'" +
+            ", orderNo='" + getOrderNo() + "'" +
+            ", invoiceNo='" + getInvoiceNo() + "'" +
             ", date='" + getDate() + "'" +
             ", dueDate='" + getDueDate() + "'" +
             ", partyName='" + getPartyName() + "'" +

@@ -80,7 +80,7 @@ function ExpenseCategoriesPage() {
           Expense type is fixed: <span className="font-medium text-foreground">Direct</span> or{" "}
           <span className="font-medium text-foreground">Indirect</span>.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}

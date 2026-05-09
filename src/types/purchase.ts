@@ -14,8 +14,15 @@ export type PurchaseCategory = "short-term" | "long-term";
 export type ReturnPaymentMode = "cash" | "bank" | "cheque";
 export type PurchasePaymentMode = "cash" | "bank" | "cheque";
 
-/** Same shape as InvoiceLine — purchases reuse the line/tax math helpers. */
-export type PurchaseLine = InvoiceLine;
+/** Same shape as InvoiceLine with optional import metadata fields. */
+export interface PurchaseLine extends InvoiceLine {
+  hsnSac?: string;
+  category?: string;
+  challanOrderNo?: string;
+  taxAmount?: number;
+  transactionType?: string;
+  lineAmount?: number;
+}
 
 export interface Purchase {
   id: string;
@@ -24,6 +31,10 @@ export interface Purchase {
   businessId: string;
   /** Purchase / bill number. */
   number: string;
+  /** Optional supplier order number from import/report documents. */
+  orderNo?: string;
+  /** Optional supplier invoice number from import/report documents. */
+  invoiceNo?: string;
   date: string; // ISO
   dueDate?: string; // ISO (optional)
   partyId: string;

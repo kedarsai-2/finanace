@@ -220,7 +220,7 @@ function RootComponent() {
   }
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full overflow-x-clip">
       {import.meta.env.DEV ? <ClickProbe /> : null}
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">

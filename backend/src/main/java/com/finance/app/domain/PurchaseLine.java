@@ -64,6 +64,30 @@ public class PurchaseLine implements Serializable {
     @Column(name = "tax_percent", precision = 21, scale = 2, nullable = false)
     private BigDecimal taxPercent;
 
+    @Size(max = 64)
+    @Column(name = "hsn_sac", length = 64)
+    private String hsnSac;
+
+    @Size(max = 120)
+    @Column(name = "category", length = 120)
+    private String category;
+
+    @Size(max = 120)
+    @Column(name = "challan_order_no", length = 120)
+    private String challanOrderNo;
+
+    @DecimalMin(value = "0")
+    @Column(name = "tax_amount", precision = 21, scale = 2)
+    private BigDecimal taxAmount;
+
+    @Size(max = 40)
+    @Column(name = "transaction_type", length = 40)
+    private String transactionType;
+
+    @DecimalMin(value = "0")
+    @Column(name = "line_amount", precision = 21, scale = 2)
+    private BigDecimal lineAmount;
+
     @Min(value = 0)
     @Column(name = "line_order")
     private Integer lineOrder;
@@ -183,6 +207,84 @@ public class PurchaseLine implements Serializable {
         this.taxPercent = taxPercent;
     }
 
+    public String getHsnSac() {
+        return this.hsnSac;
+    }
+
+    public PurchaseLine hsnSac(String hsnSac) {
+        this.setHsnSac(hsnSac);
+        return this;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public String getCategory() {
+        return this.category;
+    }
+
+    public PurchaseLine category(String category) {
+        this.setCategory(category);
+        return this;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getChallanOrderNo() {
+        return this.challanOrderNo;
+    }
+
+    public PurchaseLine challanOrderNo(String challanOrderNo) {
+        this.setChallanOrderNo(challanOrderNo);
+        return this;
+    }
+
+    public void setChallanOrderNo(String challanOrderNo) {
+        this.challanOrderNo = challanOrderNo;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return this.taxAmount;
+    }
+
+    public PurchaseLine taxAmount(BigDecimal taxAmount) {
+        this.setTaxAmount(taxAmount);
+        return this;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public String getTransactionType() {
+        return this.transactionType;
+    }
+
+    public PurchaseLine transactionType(String transactionType) {
+        this.setTransactionType(transactionType);
+        return this;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public BigDecimal getLineAmount() {
+        return this.lineAmount;
+    }
+
+    public PurchaseLine lineAmount(BigDecimal lineAmount) {
+        this.setLineAmount(lineAmount);
+        return this;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
+    }
+
     public Integer getLineOrder() {
         return this.lineOrder;
     }
@@ -253,6 +355,12 @@ public class PurchaseLine implements Serializable {
             ", discountKind='" + getDiscountKind() + "'" +
             ", discountValue=" + getDiscountValue() +
             ", taxPercent=" + getTaxPercent() +
+            ", hsnSac='" + getHsnSac() + "'" +
+            ", category='" + getCategory() + "'" +
+            ", challanOrderNo='" + getChallanOrderNo() + "'" +
+            ", taxAmount=" + getTaxAmount() +
+            ", transactionType='" + getTransactionType() + "'" +
+            ", lineAmount=" + getLineAmount() +
             ", lineOrder=" + getLineOrder() +
             "}";
     }

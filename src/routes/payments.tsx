@@ -181,7 +181,7 @@ function PaymentsPage() {
         </div>
       </section>
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         {filtered.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Wallet className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />

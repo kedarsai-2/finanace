@@ -44,7 +44,7 @@ export function AppHeader() {
   );
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">
-      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+      <div className="flex h-16 min-w-0 items-center gap-3 overflow-x-clip px-4 sm:px-6">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
@@ -88,7 +88,7 @@ export function AppHeader() {
           </SheetContent>
         </Sheet>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-2">
           <NotificationBell />
           <BusinessSwitcher />
           {USE_BACKEND && isAuthed ? (

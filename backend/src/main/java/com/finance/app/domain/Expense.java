@@ -55,6 +55,58 @@ public class Expense implements Serializable {
     @Column(name = "notes", length = 2000)
     private String notes;
 
+    @DecimalMin(value = "0")
+    @Column(name = "received_paid_amount", precision = 21, scale = 2)
+    private BigDecimal receivedPaidAmount;
+
+    @DecimalMin(value = "0")
+    @Column(name = "balance_due", precision = 21, scale = 2)
+    private BigDecimal balanceDue;
+
+    @Size(max = 120)
+    @Column(name = "order_no", length = 120)
+    private String orderNo;
+
+    @Size(max = 200)
+    @Column(name = "item_name", length = 200)
+    private String itemName;
+
+    @Size(max = 2000)
+    @Column(name = "item_description", length = 2000)
+    private String itemDescription;
+
+    @Size(max = 64)
+    @Column(name = "hsn_sac", length = 64)
+    private String hsnSac;
+
+    @DecimalMin(value = "0")
+    @Column(name = "quantity", precision = 21, scale = 2)
+    private BigDecimal quantity;
+
+    @DecimalMin(value = "0")
+    @Column(name = "unit_price", precision = 21, scale = 2)
+    private BigDecimal unitPrice;
+
+    @DecimalMin(value = "0")
+    @Column(name = "discount_percent", precision = 21, scale = 2)
+    private BigDecimal discountPercent;
+
+    @DecimalMin(value = "0")
+    @Column(name = "discount_amount", precision = 21, scale = 2)
+    private BigDecimal discountAmount;
+
+    @DecimalMin(value = "0")
+    @Column(name = "tax_percent", precision = 21, scale = 2)
+    private BigDecimal taxPercent;
+
+    @DecimalMin(value = "0")
+    @Column(name = "tax_amount", precision = 21, scale = 2)
+    private BigDecimal taxAmount;
+
+    @DecimalMin(value = "0")
+    @Column(name = "line_amount", precision = 21, scale = 2)
+    private BigDecimal lineAmount;
+
     @Lob
     @Column(name = "proof_data_url")
     private String proofDataUrl;
@@ -194,6 +246,175 @@ public class Expense implements Serializable {
         this.notes = notes;
     }
 
+    public BigDecimal getReceivedPaidAmount() {
+        return this.receivedPaidAmount;
+    }
+
+    public Expense receivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.setReceivedPaidAmount(receivedPaidAmount);
+        return this;
+    }
+
+    public void setReceivedPaidAmount(BigDecimal receivedPaidAmount) {
+        this.receivedPaidAmount = receivedPaidAmount;
+    }
+
+    public BigDecimal getBalanceDue() {
+        return this.balanceDue;
+    }
+
+    public Expense balanceDue(BigDecimal balanceDue) {
+        this.setBalanceDue(balanceDue);
+        return this;
+    }
+
+    public void setBalanceDue(BigDecimal balanceDue) {
+        this.balanceDue = balanceDue;
+    }
+
+    public String getOrderNo() {
+        return this.orderNo;
+    }
+
+    public Expense orderNo(String orderNo) {
+        this.setOrderNo(orderNo);
+        return this;
+    }
+
+    public void setOrderNo(String orderNo) {
+        this.orderNo = orderNo;
+    }
+
+    public String getItemName() {
+        return this.itemName;
+    }
+
+    public Expense itemName(String itemName) {
+        this.setItemName(itemName);
+        return this;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getItemDescription() {
+        return this.itemDescription;
+    }
+
+    public Expense itemDescription(String itemDescription) {
+        this.setItemDescription(itemDescription);
+        return this;
+    }
+
+    public void setItemDescription(String itemDescription) {
+        this.itemDescription = itemDescription;
+    }
+
+    public String getHsnSac() {
+        return this.hsnSac;
+    }
+
+    public Expense hsnSac(String hsnSac) {
+        this.setHsnSac(hsnSac);
+        return this;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public BigDecimal getQuantity() {
+        return this.quantity;
+    }
+
+    public Expense quantity(BigDecimal quantity) {
+        this.setQuantity(quantity);
+        return this;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return this.unitPrice;
+    }
+
+    public Expense unitPrice(BigDecimal unitPrice) {
+        this.setUnitPrice(unitPrice);
+        return this;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public BigDecimal getDiscountPercent() {
+        return this.discountPercent;
+    }
+
+    public Expense discountPercent(BigDecimal discountPercent) {
+        this.setDiscountPercent(discountPercent);
+        return this;
+    }
+
+    public void setDiscountPercent(BigDecimal discountPercent) {
+        this.discountPercent = discountPercent;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return this.discountAmount;
+    }
+
+    public Expense discountAmount(BigDecimal discountAmount) {
+        this.setDiscountAmount(discountAmount);
+        return this;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public BigDecimal getTaxPercent() {
+        return this.taxPercent;
+    }
+
+    public Expense taxPercent(BigDecimal taxPercent) {
+        this.setTaxPercent(taxPercent);
+        return this;
+    }
+
+    public void setTaxPercent(BigDecimal taxPercent) {
+        this.taxPercent = taxPercent;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return this.taxAmount;
+    }
+
+    public Expense taxAmount(BigDecimal taxAmount) {
+        this.setTaxAmount(taxAmount);
+        return this;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public BigDecimal getLineAmount() {
+        return this.lineAmount;
+    }
+
+    public Expense lineAmount(BigDecimal lineAmount) {
+        this.setLineAmount(lineAmount);
+        return this;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
+    }
+
     public String getProofDataUrl() {
         return this.proofDataUrl;
     }
@@ -328,6 +549,19 @@ public class Expense implements Serializable {
             ", mode='" + getMode() + "'" +
             ", reference='" + getReference() + "'" +
             ", notes='" + getNotes() + "'" +
+            ", receivedPaidAmount=" + getReceivedPaidAmount() +
+            ", balanceDue=" + getBalanceDue() +
+            ", orderNo='" + getOrderNo() + "'" +
+            ", itemName='" + getItemName() + "'" +
+            ", itemDescription='" + getItemDescription() + "'" +
+            ", hsnSac='" + getHsnSac() + "'" +
+            ", quantity=" + getQuantity() +
+            ", unitPrice=" + getUnitPrice() +
+            ", discountPercent=" + getDiscountPercent() +
+            ", discountAmount=" + getDiscountAmount() +
+            ", taxPercent=" + getTaxPercent() +
+            ", taxAmount=" + getTaxAmount() +
+            ", lineAmount=" + getLineAmount() +
             ", deleted='" + getDeleted() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

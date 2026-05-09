@@ -249,7 +249,7 @@ function CashBalancePage() {
             </div>
           </div>
 
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
+          <section className="overflow-x-auto rounded-xl border border-border bg-card">
             <header className="border-b border-border bg-muted/30 px-4 py-3">
               <h2 className="text-sm font-semibold">Previous cash transactions</h2>
               <p className="text-xs text-muted-foreground">

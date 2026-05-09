@@ -1,8 +1,19 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Receipt, Search, Tags, Trash2, Zap } from "lucide-react";
+import {
+  CalendarIcon,
+  CircleHelp,
+  Plus,
+  Receipt,
+  Search,
+  Tags,
+  Trash2,
+  Upload,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +48,12 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
 import { DEFAULT_EXPENSE_TYPES } from "@/types/expense";
+import {
+  EXPENSE_ITEM_HEADERS,
+  EXPENSE_REPORT_HEADERS,
+  mapExpenseItemRowToExpenseFields,
+  mapExpenseReportRowToExpenseFields,
+} from "@/lib/expensePurchaseImportMapping";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -66,7 +83,7 @@ function ExpensesPage() {
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { parties } = useParties(activeId);
   const { categories } = useExpenseCategories(activeId);
-  const { expenses, remove } = useExpenses(activeId);
+  const { expenses, add, remove } = useExpenses(activeId);
 
   const accountById = useMemo(
     () => Object.fromEntries(safeAccounts.map((a) => [a.id, a])),
@@ -81,6 +98,107 @@ function ExpensesPage() {
   const [from, setFrom] = useState<Date | undefined>();
   const [to, setTo] = useState<Date | undefined>();
   const [showQuick, setShowQuick] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const parseDate = (raw: unknown) => {
+    const value = String(raw ?? "").trim();
+    if (!value) return new Date().toISOString();
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  };
+
+  const parseMode = (raw: unknown): "cash" | "bank" | "cheque" => {
+    const v = String(raw ?? "").trim().toLowerCase();
+    if (v.includes("cheque") || v.includes("check")) return "cheque";
+    if (v.includes("bank") || v.includes("upi") || v.includes("online") || v.includes("card"))
+      return "bank";
+    return "cash";
+  };
+
+  const handleBulkImport = async (file?: File | null) => {
+    if (!file) return;
+    if (!activeId) {
+      toast.error("Select an active business first");
+      return;
+    }
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: "array" });
+      const mainSheet =
+        workbook.Sheets["Expense Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
+      if (!mainSheet) throw new Error("No sheet found in file");
+
+      const itemSheet = workbook.Sheets["Item Details"];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
+      const itemRows = itemSheet
+        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "" })
+        : [];
+      if (rows.length === 0) throw new Error("File has no rows");
+
+      const itemMetaByKey = new Map<string, Record<string, unknown>>();
+      for (const row of itemRows) {
+        const key = `${String(row["Date"] ?? "").trim()}|${String(row["Order No."] ?? row["Order No"] ?? "").trim()}|${String(row["Party Name"] ?? "").trim()}`.toLowerCase();
+        if (!key || itemMetaByKey.has(key)) continue;
+        itemMetaByKey.set(key, row);
+      }
+
+      let created = 0;
+      let skipped = 0;
+      for (const row of rows) {
+        const mapped = mapExpenseReportRowToExpenseFields(row);
+        const amount = Number(mapped.amount ?? 0);
+        if (!(amount > 0)) {
+          skipped += 1;
+          continue;
+        }
+        const key = `${String(row["Date"] ?? "").trim()}|${String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim()}|${String(row["Party Name"] ?? "").trim()}`.toLowerCase();
+        const itemMeta = itemMetaByKey.get(key);
+        const itemMapped = itemMeta ? mapExpenseItemRowToExpenseFields(itemMeta) : {};
+
+        const partyName = String(row["Party Name"] ?? "").trim().toLowerCase();
+        const party = parties.find((p) => p.name.trim().toLowerCase() === partyName);
+        const category =
+          (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
+
+        await add({
+          id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          businessId: activeId,
+          date: parseDate(row["Date"]),
+          amount,
+          type: "indirect",
+          category,
+          partyId: party?.id,
+          mode: parseMode(row["Payment Type"]),
+          reference: mapped.reference,
+          notes: mapped.notes,
+          receivedPaidAmount: mapped.receivedPaidAmount,
+          balanceDue: mapped.balanceDue,
+          orderNo: itemMapped.orderNo,
+          itemName: itemMapped.itemName,
+          itemDescription: itemMapped.itemDescription,
+          hsnSac: itemMapped.hsnSac,
+          quantity: itemMapped.quantity,
+          unitPrice: itemMapped.unitPrice,
+          discountPercent: itemMapped.discountPercent,
+          discountAmount: itemMapped.discountAmount,
+          taxPercent: itemMapped.taxPercent,
+          taxAmount: itemMapped.taxAmount,
+          lineAmount: itemMapped.lineAmount,
+          createdAt: new Date().toISOString(),
+        });
+        created += 1;
+      }
+
+      if (created === 0) toast.error("No valid rows imported");
+      else toast.success(`Imported ${created} expenses${skipped ? ` (${skipped} skipped)` : ""}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Bulk import failed";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     return expenses
@@ -135,6 +253,55 @@ function ExpensesPage() {
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => setShowQuick(true)}>
             <Zap className="h-4 w-4" /> Quick add
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="outline" className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Import Columns
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Expected Expense Excel Columns</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Keep sheet names as <strong>Expense Report</strong> and{" "}
+                  <strong>Item Details</strong> for best results.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="mb-1 font-medium text-foreground">Expense Report</p>
+                  <p className="text-muted-foreground">{EXPENSE_REPORT_HEADERS.join(", ")}</p>
+                </div>
+                <div>
+                  <p className="mb-1 font-medium text-foreground">Item Details</p>
+                  <p className="text-muted-foreground">{EXPENSE_ITEM_HEADERS.join(", ")}</p>
+                </div>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogAction>Got it</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            disabled={importing}
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = ".csv,.xlsx,.xls";
+              input.onchange = () => {
+                const file = input.files?.[0] ?? null;
+                void handleBulkImport(file);
+              };
+              input.click();
+            }}
+          >
+            <Upload className="h-4 w-4" />
+            {importing ? "Importing..." : "Bulk Import"}
           </Button>
           <Button asChild className="gap-2">
             <Link to="/expenses/new">
@@ -221,7 +388,7 @@ function ExpensesPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         {filtered.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Receipt className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />

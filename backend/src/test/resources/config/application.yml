@@ -22,8 +22,6 @@ spring:
   jackson2:
     serialization:
       write-durations-as-timestamps: false
-  mail:
-    host: localhost
   main:
     allow-bean-definition-overriding: true
   messages:
@@ -58,9 +56,6 @@ server:
 # Full reference is available at: https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 jhipster:
-  mail:
-    from: backend@localhost.com
-    base-url: http://127.0.0.1:8080
   logging:
     # To test json console appender
     use-json-format: false
@@ -89,6 +84,3 @@ jhipster:
 
 # application:
 management:
-  health:
-    mail:
-      enabled: false

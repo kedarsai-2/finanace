@@ -96,7 +96,7 @@ export function BusinessSwitcher() {
                 role="combobox"
                 aria-expanded={open}
                 aria-label="Switch business"
-                className="h-12 w-full justify-between gap-3 border-white/30 bg-white/10 px-3 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)] backdrop-blur-sm hover:bg-white/15 hover:text-white sm:w-[280px]"
+                className="h-12 w-auto max-w-[220px] justify-between gap-3 border-white/30 bg-white/10 px-3 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)] backdrop-blur-sm hover:bg-white/15 hover:text-white sm:w-[280px] sm:max-w-none"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   {isAll ? (

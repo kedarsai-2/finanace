@@ -42,6 +42,24 @@ public class PurchaseLineDTO implements Serializable {
     @DecimalMax(value = "100")
     private BigDecimal taxPercent;
 
+    @Size(max = 64)
+    private String hsnSac;
+
+    @Size(max = 120)
+    private String category;
+
+    @Size(max = 120)
+    private String challanOrderNo;
+
+    @DecimalMin(value = "0")
+    private BigDecimal taxAmount;
+
+    @Size(max = 40)
+    private String transactionType;
+
+    @DecimalMin(value = "0")
+    private BigDecimal lineAmount;
+
     @Min(value = 0)
     private Integer lineOrder;
 
@@ -114,6 +132,54 @@ public class PurchaseLineDTO implements Serializable {
         this.taxPercent = taxPercent;
     }
 
+    public String getHsnSac() {
+        return hsnSac;
+    }
+
+    public void setHsnSac(String hsnSac) {
+        this.hsnSac = hsnSac;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getChallanOrderNo() {
+        return challanOrderNo;
+    }
+
+    public void setChallanOrderNo(String challanOrderNo) {
+        this.challanOrderNo = challanOrderNo;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return taxAmount;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public String getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public BigDecimal getLineAmount() {
+        return lineAmount;
+    }
+
+    public void setLineAmount(BigDecimal lineAmount) {
+        this.lineAmount = lineAmount;
+    }
+
     public Integer getLineOrder() {
         return lineOrder;
     }
@@ -171,6 +237,12 @@ public class PurchaseLineDTO implements Serializable {
             ", discountKind='" + getDiscountKind() + "'" +
             ", discountValue=" + getDiscountValue() +
             ", taxPercent=" + getTaxPercent() +
+            ", hsnSac='" + getHsnSac() + "'" +
+            ", category='" + getCategory() + "'" +
+            ", challanOrderNo='" + getChallanOrderNo() + "'" +
+            ", taxAmount=" + getTaxAmount() +
+            ", transactionType='" + getTransactionType() + "'" +
+            ", lineAmount=" + getLineAmount() +
             ", lineOrder=" + getLineOrder() +
             ", item=" + getItem() +
             ", purchase=" + getPurchase() +

@@ -27,6 +27,23 @@ export interface Expense {
   mode?: PaymentMode;
   reference?: string;
   notes?: string;
+  /** Optional imported amount captured as paid/received in external reports. */
+  receivedPaidAmount?: number;
+  /** Optional imported outstanding amount from external reports. */
+  balanceDue?: number;
+  /** Optional external order/document number used by report exports. */
+  orderNo?: string;
+  /** Optional item-level import metadata for expense item reports. */
+  itemName?: string;
+  itemDescription?: string;
+  hsnSac?: string;
+  quantity?: number;
+  unitPrice?: number;
+  discountPercent?: number;
+  discountAmount?: number;
+  taxPercent?: number;
+  taxAmount?: number;
+  lineAmount?: number;
   /**
    * Proof image URL (Cloudinary secure URL), e.g. bill/receipt photo.
    * Required client-side for non-cash payment modes.
