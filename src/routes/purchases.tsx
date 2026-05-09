@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   Plus,
   Search,
@@ -25,9 +25,17 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,13 +77,15 @@ function purchaseCategoryLabel(category?: Purchase["purchaseCategory"]) {
 }
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
+const DEFAULT_FROM = format(startOfMonth(new Date()), "yyyy-MM-dd");
+const DEFAULT_TO = format(endOfMonth(new Date()), "yyyy-MM-dd");
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const searchSchema = z.object({
   q: z.string().catch("").default(""),
   status: z.enum(STATUS_FILTERS).catch("all").default("all"),
-  from: z.string().catch("").default(""),
-  to: z.string().catch("").default(""),
+  from: z.string().catch(DEFAULT_FROM).default(DEFAULT_FROM),
+  to: z.string().catch(DEFAULT_TO).default(DEFAULT_TO),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
@@ -87,7 +97,7 @@ function safeDateTs(value?: string) {
 
 function safeFormatDate(value?: string) {
   const d = value ? new Date(value) : null;
-  return d && Number.isFinite(d.getTime()) ? format(d, "dd MMM yyyy") : "—";
+  return d && Number.isFinite(d.getTime()) ? format(d, "dd/MM/yyyy") : "—";
 }
 
 export const Route = createFileRoute("/purchases")({
@@ -134,6 +144,8 @@ function PurchasesPage() {
   const [deleting, setDeleting] = useState<Purchase | null>(null);
   const [cancelling, setCancelling] = useState<Purchase | null>(null);
   const [importing, setImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(to) : undefined;
@@ -169,6 +181,43 @@ function PurchasesPage() {
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, idx) => {
+        const d = subMonths(new Date(), idx);
+        return {
+          value: format(d, "yyyy-MM"),
+          label: format(d, "MMMM yyyy"),
+          from: format(startOfMonth(d), "yyyy-MM-dd"),
+          to: format(endOfMonth(d), "yyyy-MM-dd"),
+        };
+      }),
+    [],
+  );
+  const selectedMonthValue = useMemo(() => {
+    const hit = monthOptions.find((m) => m.from === from && m.to === to);
+    return hit?.value ?? "custom";
+  }, [from, to, monthOptions]);
+  const allVisibleSelected = visible.length > 0 && visible.every((p) => selectedIds.has(p.id));
+  const selectedCount = visible.filter((p) => selectedIds.has(p.id)).length;
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) visible.forEach((p) => next.add(p.id));
+      else visible.forEach((p) => next.delete(p.id));
+      return next;
+    });
+  };
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   const parseDate = (raw: unknown) => {
     const value = String(raw ?? "").trim();
@@ -339,6 +388,27 @@ function PurchasesPage() {
     }
   };
 
+  const confirmBulkDelete = async () => {
+    const ids = visible.map((p) => p.id).filter((id) => selectedIds.has(id));
+    if (!ids.length) return;
+    if (!verifyActionPassword()) return;
+    try {
+      for (const id of ids) {
+        await remove(id);
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setShowBulkDeleteConfirm(false);
+      toast.success(`Deleted ${ids.length} purchases`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete selected purchases";
+      toast.error(message);
+    }
+  };
+
   const confirmCancel = async () => {
     if (!cancelling) return;
     const n = cancelling.number;
@@ -375,6 +445,17 @@ function PurchasesPage() {
                 <Plus className="h-4 w-4" />
                 Add Purchase
               </Link>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              className="gap-2"
+              disabled={selectedCount === 0}
+              onClick={() => setShowBulkDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Bulk Delete{selectedCount ? ` (${selectedCount})` : ""}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -464,9 +545,31 @@ function PurchasesPage() {
               <DateRange
                 from={fromDate}
                 to={toDate}
-                onFrom={(d) => setSearch({ from: d ? d.toISOString() : "" })}
-                onTo={(d) => setSearch({ to: d ? d.toISOString() : "" })}
+                onFrom={(d) => setSearch({ from: d ? format(d, "yyyy-MM-dd") : "" })}
+                onTo={(d) => setSearch({ to: d ? format(d, "yyyy-MM-dd") : "" })}
               />
+              <div className="min-w-[180px]">
+                <Select
+                  value={selectedMonthValue}
+                  onValueChange={(v) => {
+                    if (v === "custom") return;
+                    const picked = monthOptions.find((m) => m.value === v);
+                    if (picked) setSearch({ from: picked.from, to: picked.to });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -479,6 +582,10 @@ function PurchasesPage() {
           <PurchasesTable
             purchases={visible}
             currency={currency}
+            selectedIds={selectedIds}
+            allSelected={allVisibleSelected}
+            onToggleSelectAll={toggleSelectAllVisible}
+            onToggleSelectOne={toggleSelectOne}
             onDelete={setDeleting}
             onCancel={setCancelling}
           />
@@ -516,6 +623,21 @@ function PurchasesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Keep purchase</AlertDialogCancel>
             <AlertDialogAction onClick={confirmCancel}>Cancel purchase</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected purchases?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will soft-delete {selectedCount} selected purchases.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -624,7 +746,7 @@ function DatePill({
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
-          {value ? format(value, "dd MMM yyyy") : label}
+          {value ? format(value, "dd/MM/yyyy") : label}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -643,17 +765,32 @@ function DatePill({
 function PurchasesTable({
   purchases,
   currency,
+  selectedIds,
+  allSelected,
+  onToggleSelectAll,
+  onToggleSelectOne,
   onDelete,
   onCancel,
 }: {
   purchases: Purchase[];
   currency: string;
+  selectedIds: Set<string>;
+  allSelected: boolean;
+  onToggleSelectAll: (checked: boolean) => void;
+  onToggleSelectOne: (id: string, checked: boolean) => void;
   onDelete: (p: Purchase) => void;
   onCancel: (p: Purchase) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="hidden grid-cols-[140px_110px_1.2fr_120px_120px_120px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[36px_140px_110px_1.2fr_120px_120px_120px_220px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+        <span className="flex justify-center">
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={(v) => onToggleSelectAll(!!v)}
+            aria-label="Select all purchases"
+          />
+        </span>
         <span>Purchase</span>
         <span>Date</span>
         <span>Supplier</span>
@@ -669,8 +806,15 @@ function PurchasesTable({
           return (
             <li
               key={p.id}
-              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[140px_110px_1.2fr_120px_120px_120px_220px]"
+              className="group grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[36px_140px_110px_1.2fr_120px_120px_120px_220px]"
             >
+              <div className="flex justify-start sm:justify-center">
+                <Checkbox
+                  checked={selectedIds.has(p.id)}
+                  onCheckedChange={(v) => onToggleSelectOne(p.id, !!v)}
+                  aria-label={`Select purchase ${p.number}`}
+                />
+              </div>
               <Link
                 to="/purchases/$id"
                 params={{ id: p.id }}

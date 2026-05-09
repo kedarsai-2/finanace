@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import { Plus, Search, Pencil, Trash2, FileText, Ban, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +52,8 @@ import {
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
 const TYPE_FILTERS = ["all", "standard", "subscription", "advance"] as const;
+const DEFAULT_FROM = format(startOfMonth(new Date()), "yyyy-MM-dd");
+const DEFAULT_TO = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
@@ -55,8 +64,8 @@ const searchSchema = z.object({
   status: z.enum(STATUS_FILTERS).catch("all").default("all"),
   payment: z.enum(PAY_FILTERS).catch("all").default("all"),
   type: z.enum(TYPE_FILTERS).catch("all").default("all"),
-  from: z.string().catch("").default(""),
-  to: z.string().catch("").default(""),
+  from: z.string().catch(DEFAULT_FROM).default(DEFAULT_FROM),
+  to: z.string().catch(DEFAULT_TO).default(DEFAULT_TO),
 });
 
 type SearchValues = z.infer<typeof searchSchema>;
@@ -174,6 +183,23 @@ function InvoicesPage() {
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, idx) => {
+        const d = subMonths(new Date(), idx);
+        return {
+          value: format(d, "yyyy-MM"),
+          label: format(d, "MMMM yyyy"),
+          from: format(startOfMonth(d), "yyyy-MM-dd"),
+          to: format(endOfMonth(d), "yyyy-MM-dd"),
+        };
+      }),
+    [],
+  );
+  const selectedMonthValue = useMemo(() => {
+    const hit = monthOptions.find((m) => m.from === from && m.to === to);
+    return hit?.value ?? "custom";
+  }, [from, to, monthOptions]);
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -290,9 +316,31 @@ function InvoicesPage() {
               <DateRange
                 from={fromDate}
                 to={toDate}
-                onFrom={(d) => setSearch({ from: d ? d.toISOString() : "" })}
-                onTo={(d) => setSearch({ to: d ? d.toISOString() : "" })}
+                onFrom={(d) => setSearch({ from: d ? format(d, "yyyy-MM-dd") : "" })}
+                onTo={(d) => setSearch({ to: d ? format(d, "yyyy-MM-dd") : "" })}
               />
+              <div className="min-w-[180px]">
+                <Select
+                  value={selectedMonthValue}
+                  onValueChange={(v) => {
+                    if (v === "custom") return;
+                    const picked = monthOptions.find((m) => m.value === v);
+                    if (picked) setSearch({ from: picked.from, to: picked.to });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -469,7 +517,7 @@ function DatePill({
           )}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
-          {value ? format(value, "dd MMM yyyy") : label}
+          {value ? format(value, "dd/MM/yyyy") : label}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -535,7 +583,7 @@ function InvoicesTable({
                 {inv.number}
               </Link>
               <span className="text-sm text-muted-foreground">
-                {format(new Date(inv.date), "dd MMM yyyy")}
+                {format(new Date(inv.date), "dd/MM/yyyy")}
               </span>
               <div>
                 <Link

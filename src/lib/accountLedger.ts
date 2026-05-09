@@ -2,6 +2,26 @@ import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
+function isPurchaseLinkedPayment(p: Payment): boolean {
+  return p.allocations.some((a) => {
+    const docNo = (a.docNumber ?? "").toUpperCase();
+    return docNo.startsWith("PUR-") || docNo.startsWith("PRET-");
+  });
+}
+
+function isSalesLinkedPayment(p: Payment): boolean {
+  return p.allocations.some((a) => {
+    const docNo = (a.docNumber ?? "").toUpperCase();
+    return docNo.startsWith("INV-") || docNo.startsWith("CN-");
+  });
+}
+
+export function paymentBalanceImpact(p: Payment): number {
+  // Sales/purchase-linked payments are visible for audit but should not affect cash/bank balance.
+  if (isPurchaseLinkedPayment(p) || isSalesLinkedPayment(p)) return 0;
+  return p.direction === "in" ? p.amount : -p.amount;
+}
+
 /**
  * Compute live transactions for an account from payments / transfers / expenses.
  * Sorted oldest → newest. Includes a synthetic "opening" entry.
@@ -54,11 +74,9 @@ export function buildAccountTxns(args: {
       inferredByMode;
     if (!belongsToAccount) continue;
     const isIn = p.direction === "in";
-    const isSales = isIn && p.allocations.length > 0;
-    const isPurchaseLinked = p.allocations.some((a) => {
-      const docNo = (a.docNumber ?? "").toUpperCase();
-      return docNo.startsWith("PUR-") || docNo.startsWith("PRET-");
-    });
+    const isPurchaseLinked = isPurchaseLinkedPayment(p);
+    const isSalesLinked = isSalesLinkedPayment(p);
+    const noBalanceImpact = isPurchaseLinked || isSalesLinked;
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
     const docRefLink = (() => {
       const docNo = (singleAlloc?.docNumber ?? "").toUpperCase();
@@ -75,18 +93,15 @@ export function buildAccountTxns(args: {
       accountId: account.id,
       date: p.date,
       kind: isIn ? "payment-in" : "payment-out",
-      // Purchase-linked entries are visible in ledger but do not affect account balance.
-      amount: isPurchaseLinked ? 0 : isIn ? p.amount : -p.amount,
+      amount: paymentBalanceImpact(p),
       refNo: p.allocations.map((a) => a.docNumber).join(", ") || p.reference,
       // If the payment is allocated to a single document, link directly to it.
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
-      note: isPurchaseLinked
-        ? "Purchase transaction (no balance impact)"
+      note: noBalanceImpact
+        ? "Transaction (no balance impact)"
         : isIn
-          ? isSales
-            ? "Sales received"
-            : "Payment received"
+          ? "Payment received"
           : "Payment made",
     });
   }

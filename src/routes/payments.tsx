@@ -2,11 +2,12 @@ import {
   Outlet,
   createFileRoute,
   Link,
+  useNavigate,
   useRouterState,
   type SearchSchemaInput,
 } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { format } from "date-fns";
+import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Paperclip } from "lucide-react";
 import { z } from "zod";
 
@@ -31,11 +32,13 @@ import { hasAnyProof, parseProofAttachments, primaryProofUrl } from "@/lib/proof
 
 const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
+const DEFAULT_FROM = format(startOfMonth(new Date()), "yyyy-MM-dd");
+const DEFAULT_TO = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
 const searchSchema = z.object({
   dir: z.enum(DIRS).catch("all").default("all"),
-  from: z.string().catch("").default(""),
-  to: z.string().catch("").default(""),
+  from: z.string().catch(DEFAULT_FROM).default(DEFAULT_FROM),
+  to: z.string().catch(DEFAULT_TO).default(DEFAULT_TO),
   account: z.string().catch("").default(""),
 });
 
@@ -64,7 +67,7 @@ function PaymentsRouteLayout() {
 
 function PaymentsPage() {
   const search = Route.useSearch();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate({ from: "/payments" });
 
   const { activeId, businesses } = useBusinesses();
   const { payments } = usePayments(activeId);
@@ -91,6 +94,23 @@ function PaymentsPage() {
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, search.dir, search.account, search.from, search.to]);
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, idx) => {
+        const d = subMonths(new Date(), idx);
+        return {
+          value: format(d, "yyyy-MM"),
+          label: format(d, "MMMM yyyy"),
+          from: format(startOfMonth(d), "yyyy-MM-dd"),
+          to: format(endOfMonth(d), "yyyy-MM-dd"),
+        };
+      }),
+    [],
+  );
+  const selectedMonthValue = useMemo(() => {
+    const hit = monthOptions.find((m) => m.from === search.from && m.to === search.to);
+    return hit?.value ?? "custom";
+  }, [search.from, search.to, monthOptions]);
 
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
@@ -108,7 +128,7 @@ function PaymentsPage() {
         </Button>
       </header>
 
-      <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-5">
         <div>
           <Label>Type</Label>
           <Select
@@ -179,6 +199,36 @@ function PaymentsPage() {
             }
           />
         </div>
+        <div>
+          <Label>Month</Label>
+          <Select
+            value={selectedMonthValue}
+            onValueChange={(v) => {
+              if (v === "custom") return;
+              const picked = monthOptions.find((m) => m.value === v);
+              if (!picked) return;
+              navigate({
+                search: (s: z.infer<typeof searchSchema>) => ({
+                  ...s,
+                  from: picked.from,
+                  to: picked.to,
+                }),
+              });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+              <SelectItem value="custom">Custom range</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </section>
 
       <div className="overflow-x-auto rounded-xl border border-border">
@@ -212,7 +262,7 @@ function PaymentsPage() {
                 return (
                   <tr key={p.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                      {format(new Date(p.date), "dd MMM yyyy")}
+                      {format(new Date(p.date), "dd/MM/yyyy")}
                     </td>
                     <td className="px-4 py-3 font-medium">{party?.name ?? "—"}</td>
                     <td className="px-4 py-3">

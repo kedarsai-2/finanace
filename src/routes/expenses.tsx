@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   CalendarIcon,
   CircleHelp,
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
@@ -95,10 +96,34 @@ function ExpensesPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
-  const [from, setFrom] = useState<Date | undefined>();
-  const [to, setTo] = useState<Date | undefined>();
+  const [from, setFrom] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [to, setTo] = useState<Date | undefined>(endOfMonth(new Date()));
   const [showQuick, setShowQuick] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, idx) => {
+        const d = subMonths(new Date(), idx);
+        return {
+          value: format(d, "yyyy-MM"),
+          label: format(d, "MMMM yyyy"),
+          from: startOfMonth(d),
+          to: endOfMonth(d),
+        };
+      }),
+    [],
+  );
+  const selectedMonthValue = useMemo(() => {
+    if (!from || !to) return "custom";
+    const fromKey = format(from, "yyyy-MM-dd");
+    const toKey = format(to, "yyyy-MM-dd");
+    const hit = monthOptions.find(
+      (m) => format(m.from, "yyyy-MM-dd") === fromKey && format(m.to, "yyyy-MM-dd") === toKey,
+    );
+    return hit?.value ?? "custom";
+  }, [from, to, monthOptions]);
 
   const parseDate = (raw: unknown) => {
     const value = String(raw ?? "").trim();
@@ -222,6 +247,8 @@ function ExpensesPage() {
   }, [expenses, typeFilter, categoryFilter, accountFilter, from, to, q, partyById]);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
+  const allVisibleSelected = filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id));
+  const selectedCount = filtered.filter((e) => selectedIds.has(e.id)).length;
 
   const clearFilters = () => {
     setQ("");
@@ -230,6 +257,48 @@ function ExpensesPage() {
     setAccountFilter("all");
     setFrom(undefined);
     setTo(undefined);
+  };
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        filtered.forEach((e) => next.add(e.id));
+      } else {
+        filtered.forEach((e) => next.delete(e.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const bulkDelete = async () => {
+    const ids = filtered.map((e) => e.id).filter((id) => selectedIds.has(id));
+    if (!ids.length) return;
+    if (!verifyActionPassword()) return;
+    try {
+      for (const id of ids) {
+        await remove(id);
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setShowBulkDeleteConfirm(false);
+      toast.success(`Deleted ${ids.length} expenses`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete selected expenses";
+      toast.error(message);
+    }
   };
 
   return (
@@ -303,6 +372,16 @@ function ExpensesPage() {
             <Upload className="h-4 w-4" />
             {importing ? "Importing..." : "Bulk Import"}
           </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            className="gap-2"
+            disabled={selectedCount === 0}
+            onClick={() => setShowBulkDeleteConfirm(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Bulk Delete{selectedCount ? ` (${selectedCount})` : ""}
+          </Button>
           <Button asChild className="gap-2">
             <Link to="/expenses/new">
               <Plus className="h-4 w-4" /> Add Expense
@@ -373,6 +452,31 @@ function ExpensesPage() {
         <div className="sm:col-span-2">
           <DateField label="To" value={to} onChange={setTo} />
         </div>
+        <div className="sm:col-span-2">
+          <Select
+            value={selectedMonthValue}
+            onValueChange={(v) => {
+              if (v === "custom") return;
+              const picked = monthOptions.find((m) => m.value === v);
+              if (picked) {
+                setFrom(picked.from);
+                setTo(picked.to);
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+              <SelectItem value="custom">Custom range</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {(q ||
@@ -406,6 +510,13 @@ function ExpensesPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
+                <th className="w-10 px-2 py-3 text-center">
+                  <Checkbox
+                    checked={allVisibleSelected}
+                    onCheckedChange={(v) => toggleSelectAllVisible(!!v)}
+                    aria-label="Select all expenses"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left">Date</th>
                 <th className="px-4 py-3 text-left">Type</th>
                 <th className="px-4 py-3 text-left">Category</th>
@@ -419,13 +530,20 @@ function ExpensesPage() {
             <tbody className="divide-y divide-border">
               {filtered.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30">
+                  <td className="px-2 py-3 text-center">
+                    <Checkbox
+                      checked={selectedIds.has(e.id)}
+                      onCheckedChange={(v) => toggleSelectOne(e.id, !!v)}
+                      aria-label={`Select expense ${e.id}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     <Link
                       to="/expenses/$id"
                       params={{ id: e.id }}
                       className="hover:text-foreground"
                     >
-                      {format(new Date(e.date), "dd MMM yyyy")}
+                      {format(new Date(e.date), "dd/MM/yyyy")}
                     </Link>
                   </td>
                   <td className="px-4 py-3 font-medium">
@@ -500,6 +618,21 @@ function ExpensesPage() {
       </div>
 
       <QuickAddExpenseDialog open={showQuick} onOpenChange={setShowQuick} />
+
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected expenses?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will soft-delete {selectedCount} selected expenses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={bulkDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -523,7 +656,7 @@ function DateField({
             className="h-10 w-full justify-between font-normal text-white hover:text-white"
           >
             <span className={cn(!value && "text-white/80")}>
-              {value ? format(value, "dd MMM") : label}
+              {value ? format(value, "dd/MM/yyyy") : label}
             </span>
             <CalendarIcon className="ml-2 h-4 w-4 text-white/85" />
           </Button>

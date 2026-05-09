@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { format, subDays, subMonths, startOfMonth, startOfDay, endOfDay } from "date-fns";
+import {
+  endOfDay,
+  endOfMonth,
+  format,
+  startOfDay,
+  startOfMonth,
+  subDays,
+  subMonths,
+} from "date-fns";
 import {
   TrendingUp,
   TrendingDown,
@@ -24,6 +32,13 @@ import {
 } from "recharts";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -33,6 +48,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
+import { paymentBalanceImpact } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -66,6 +82,21 @@ function DashboardPage() {
   const { transfers } = useTransfers(scopedBusinessId);
 
   const [range, setRange] = useState<Range>("6m");
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, idx) => {
+        const d = subMonths(new Date(), idx);
+        return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy") };
+      }),
+    [],
+  );
+  const monthStart = useMemo(() => startOfMonth(new Date(`${selectedMonth}-01`)), [selectedMonth]);
+  const monthEnd = useMemo(() => endOfMonth(monthStart), [monthStart]);
+  const inSelectedMonth = (value: string) => {
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) && d >= monthStart && d <= monthEnd;
+  };
 
   const liveInvoices = useMemo(() => invoices.filter((i) => i.status !== "cancelled"), [invoices]);
   const livePurchases = useMemo(
@@ -80,21 +111,45 @@ function DashboardPage() {
     () => returns.filter((r) => r.status !== "cancelled"),
     [returns],
   );
+  const monthInvoices = useMemo(
+    () => liveInvoices.filter((i) => inSelectedMonth(i.date)),
+    [liveInvoices, monthStart, monthEnd],
+  );
+  const monthPurchases = useMemo(
+    () => livePurchases.filter((p) => inSelectedMonth(p.date)),
+    [livePurchases, monthStart, monthEnd],
+  );
+  const monthCreditNotes = useMemo(
+    () => liveCreditNotes.filter((cn) => inSelectedMonth(cn.date)),
+    [liveCreditNotes, monthStart, monthEnd],
+  );
+  const monthPurchaseReturns = useMemo(
+    () => livePurchaseReturns.filter((r) => inSelectedMonth(r.date)),
+    [livePurchaseReturns, monthStart, monthEnd],
+  );
+  const monthExpenses = useMemo(
+    () => expenses.filter((e) => inSelectedMonth(e.date)),
+    [expenses, monthStart, monthEnd],
+  );
+  const monthPayments = useMemo(
+    () => payments.filter((p) => inSelectedMonth(p.date)),
+    [payments, monthStart, monthEnd],
+  );
 
-  const totalSales = liveInvoices.reduce((s, i) => s + i.total, 0);
-  const totalCreditNotes = liveCreditNotes.reduce((s, cn) => s + cn.total, 0);
-  const totalReceived = liveInvoices.reduce((s, i) => s + i.paidAmount, 0);
-  const totalReceivable = liveInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
-  const totalPurchases = livePurchases.reduce((s, p) => s + p.total, 0);
-  const totalPurchaseReturns = livePurchaseReturns.reduce((s, p) => s + p.total, 0);
-  const totalPaidSuppliers = livePurchases.reduce((s, p) => s + p.paidAmount, 0);
-  const totalPayable = livePurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  const totalPaymentsPaid = payments.reduce(
+  const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
+  const totalCreditNotes = monthCreditNotes.reduce((s, cn) => s + cn.total, 0);
+  const totalReceived = monthInvoices.reduce((s, i) => s + i.paidAmount, 0);
+  const totalReceivable = monthInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
+  const totalPurchases = monthPurchases.reduce((s, p) => s + p.total, 0);
+  const totalPurchaseReturns = monthPurchaseReturns.reduce((s, p) => s + p.total, 0);
+  const totalPaidSuppliers = monthPurchases.reduce((s, p) => s + p.paidAmount, 0);
+  const totalPayable = monthPurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
+  const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalPaymentsPaid = monthPayments.reduce(
     (s, p) => (p.direction === "out" ? s + p.amount : s),
     0,
   );
-  const totalPaymentsReceived = payments.reduce(
+  const totalPaymentsReceived = monthPayments.reduce(
     (s, p) => (p.direction === "in" ? s + p.amount : s),
     0,
   );
@@ -110,9 +165,9 @@ function DashboardPage() {
   const accountBalances = useMemo(() => {
     // Dashboard-only fast path: avoid building/sorting full ledgers per account.
     const paySum = new Map<string, number>();
-    for (const p of payments) {
+    for (const p of monthPayments) {
       if (!p.accountId) continue;
-      const delta = p.direction === "in" ? p.amount : -p.amount;
+      const delta = paymentBalanceImpact(p);
       paySum.set(p.accountId, (paySum.get(p.accountId) ?? 0) + delta);
     }
 
@@ -123,7 +178,7 @@ function DashboardPage() {
     }
 
     const expSum = new Map<string, number>();
-    for (const e of expenses) {
+    for (const e of monthExpenses) {
       if (!e.accountId) continue;
       expSum.set(e.accountId, (expSum.get(e.accountId) ?? 0) - e.amount);
     }
@@ -147,11 +202,11 @@ function DashboardPage() {
       }
     }
     return { cash, bank, cashCount, bankCount };
-  }, [accounts, payments, transfers, expenses]);
+  }, [accounts, monthPayments, transfers, monthExpenses]);
 
   const trendData = useMemo(
-    () => buildTrend(range, liveInvoices, expenses),
-    [range, liveInvoices, expenses],
+    () => buildTrend(range, monthInvoices, monthExpenses),
+    [range, monthInvoices, monthExpenses],
   );
 
   const recent = useMemo(() => {
@@ -166,7 +221,7 @@ function DashboardPage() {
       href: string;
     };
     const items: Item[] = [];
-    for (const i of liveInvoices) {
+    for (const i of monthInvoices) {
       items.push({
         id: `inv_${i.id}`,
         kind: "invoice",
@@ -178,7 +233,7 @@ function DashboardPage() {
         href: `/invoices/${i.id}`,
       });
     }
-    for (const p of payments) {
+    for (const p of monthPayments) {
       items.push({
         id: `pay_${p.id}`,
         kind: "payment",
@@ -190,7 +245,7 @@ function DashboardPage() {
         href: `/payments`,
       });
     }
-    for (const e of expenses) {
+    for (const e of monthExpenses) {
       items.push({
         id: `exp_${e.id}`,
         kind: "expense",
@@ -203,7 +258,7 @@ function DashboardPage() {
       });
     }
     return items.sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 8);
-  }, [liveInvoices, payments, expenses]);
+  }, [monthInvoices, monthPayments, monthExpenses]);
 
   if (!hydrated) {
     return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
@@ -231,7 +286,8 @@ function DashboardPage() {
     );
   }
 
-  const isEmpty = liveInvoices.length === 0 && payments.length === 0 && expenses.length === 0;
+  const isEmpty =
+    monthInvoices.length === 0 && monthPayments.length === 0 && monthExpenses.length === 0;
 
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
@@ -242,7 +298,21 @@ function DashboardPage() {
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Dashboard</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-[180px]">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <Link to="/invoices/new">
               <Plus className="h-4 w-4" />
@@ -450,7 +520,7 @@ function DashboardPage() {
                     {formatCurrency(r.amount, currency)}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {format(new Date(r.date), "dd MMM yyyy")}
+                    {format(new Date(r.date), "dd/MM/yyyy")}
                   </p>
                 </div>
               </li>
