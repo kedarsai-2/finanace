@@ -208,9 +208,7 @@ function RoleAccessPage() {
         !!selectedUser.authorities?.includes(editAuthorityForModule(module.key)) ||
         !!selectedUser.authorities?.includes(deleteAuthorityForModule(module.key));
       const canWrite = !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key));
-      const canEdit =
-        !!selectedUser.authorities?.includes(editAuthorityForModule(module.key)) ||
-        !!selectedUser.authorities?.includes(writeAuthorityForModule(module.key));
+      const canEdit = !!selectedUser.authorities?.includes(editAuthorityForModule(module.key));
       const canDelete = !!selectedUser.authorities?.includes(deleteAuthorityForModule(module.key));
       readMap[module.key] = canRead;
       writeMap[module.key] = canWrite;
