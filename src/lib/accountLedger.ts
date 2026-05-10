@@ -16,8 +16,8 @@ function isSalesLinkedPayment(p: Payment): boolean {
   });
 }
 
+/** Ledger balance delta from this payment. Invoice/purchase-linked rows stay visible but do not move cash/bank balance. */
 export function paymentBalanceImpact(p: Payment): number {
-  // Sales/purchase-linked payments are visible for audit but should not affect cash/bank balance.
   if (isPurchaseLinkedPayment(p) || isSalesLinkedPayment(p)) return 0;
   return p.direction === "in" ? p.amount : -p.amount;
 }
@@ -99,7 +99,7 @@ export function buildAccountTxns(args: {
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
       note: noBalanceImpact
-        ? "Transaction (no balance impact)"
+        ? `Transaction (no balance impact, amount ${Number(p.amount).toFixed(2)})`
         : isIn
           ? "Payment received"
           : "Payment made",
