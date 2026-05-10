@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   endOfDay,
-  endOfMonth,
   format,
+  isSameMonth,
   startOfDay,
   startOfMonth,
   subDays,
@@ -70,6 +70,23 @@ const RANGE_LABEL: Record<Range, string> = {
   "1y": "1 year",
 };
 
+/** Parse stored ISO / calendar dates without UTC shifting `yyyy-mm-dd` across month boundaries. */
+function parseDashDate(raw: string): Date | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const head = s.slice(0, 10);
+  const m = head.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    const dt = new Date(y, mo, d);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  }
+  const t = new Date(s);
+  return Number.isNaN(t.getTime()) ? null : t;
+}
+
 function DashboardPage() {
   const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
@@ -87,17 +104,16 @@ function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const monthOptions = useMemo(
     () =>
-      Array.from({ length: 12 }).map((_, idx) => {
+      Array.from({ length: 36 }).map((_, idx) => {
         const d = subMonths(new Date(), idx);
         return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy") };
       }),
     [],
   );
   const monthStart = useMemo(() => startOfMonth(new Date(`${selectedMonth}-01`)), [selectedMonth]);
-  const monthEnd = useMemo(() => endOfMonth(monthStart), [monthStart]);
   const inSelectedMonth = (value: string) => {
-    const d = new Date(value);
-    return Number.isFinite(d.getTime()) && d >= monthStart && d <= monthEnd;
+    const d = parseDashDate(value);
+    return d != null && isSameMonth(d, monthStart);
   };
 
   const liveInvoices = useMemo(() => invoices.filter((i) => i.status !== "cancelled"), [invoices]);
@@ -115,27 +131,27 @@ function DashboardPage() {
   );
   const monthInvoices = useMemo(
     () => liveInvoices.filter((i) => inSelectedMonth(i.date)),
-    [liveInvoices, monthStart, monthEnd],
+    [liveInvoices, monthStart, selectedMonth],
   );
   const monthPurchases = useMemo(
     () => livePurchases.filter((p) => inSelectedMonth(p.date)),
-    [livePurchases, monthStart, monthEnd],
+    [livePurchases, monthStart, selectedMonth],
   );
   const monthCreditNotes = useMemo(
     () => liveCreditNotes.filter((cn) => inSelectedMonth(cn.date)),
-    [liveCreditNotes, monthStart, monthEnd],
+    [liveCreditNotes, monthStart, selectedMonth],
   );
   const monthPurchaseReturns = useMemo(
     () => livePurchaseReturns.filter((r) => inSelectedMonth(r.date)),
-    [livePurchaseReturns, monthStart, monthEnd],
+    [livePurchaseReturns, monthStart, selectedMonth],
   );
   const monthExpenses = useMemo(
     () => expenses.filter((e) => inSelectedMonth(e.date)),
-    [expenses, monthStart, monthEnd],
+    [expenses, monthStart, selectedMonth],
   );
   const monthPayments = useMemo(
     () => payments.filter((p) => inSelectedMonth(p.date)),
-    [payments, monthStart, monthEnd],
+    [payments, monthStart, selectedMonth],
   );
 
   const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
@@ -206,9 +222,15 @@ function DashboardPage() {
     return { cash, bank, cashCount, bankCount };
   }, [accounts, monthPayments, transfers, monthExpenses]);
 
+  // Trend uses all-time rows for the rolling window — not the dashboard month filter.
   const trendData = useMemo(
-    () => buildTrend(range, monthInvoices, monthExpenses),
-    [range, monthInvoices, monthExpenses],
+    () =>
+      buildTrend(
+        range,
+        liveInvoices.map((i) => ({ date: i.date, total: i.total })),
+        expenses.map((e) => ({ date: e.date, amount: e.amount })),
+      ),
+    [range, liveInvoices, expenses],
   );
 
   const recent = useMemo(() => {
@@ -262,7 +284,7 @@ function DashboardPage() {
     return items.sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [monthInvoices, monthPayments, monthExpenses]);
 
-  const recentPg = useListPagination(recent, range, 10);
+  const recentPg = useListPagination(recent, `${range}|${selectedMonth}`, 10);
 
   if (!hydrated) {
     return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
@@ -292,6 +314,14 @@ function DashboardPage() {
 
   const isEmpty =
     monthInvoices.length === 0 && monthPayments.length === 0 && monthExpenses.length === 0;
+
+  const hasAnyActivityEver =
+    liveInvoices.length > 0 ||
+    livePurchases.length > 0 ||
+    liveCreditNotes.length > 0 ||
+    livePurchaseReturns.length > 0 ||
+    payments.length > 0 ||
+    expenses.length > 0;
 
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
@@ -340,22 +370,34 @@ function DashboardPage() {
 
       {isEmpty && (
         <div className="mb-6 rounded-xl border border-dashed border-border bg-card/40 p-5 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">Your dashboard is empty.</p>
-          <p className="mt-1">
-            Start by creating an{" "}
-            <Link to="/invoices/new" className="text-primary hover:underline">
-              invoice
-            </Link>
-            , recording a{" "}
-            <Link to="/payments/new" className="text-primary hover:underline">
-              payment
-            </Link>
-            , or logging an{" "}
-            <Link to="/expenses/new" className="text-primary hover:underline">
-              expense
-            </Link>
-            .
-          </p>
+          {hasAnyActivityEver ? (
+            <>
+              <p className="font-medium text-foreground">No activity in {format(monthStart, "MMMM yyyy")}.</p>
+              <p className="mt-1">
+                Summary cards only include the month selected above. Choose a different month to see
+                your data, or add new transactions for this period.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium text-foreground">Your dashboard is empty.</p>
+              <p className="mt-1">
+                Start by creating an{" "}
+                <Link to="/invoices/new" className="text-primary hover:underline">
+                  invoice
+                </Link>
+                , recording a{" "}
+                <Link to="/payments/new" className="text-primary hover:underline">
+                  payment
+                </Link>
+                , or logging an{" "}
+                <Link to="/expenses/new" className="text-primary hover:underline">
+                  expense
+                </Link>
+                .
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -717,15 +759,15 @@ function buildTrend(
     const start = startOfDay(subDays(now, 29));
     const end = endOfDay(now);
     for (const inv of invoices) {
-      const d = new Date(inv.date);
-      if (d < start || d > end) continue;
+      const d = parseDashDate(inv.date);
+      if (!d || d < start || d > end) continue;
       const k = format(d, "yyyy-MM-dd");
       const b = map.get(k);
       if (b) b.sales += inv.total;
     }
     for (const e of expenses) {
-      const d = new Date(e.date);
-      if (d < start || d > end) continue;
+      const d = parseDashDate(e.date);
+      if (!d || d < start || d > end) continue;
       const k = format(d, "yyyy-MM-dd");
       const b = map.get(k);
       if (b) b.expense += e.amount;
@@ -747,15 +789,15 @@ function buildTrend(
   const map = new Map(buckets.map((b) => [b.key, b]));
   const start = startOfMonth(subMonths(now, months - 1));
   for (const inv of invoices) {
-    const d = new Date(inv.date);
-    if (d < start) continue;
+    const d = parseDashDate(inv.date);
+    if (!d || d < start) continue;
     const k = format(d, "yyyy-MM");
     const b = map.get(k);
     if (b) b.sales += inv.total;
   }
   for (const e of expenses) {
-    const d = new Date(e.date);
-    if (d < start) continue;
+    const d = parseDashDate(e.date);
+    if (!d || d < start) continue;
     const k = format(d, "yyyy-MM");
     const b = map.get(k);
     if (b) b.expense += e.amount;
