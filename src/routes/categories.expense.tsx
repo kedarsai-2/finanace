@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { ArrowLeft, Plus, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +35,9 @@ function ExpenseCategoriesPage() {
     for (const e of expenses) m.set(e.category, (m.get(e.category) ?? 0) + 1);
     return m;
   }, [expenses]);
+
+  const catPgKey = useMemo(() => categories.map((c) => c.id).join("|"), [categories]);
+  const catPg = useListPagination(categories, catPgKey);
 
   const onAdd = async () => {
     const trimmed = name.trim();
@@ -94,7 +99,7 @@ function ExpenseCategoriesPage() {
 
       <div className="overflow-hidden rounded-xl border border-border">
         <ul className="divide-y divide-border">
-          {categories.map((category) => {
+          {catPg.pageItems.map((category) => {
             const usage = usageByCategory.get(category.name) ?? 0;
             return (
               <li key={category.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30">
@@ -127,6 +132,14 @@ function ExpenseCategoriesPage() {
             );
           })}
         </ul>
+        <ListPaginationBar
+          page={catPg.page}
+          totalPages={catPg.totalPages}
+          totalCount={catPg.totalCount}
+          rangeFrom={catPg.rangeFrom}
+          rangeTo={catPg.rangeTo}
+          onPageChange={catPg.setPage}
+        />
       </div>
     </div>
   );

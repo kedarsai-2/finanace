@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +100,9 @@ function ItemsPage() {
     });
   }, [items, q, type]);
 
+  const itemPgKey = useMemo(() => `${q}|${type}`, [q, type]);
+  const itemPg = useListPagination(visible, itemPgKey);
+
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
   const setType = (next: Filter) =>
@@ -176,7 +181,18 @@ function ItemsPage() {
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={items.length > 0} />
         ) : (
-          <ItemsTable items={visible} currency={currency} onDelete={setDeleting} />
+          <>
+            <ItemsTable items={itemPg.pageItems} currency={currency} onDelete={setDeleting} />
+            <ListPaginationBar
+              page={itemPg.page}
+              totalPages={itemPg.totalPages}
+              totalCount={itemPg.totalCount}
+              rangeFrom={itemPg.rangeFrom}
+              rangeTo={itemPg.rangeTo}
+              onPageChange={itemPg.setPage}
+              className="mt-2 rounded-2xl border border-border bg-card"
+            />
+          </>
         )}
       </main>
 

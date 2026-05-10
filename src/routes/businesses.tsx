@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +47,12 @@ function BusinessesPage() {
 
   const [deleting, setDeleting] = useState<Business | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<Business | null>(null);
+
+  const bizPgKey = useMemo(
+    () => businesses.map((b) => b.id).sort().join("|"),
+    [businesses],
+  );
+  const bizPg = useListPagination(businesses, bizPgKey);
 
   const handleSelect = (b: Business) => {
     if (b.id === activeId) return;
@@ -111,8 +119,9 @@ function BusinessesPage() {
             </Button>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {businesses.map((b) => (
+            {bizPg.pageItems.map((b) => (
               <BusinessCard
                 key={b.id}
                 business={b}
@@ -123,6 +132,16 @@ function BusinessesPage() {
               />
             ))}
           </div>
+          <ListPaginationBar
+            page={bizPg.page}
+            totalPages={bizPg.totalPages}
+            totalCount={bizPg.totalCount}
+            rangeFrom={bizPg.rangeFrom}
+            rangeTo={bizPg.rangeTo}
+            onPageChange={bizPg.setPage}
+            className="mt-6 rounded-xl border border-border bg-card"
+          />
+          </>
         )}
       </main>
 

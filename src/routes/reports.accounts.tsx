@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +99,12 @@ function AccountReport() {
       })
       .reverse();
   }, [selected, payments, transfers, expenses, accountsById, from, to]);
+
+  const rowPgKey = useMemo(
+    () => `${selected?.id ?? ""}|${from}|${to}`,
+    [selected?.id, from, to],
+  );
+  const rowPg = useListPagination(rows, rowPgKey);
 
   const closingBalance = rows.length ? rows[0].balance : (selected?.openingBalance ?? 0);
 
@@ -199,7 +207,7 @@ function AccountReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
+              {rowPg.pageItems.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 text-muted-foreground">
                     {format(new Date(r.date), "dd MMM yyyy")}
@@ -225,6 +233,16 @@ function AccountReport() {
               ))}
             </tbody>
           </table>
+        )}
+        {selected && rows.length > 0 && (
+          <ListPaginationBar
+            page={rowPg.page}
+            totalPages={rowPg.totalPages}
+            totalCount={rowPg.totalCount}
+            rangeFrom={rowPg.rangeFrom}
+            rangeTo={rowPg.rangeTo}
+            onPageChange={rowPg.setPage}
+          />
         )}
       </div>
     </ReportShell>

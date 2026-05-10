@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useRouter, type SearchSchemaInput } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -171,6 +173,9 @@ function AccountDetailsPage() {
       return true;
     });
   }, [allTxns, search.from, search.to, search.kind]);
+
+  const stmtPgKey = `${id}|${search.from}|${search.to}|${search.kind}`;
+  const stmtPg = useListPagination(filteredRows, stmtPgKey);
 
   if (!hydrated) {
     return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
@@ -350,6 +355,7 @@ function AccountDetailsPage() {
             No transactions found
           </div>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -362,7 +368,7 @@ function AccountDetailsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredRows.map((r) => (
+              {stmtPg.pageItems.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {format(new Date(r.date), "dd MMM yyyy")}
@@ -397,6 +403,15 @@ function AccountDetailsPage() {
               ))}
             </tbody>
           </table>
+          <ListPaginationBar
+            page={stmtPg.page}
+            totalPages={stmtPg.totalPages}
+            totalCount={stmtPg.totalCount}
+            rangeFrom={stmtPg.rangeFrom}
+            rangeTo={stmtPg.rangeTo}
+            onPageChange={stmtPg.setPage}
+          />
+          </>
         )}
       </div>
     </div>

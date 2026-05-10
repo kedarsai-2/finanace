@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   Plus,
@@ -73,6 +75,7 @@ import {
   mapSalesReportRowToInvoiceFields,
 } from "@/lib/expensePurchaseImportMapping";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
+import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -171,6 +174,12 @@ function InvoicesPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [invoices, q, status, payment, type, fromDate, toDate]);
 
+  const listPgKey = useMemo(
+    () => `${q}|${status}|${payment}|${type}|${from}|${to}`,
+    [q, status, payment, type, from, to],
+  );
+  const listPg = useListPagination(visible, listPgKey);
+
   const totals = useMemo(() => {
     let total = 0;
     let paid = 0;
@@ -213,13 +222,14 @@ function InvoicesPage() {
 
   const setSearch = (next: Partial<SearchValues>) =>
     navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
-  const allVisibleSelected = visible.length > 0 && visible.every((i) => selectedIds.has(i.id));
+  const allVisibleSelected =
+    listPg.pageItems.length > 0 && listPg.pageItems.every((i) => selectedIds.has(i.id));
   const selectedCount = visible.filter((i) => selectedIds.has(i.id)).length;
   const toggleSelectAllVisible = (checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) visible.forEach((i) => next.add(i.id));
-      else visible.forEach((i) => next.delete(i.id));
+      if (checked) listPg.pageItems.forEach((i) => next.add(i.id));
+      else listPg.pageItems.forEach((i) => next.delete(i.id));
       return next;
     });
   };
@@ -313,13 +323,8 @@ function InvoicesPage() {
       const mainSheet = workbook.Sheets["Sale Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
       if (!mainSheet) throw new Error("No sheet found in file");
       const itemSheet = workbook.Sheets["Item Details"];
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, {
-        defval: "",
-        range: 3,
-      });
-      const itemRows = itemSheet
-        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "", range: 2 })
-        : [];
+      const rows = sheetToObjectsByHeaderMarker(mainSheet, "Party Name");
+      const itemRows = itemSheet ? sheetToObjectsByHeaderMarker(itemSheet, "Item Name") : [];
       if (rows.length === 0) throw new Error("File has no rows");
 
       const linesByRef = new Map<string, Invoice["lines"]>();
@@ -697,17 +702,28 @@ function InvoicesPage() {
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={invoices.length > 0} />
         ) : (
-          <InvoicesTable
-            invoices={visible}
-            currency={currency}
-            paymentTypeByInvoiceId={paymentTypeByInvoiceId}
-            selectedIds={selectedIds}
-            allSelected={allVisibleSelected}
-            onToggleSelectAll={toggleSelectAllVisible}
-            onToggleSelectOne={toggleSelectOne}
-            onDelete={setDeleting}
-            onCancel={setCancelling}
-          />
+          <>
+            <InvoicesTable
+              invoices={listPg.pageItems}
+              currency={currency}
+              paymentTypeByInvoiceId={paymentTypeByInvoiceId}
+              selectedIds={selectedIds}
+              allSelected={allVisibleSelected}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onToggleSelectOne={toggleSelectOne}
+              onDelete={setDeleting}
+              onCancel={setCancelling}
+            />
+            <ListPaginationBar
+              page={listPg.page}
+              totalPages={listPg.totalPages}
+              totalCount={listPg.totalCount}
+              rangeFrom={listPg.rangeFrom}
+              rangeTo={listPg.rangeTo}
+              onPageChange={listPg.setPage}
+              className="mt-2 rounded-xl border border-border bg-card"
+            />
+          </>
         )}
       </main>
 

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +60,12 @@ function ExpenseReport() {
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [expenses, from, to, category, accountId]);
 
+  const rowPgKey = useMemo(
+    () => `${from}|${to}|${category}|${accountId}`,
+    [from, to, category, accountId],
+  );
+  const rowPg = useListPagination(rows, rowPgKey);
+
   const total = rows.reduce((s, r) => s + r.amount, 0);
 
   const exportCsv = () => {
@@ -68,7 +76,7 @@ function ExpenseReport() {
         format(new Date(r.date), "yyyy-MM-dd"),
         r.category,
         r.amount.toFixed(2),
-        accountsById[r.accountId] ?? "—",
+        (r.accountId ? accountsById[r.accountId] : undefined) ?? "—",
         r.notes ?? "",
       ]),
     );
@@ -155,7 +163,7 @@ function ExpenseReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
+              {rowPg.pageItems.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 text-muted-foreground">
                     {format(new Date(r.date), "dd MMM yyyy")}
@@ -173,13 +181,26 @@ function ExpenseReport() {
                     {formatCurrency(r.amount, currency)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {accountsById[r.accountId] ?? "—"}
+                    {(r.accountId ? accountsById[r.accountId] : undefined) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{r.notes ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
+              <tr>
+                <td colSpan={5} className="border-none p-0">
+                  <ListPaginationBar
+                    page={rowPg.page}
+                    totalPages={rowPg.totalPages}
+                    totalCount={rowPg.totalCount}
+                    rangeFrom={rowPg.rangeFrom}
+                    rangeTo={rowPg.rangeTo}
+                    onPageChange={rowPg.setPage}
+                    className="border-t-0"
+                  />
+                </td>
+              </tr>
               <tr className="border-t border-border bg-muted/20 text-sm font-semibold">
                 <td colSpan={2} className="px-4 py-3">
                   Total ({rows.length})

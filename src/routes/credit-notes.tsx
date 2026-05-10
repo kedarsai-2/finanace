@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { FileMinus, Search } from "lucide-react";
 
@@ -37,6 +39,8 @@ function CreditNotesPage() {
     () => [...creditNotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [creditNotes],
   );
+
+  const cnPg = useListPagination(sorted, "credit-notes");
 
   const totals = useMemo(() => {
     let total = 0;
@@ -107,7 +111,7 @@ function CreditNotesPage() {
               <span className="text-center">Status</span>
             </div>
             <ul className="divide-y divide-border">
-              {sorted.map((cn) => (
+              {cnPg.pageItems.map((cn) => (
                 <li
                   key={cn.id}
                   className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px]"
@@ -160,6 +164,14 @@ function CreditNotesPage() {
                 </li>
               ))}
             </ul>
+            <ListPaginationBar
+              page={cnPg.page}
+              totalPages={cnPg.totalPages}
+              totalCount={cnPg.totalCount}
+              rangeFrom={cnPg.rangeFrom}
+              rangeTo={cnPg.rangeTo}
+              onPageChange={cnPg.setPage}
+            />
           </div>
         )}
       </main>

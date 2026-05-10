@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Banknote, Pencil, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -93,7 +95,7 @@ function CashPage() {
     [accounts],
   );
 
-  const { totalBalance, recentTxns } = useMemo(() => {
+  const { totalBalance, allCashTxns } = useMemo(() => {
     let total = 0;
     const all: (AccountTxn & { accountName: string; accountId: string })[] = [];
     for (const a of cashAccounts) {
@@ -111,8 +113,15 @@ function CashPage() {
       }
     }
     all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return { totalBalance: total, recentTxns: all.slice(0, 25) };
+    return { totalBalance: total, allCashTxns: all };
   }, [cashAccounts, payments, transfers, expenses, accountsById]);
+
+  const cashTxnKey = useMemo(
+    () =>
+      `${cashAccounts.map((a) => a.id).sort().join(",")}|${payments.length}|${transfers.length}|${expenses.length}`,
+    [cashAccounts, payments.length, transfers.length, expenses.length],
+  );
+  const cashTxnPg = useListPagination(allCashTxns, cashTxnKey);
 
   if (!bHyd || !hydrated) {
     return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
@@ -259,17 +268,18 @@ function CashPage() {
           <section className="overflow-x-auto rounded-xl border border-border">
             <header className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
               <div>
-                <h2 className="text-sm font-semibold">Recent cash transactions</h2>
+                <h2 className="text-sm font-semibold">Cash transactions</h2>
                 <p className="text-xs text-muted-foreground">
-                  Latest 25 entries across all cash accounts
+                  All entries across cash accounts, newest first
                 </p>
               </div>
             </header>
-            {recentTxns.length === 0 ? (
+            {allCashTxns.length === 0 ? (
               <div className="px-6 py-12 text-center text-sm text-muted-foreground">
                 No cash transactions yet.
               </div>
             ) : (
+              <>
               <table className="w-full text-sm">
                 <thead className="bg-muted/20 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -282,7 +292,7 @@ function CashPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {recentTxns.map((r) => (
+                  {cashTxnPg.pageItems.map((r) => (
                     <tr key={`${r.accountId}-${r.id}`} className="hover:bg-muted/30">
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                         {format(new Date(r.date), "dd MMM yyyy")}
@@ -311,6 +321,15 @@ function CashPage() {
                   ))}
                 </tbody>
               </table>
+              <ListPaginationBar
+                page={cashTxnPg.page}
+                totalPages={cashTxnPg.totalPages}
+                totalCount={cashTxnPg.totalCount}
+                rangeFrom={cashTxnPg.rangeFrom}
+                rangeTo={cashTxnPg.rangeTo}
+                onPageChange={cashTxnPg.setPage}
+              />
+              </>
             )}
           </section>
         </>

@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   CalendarIcon,
@@ -155,6 +157,12 @@ function ExpensesPage() {
     return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
   };
 
+  const normalizeDedupeFragment = (raw: unknown): string =>
+    String(raw ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
   const handleBulkImport = async (file?: File | null) => {
     if (!file) return;
     if (!activeId) {
@@ -207,11 +215,18 @@ function ExpensesPage() {
         items.map((it) => it.name.trim().toLowerCase()).filter(Boolean),
       );
       const expenseKeys = new Set(
-        expenses.map((e) => {
+        expenses.flatMap((e) => {
           const dateKey = format(new Date(e.date), "yyyy-MM-dd");
           const partyKey = (e.partyId ? partyById[e.partyId]?.name : "")?.trim().toLowerCase() ?? "";
           const refKey = (e.reference ?? "").trim().toLowerCase();
-          return `${dateKey}|${partyKey}|${refKey}|${Number(e.amount).toFixed(2)}`;
+          const amt = Number(e.amount).toFixed(2);
+          const base = `${dateKey}|${partyKey}|${refKey}|${amt}`;
+          const cat = normalizeDedupeFragment(e.category);
+          const notes = normalizeDedupeFragment(e.notes);
+          const richNoPay = `${base}|${cat}||${notes}`;
+          const keys = [richNoPay];
+          if (partyKey || refKey) keys.push(base);
+          return keys;
         }),
       );
       for (const row of rows) {
@@ -255,8 +270,17 @@ function ExpensesPage() {
           (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
         const dedupePartyKey = partyNameRaw.trim().toLowerCase();
         const dedupeRefKey = String(mapped.reference ?? "").trim().toLowerCase();
-        const expenseKey = `${importedDateKey}|${dedupePartyKey}|${dedupeRefKey}|${Number(amount).toFixed(2)}`;
-        if (expenseKeys.has(expenseKey)) {
+        const catFrag = normalizeDedupeFragment(category);
+        const payFrag = normalizeDedupeFragment(row["Payment Type"]);
+        const notesFrag = normalizeDedupeFragment(mapped.notes);
+        const baseOnly = `${importedDateKey}|${dedupePartyKey}|${dedupeRefKey}|${Number(amount).toFixed(2)}`;
+        const richNoPay = `${baseOnly}|${catFrag}||${notesFrag}`;
+        const fullKey = `${baseOnly}|${catFrag}|${payFrag}|${notesFrag}`;
+        const isDup =
+          expenseKeys.has(fullKey) ||
+          (!payFrag && expenseKeys.has(richNoPay)) ||
+          ((dedupePartyKey || dedupeRefKey) && expenseKeys.has(baseOnly));
+        if (isDup) {
           duplicates += 1;
           continue;
         }
@@ -321,7 +345,9 @@ function ExpensesPage() {
           lineAmount: itemMapped.lineAmount,
           createdAt: new Date().toISOString(),
         });
-        expenseKeys.add(expenseKey);
+        expenseKeys.add(fullKey);
+        if (!payFrag) expenseKeys.add(richNoPay);
+        if (dedupePartyKey || dedupeRefKey) expenseKeys.add(baseOnly);
         created += 1;
       }
 
@@ -359,8 +385,16 @@ function ExpensesPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, typeFilter, categoryFilter, accountFilter, from, to, q, partyById]);
 
+  const paginationKey = useMemo(
+    () =>
+      `${q}|${typeFilter}|${categoryFilter}|${accountFilter}|${from?.getTime() ?? ""}|${to?.getTime() ?? ""}`,
+    [q, typeFilter, categoryFilter, accountFilter, from, to],
+  );
+  const pg = useListPagination(filtered, paginationKey);
+
   const total = filtered.reduce((s, e) => s + e.amount, 0);
-  const allVisibleSelected = filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id));
+  const allVisibleSelected =
+    pg.pageItems.length > 0 && pg.pageItems.every((e) => selectedIds.has(e.id));
   const selectedCount = filtered.filter((e) => selectedIds.has(e.id)).length;
 
   const clearFilters = () => {
@@ -376,9 +410,9 @@ function ExpensesPage() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) {
-        filtered.forEach((e) => next.add(e.id));
+        pg.pageItems.forEach((e) => next.add(e.id));
       } else {
-        filtered.forEach((e) => next.delete(e.id));
+        pg.pageItems.forEach((e) => next.delete(e.id));
       }
       return next;
     });
@@ -620,6 +654,7 @@ function ExpensesPage() {
             </Button>
           </div>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -627,7 +662,7 @@ function ExpensesPage() {
                   <Checkbox
                     checked={allVisibleSelected}
                     onCheckedChange={(v) => toggleSelectAllVisible(!!v)}
-                    aria-label="Select all expenses"
+                    aria-label="Select all on this page"
                   />
                 </th>
                 <th className="px-4 py-3 text-left">Date</th>
@@ -641,7 +676,7 @@ function ExpensesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((e) => (
+              {pg.pageItems.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30">
                   <td className="px-2 py-3 text-center">
                     <Checkbox
@@ -736,6 +771,15 @@ function ExpensesPage() {
               ))}
             </tbody>
           </table>
+          <ListPaginationBar
+            page={pg.page}
+            totalPages={pg.totalPages}
+            totalCount={pg.totalCount}
+            rangeFrom={pg.rangeFrom}
+            rangeTo={pg.rangeTo}
+            onPageChange={pg.setPage}
+          />
+          </>
         )}
       </div>
 

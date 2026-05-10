@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -174,6 +176,9 @@ function CashBalancePage() {
     });
   }, [previousTransactions, from, to, kind, accountFilter, query]);
 
+  const balTxnKey = `${from}|${to}|${kind}|${accountFilter}|${query}`;
+  const balTxnPg = useListPagination(filteredTransactions, balTxnKey);
+
   const onSave = async () => {
     if (!effectiveBusinessId) return toast.error("Select a specific business first");
     if (!USE_BACKEND) return toast.success("Cash balance saved");
@@ -335,7 +340,7 @@ function CashBalancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredTransactions.map((t) => (
+                  {balTxnPg.pageItems.map((t) => (
                     <tr key={`${t.accountId}-${t.id}`} className="hover:bg-muted/30">
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                         {format(new Date(t.date), "dd MMM yyyy")}
@@ -364,6 +369,16 @@ function CashBalancePage() {
                   ))}
                 </tbody>
               </table>
+            )}
+            {filteredTransactions.length > 0 && (
+              <ListPaginationBar
+                page={balTxnPg.page}
+                totalPages={balTxnPg.totalPages}
+                totalCount={balTxnPg.totalCount}
+                rangeFrom={balTxnPg.rangeFrom}
+                rangeTo={balTxnPg.rangeTo}
+                onPageChange={balTxnPg.setPage}
+              />
             )}
           </section>
         </div>

@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Eye, ShieldCheck, FileX } from "lucide-react";
@@ -130,6 +132,9 @@ function AuditPage() {
     });
   }, [logs, user, moduleFilter, action, from, to]);
 
+  const auditPgKey = `${user}|${moduleFilter}|${action}|${from}|${to}`;
+  const auditPg = useListPagination(filtered, auditPgKey);
+
   return (
     <div className="max-w-screen-2xl px-4 py-8 sm:px-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -244,7 +249,7 @@ function AuditPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((entry) => {
+              auditPg.pageItems.map((entry) => {
                 const changeCount =
                   entry.changes?.length ??
                   (entry.snapshot ? Object.keys(entry.snapshot).length : 0);
@@ -287,6 +292,14 @@ function AuditPage() {
             )}
           </TableBody>
         </Table>
+        <ListPaginationBar
+          page={auditPg.page}
+          totalPages={auditPg.totalPages}
+          totalCount={auditPg.totalCount}
+          rangeFrom={auditPg.rangeFrom}
+          rangeTo={auditPg.rangeTo}
+          onPageChange={auditPg.setPage}
+        />
       </div>
 
       <DiffDialog entry={active} onClose={() => setActive(null)} />

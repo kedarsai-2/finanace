@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +50,12 @@ function SalesReport() {
       })
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [invoices, from, to, partyId, status]);
+
+  const rowPgKey = useMemo(
+    () => `${from}|${to}|${partyId}|${status}`,
+    [from, to, partyId, status],
+  );
+  const rowPg = useListPagination(rows, rowPgKey);
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -158,7 +166,7 @@ function SalesReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => {
+              {rowPg.pageItems.map((r) => {
                 const st = paymentStatusOf(r);
                 const bal = r.total - r.paidAmount;
                 return (
@@ -207,6 +215,19 @@ function SalesReport() {
               })}
             </tbody>
             <tfoot>
+              <tr>
+                <td colSpan={7} className="border-none p-0">
+                  <ListPaginationBar
+                    page={rowPg.page}
+                    totalPages={rowPg.totalPages}
+                    totalCount={rowPg.totalCount}
+                    rangeFrom={rowPg.rangeFrom}
+                    rangeTo={rowPg.rangeTo}
+                    onPageChange={rowPg.setPage}
+                    className="border-t-0"
+                  />
+                </td>
+              </tr>
               <tr className="border-t border-border bg-muted/20 text-sm font-semibold">
                 <td colSpan={3} className="px-4 py-3">
                   Total ({rows.length})

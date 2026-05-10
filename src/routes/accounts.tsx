@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { Plus, Wallet, Building2, Banknote, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -93,6 +95,12 @@ function AccountsPage() {
     });
   }, [bankAccounts, payments, transfers, expenses, accountsById]);
 
+  const accountsPgKey = useMemo(
+    () => bankAccounts.map((a) => a.id).sort().join("|"),
+    [bankAccounts],
+  );
+  const acctPg = useListPagination(cards, accountsPgKey);
+
   const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
   const currency = business?.currency ?? "INR";
 
@@ -167,26 +175,37 @@ function AccountsPage() {
       {bankAccounts.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map(({ account, balance, txns }) => (
-            <AccountCard
-              key={account.id}
-              account={account}
-              balance={balance}
-              txnCount={txns}
-              currency={currency}
-              onDelete={async () => {
-                try {
-                  await remove(account.id);
-                  toast.success(`${account.name} deleted`);
-                } catch (err) {
-                  const message = err instanceof Error ? err.message : "Could not delete account";
-                  toast.error(message);
-                }
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {acctPg.pageItems.map(({ account, balance, txns }) => (
+              <AccountCard
+                key={account.id}
+                account={account}
+                balance={balance}
+                txnCount={txns}
+                currency={currency}
+                onDelete={async () => {
+                  try {
+                    await remove(account.id);
+                    toast.success(`${account.name} deleted`);
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : "Could not delete account";
+                    toast.error(message);
+                  }
+                }}
+              />
+            ))}
+          </div>
+          <ListPaginationBar
+            page={acctPg.page}
+            totalPages={acctPg.totalPages}
+            totalCount={acctPg.totalCount}
+            rangeFrom={acctPg.rangeFrom}
+            rangeTo={acctPg.rangeTo}
+            onPageChange={acctPg.setPage}
+            className="mt-4 rounded-xl border border-border bg-card"
+          />
+        </>
       )}
     </div>
   );

@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   Plus,
@@ -167,6 +169,9 @@ function PurchasesPage() {
       .sort((a, b) => safeDateTs(b.date) - safeDateTs(a.date));
   }, [purchases, q, status, fromDate, toDate]);
 
+  const listPgKey = useMemo(() => `${q}|${status}|${from}|${to}`, [q, status, from, to]);
+  const listPg = useListPagination(visible, listPgKey);
+
   const totals = useMemo(() => {
     let total = 0;
     let paid = 0;
@@ -201,14 +206,15 @@ function PurchasesPage() {
     const hit = monthOptions.find((m) => m.from === from && m.to === to);
     return hit?.value ?? "custom";
   }, [from, to, monthOptions]);
-  const allVisibleSelected = visible.length > 0 && visible.every((p) => selectedIds.has(p.id));
+  const allVisibleSelected =
+    listPg.pageItems.length > 0 && listPg.pageItems.every((p) => selectedIds.has(p.id));
   const selectedCount = visible.filter((p) => selectedIds.has(p.id)).length;
 
   const toggleSelectAllVisible = (checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) visible.forEach((p) => next.add(p.id));
-      else visible.forEach((p) => next.delete(p.id));
+      if (checked) listPg.pageItems.forEach((p) => next.add(p.id));
+      else listPg.pageItems.forEach((p) => next.delete(p.id));
       return next;
     });
   };
@@ -642,16 +648,27 @@ function PurchasesPage() {
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={purchases.length > 0} />
         ) : (
-          <PurchasesTable
-            purchases={visible}
-            currency={currency}
-            selectedIds={selectedIds}
-            allSelected={allVisibleSelected}
-            onToggleSelectAll={toggleSelectAllVisible}
-            onToggleSelectOne={toggleSelectOne}
-            onDelete={setDeleting}
-            onCancel={setCancelling}
-          />
+          <>
+            <PurchasesTable
+              purchases={listPg.pageItems}
+              currency={currency}
+              selectedIds={selectedIds}
+              allSelected={allVisibleSelected}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onToggleSelectOne={toggleSelectOne}
+              onDelete={setDeleting}
+              onCancel={setCancelling}
+            />
+            <ListPaginationBar
+              page={listPg.page}
+              totalPages={listPg.totalPages}
+              totalCount={listPg.totalCount}
+              rangeFrom={listPg.rangeFrom}
+              rangeTo={listPg.rangeTo}
+              onPageChange={listPg.setPage}
+              className="mt-2 rounded-xl border border-border bg-card"
+            />
+          </>
         )}
       </main>
 

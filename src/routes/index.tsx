@@ -40,6 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePurchases } from "@/hooks/usePurchases";
@@ -257,8 +259,10 @@ function DashboardPage() {
         href: `/expenses/${e.id}`,
       });
     }
-    return items.sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 8);
+    return items.sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [monthInvoices, monthPayments, monthExpenses]);
+
+  const recentPg = useListPagination(recent, range, 10);
 
   if (!hydrated) {
     return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
@@ -491,7 +495,7 @@ function DashboardPage() {
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {recent.map((r) => (
+            {recentPg.pageItems.map((r) => (
               <li key={r.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30">
                 <div
                   className={cn(
@@ -526,6 +530,17 @@ function DashboardPage() {
               </li>
             ))}
           </ul>
+        )}
+        {recent.length > 0 && (
+          <ListPaginationBar
+            page={recentPg.page}
+            totalPages={recentPg.totalPages}
+            totalCount={recentPg.totalCount}
+            rangeFrom={recentPg.rangeFrom}
+            rangeTo={recentPg.rangeTo}
+            onPageChange={recentPg.setPage}
+            className="mt-3 rounded-xl border border-border bg-card"
+          />
         )}
       </section>
     </div>

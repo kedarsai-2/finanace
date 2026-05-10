@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Plus, Search, Pencil, Trash2, Users, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -94,6 +96,8 @@ function PartiesPage() {
       return p.name.toLowerCase().includes(term) || p.mobile.includes(term);
     });
   }, [parties, q]);
+
+  const partyPg = useListPagination(visible, q);
 
   const totals = useMemo(() => {
     let receivable = 0;
@@ -193,12 +197,23 @@ function PartiesPage() {
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={parties.length > 0} />
         ) : (
-          <PartiesTable
-            parties={visible}
-            currency={activeBusiness?.currency ?? "INR"}
-            onDelete={setDeleting}
-            lastActivity={lastActivityByParty}
-          />
+          <>
+            <PartiesTable
+              parties={partyPg.pageItems}
+              currency={activeBusiness?.currency ?? "INR"}
+              onDelete={setDeleting}
+              lastActivity={lastActivityByParty}
+            />
+            <ListPaginationBar
+              page={partyPg.page}
+              totalPages={partyPg.totalPages}
+              totalCount={partyPg.totalCount}
+              rangeFrom={partyPg.rangeFrom}
+              rangeTo={partyPg.rangeTo}
+              onPageChange={partyPg.setPage}
+              className="mt-2 rounded-2xl border border-border bg-card"
+            />
+          </>
         )}
       </main>
 

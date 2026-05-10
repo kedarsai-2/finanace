@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format, differenceInDays } from "date-fns";
 import { Label } from "@/components/ui/label";
 import {
@@ -96,6 +98,8 @@ function PartyReport() {
     });
     return withRunning.reverse();
   }, [ledger, parties, partyId]);
+
+  const ledgerPg = useListPagination(ledgerRows, partyId);
 
   const exportCsv = () => {
     downloadCsv(
@@ -203,7 +207,7 @@ function PartyReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {ledgerRows.map((e) => {
+              {ledgerPg.pageItems.map((e) => {
                 const party = parties.find((p) => p.id === e.partyId);
                 return (
                   <tr key={e.id} className="hover:bg-muted/30">
@@ -241,6 +245,16 @@ function PartyReport() {
               })}
             </tbody>
           </table>
+        )}
+        {ledgerRows.length > 0 && (
+          <ListPaginationBar
+            page={ledgerPg.page}
+            totalPages={ledgerPg.totalPages}
+            totalCount={ledgerPg.totalCount}
+            rangeFrom={ledgerPg.rangeFrom}
+            rangeTo={ledgerPg.rangeTo}
+            onPageChange={ledgerPg.setPage}
+          />
         )}
       </section>
     </ReportShell>

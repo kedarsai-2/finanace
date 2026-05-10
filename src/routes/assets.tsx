@@ -7,6 +7,8 @@ import {
   type SearchSchemaInput,
 } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { z } from "zod";
 import { ImageIcon, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -86,6 +88,8 @@ function AssetsPage() {
       return it.name.toLowerCase().includes(term) || (it.sku ?? "").toLowerCase().includes(term);
     });
   }, [items, q]);
+
+  const assetPg = useListPagination(visible, q);
 
   const setQuery = (next: string) =>
     navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: next }) });
@@ -238,7 +242,18 @@ function AssetsPage() {
         {hydrated && visible.length === 0 ? (
           <EmptyState filtered={items.some((i) => i.type === "product")} />
         ) : (
-          <AssetsTable items={visible} currency={currency} onDelete={setDeleting} />
+          <>
+            <AssetsTable items={assetPg.pageItems} currency={currency} onDelete={setDeleting} />
+            <ListPaginationBar
+              page={assetPg.page}
+              totalPages={assetPg.totalPages}
+              totalCount={assetPg.totalCount}
+              rangeFrom={assetPg.rangeFrom}
+              rangeTo={assetPg.rangeTo}
+              onPageChange={assetPg.setPage}
+              className="mt-2 rounded-2xl border border-border bg-card"
+            />
+          </>
         )}
       </main>
 

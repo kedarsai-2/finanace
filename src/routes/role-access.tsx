@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -165,6 +167,9 @@ function RoleAccessPage() {
     for (const r of ROLE_OPTIONS) set.add(r);
     return Array.from(set).sort();
   }, [authorities]);
+
+  const userListKey = useMemo(() => users.map((u) => u.login).sort().join(","), [users]);
+  const userPg = useListPagination(users, userListKey);
 
   const loadAll = async () => {
     setLoading(true);
@@ -438,7 +443,7 @@ function RoleAccessPage() {
               ) : users.length === 0 ? (
                 <p className="p-3 text-sm text-muted-foreground">No users</p>
               ) : (
-                users.map((u) => (
+                userPg.pageItems.map((u) => (
                   <button
                     key={u.login}
                     type="button"
@@ -456,6 +461,17 @@ function RoleAccessPage() {
                 ))
               )}
             </div>
+            {!loading && users.length > 0 && (
+              <ListPaginationBar
+                page={userPg.page}
+                totalPages={userPg.totalPages}
+                totalCount={userPg.totalCount}
+                rangeFrom={userPg.rangeFrom}
+                rangeTo={userPg.rangeTo}
+                onPageChange={userPg.setPage}
+                className="mt-2 rounded-lg border border-border bg-card px-2"
+              />
+            )}
           </div>
 
           <div>

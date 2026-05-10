@@ -7,6 +7,8 @@ import {
   type SearchSchemaInput,
 } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useListPagination } from "@/hooks/useListPagination";
+import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Paperclip } from "lucide-react";
 import { z } from "zod";
@@ -94,6 +96,13 @@ function PaymentsPage() {
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, search.dir, search.account, search.from, search.to]);
+
+  const payPgKey = useMemo(
+    () => `${search.dir}|${search.account}|${search.from}|${search.to}`,
+    [search.dir, search.account, search.from, search.to],
+  );
+  const payPg = useListPagination(filtered, payPgKey);
+
   const monthOptions = useMemo(
     () =>
       Array.from({ length: 12 }).map((_, idx) => {
@@ -243,6 +252,7 @@ function PaymentsPage() {
             </Button>
           </div>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -256,7 +266,7 @@ function PaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => {
+              {payPg.pageItems.map((p) => {
                 const party = partyById[p.partyId];
                 const acc = p.accountId ? accountById[p.accountId] : undefined;
                 return (
@@ -313,6 +323,15 @@ function PaymentsPage() {
               })}
             </tbody>
           </table>
+          <ListPaginationBar
+            page={payPg.page}
+            totalPages={payPg.totalPages}
+            totalCount={payPg.totalCount}
+            rangeFrom={payPg.rangeFrom}
+            rangeTo={payPg.rangeTo}
+            onPageChange={payPg.setPage}
+          />
+          </>
         )}
       </div>
     </div>
