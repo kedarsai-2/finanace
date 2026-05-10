@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
@@ -51,7 +51,9 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useItems } from "@/hooks/useItems";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
-import { DEFAULT_EXPENSE_TYPES } from "@/types/expense";
+import type { Account } from "@/types/account";
+import { DEFAULT_EXPENSE_TYPES, type Expense } from "@/types/expense";
+import type { PaymentMode } from "@/types/payment";
 import {
   EXPENSE_ITEM_HEADERS,
   EXPENSE_REPORT_HEADERS,
@@ -62,12 +64,43 @@ import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
+/** Pick bank account for import: match narration text (e.g. Vyapar "AXIS BANK (IMPS/...)") to account names. */
 function resolveImportedExpenseAccountId(
-  mode: "cash" | "bank" | "cheque",
-  safeAccounts: Array<{ id: string; type: string }>,
+  mode: PaymentMode,
+  accountsForBusiness: Account[],
+  paymentTypeHint?: string,
 ): string | undefined {
-  const banks = safeAccounts.filter((a) => a.type === "bank");
   if (mode === "cash") return undefined;
+  const banks = accountsForBusiness.filter((a) => a.type === "bank");
+  if (banks.length === 0) return undefined;
+
+  const hint = String(paymentTypeHint ?? "").trim().toLowerCase();
+  if (hint.length >= 2) {
+    let best: { id: string; score: number } | undefined;
+    for (const b of banks) {
+      const bn = b.name.trim().toLowerCase();
+      if (bn.length >= 3 && hint.includes(bn)) {
+        const score = bn.length;
+        if (!best || score > best.score) best = { id: b.id, score };
+      }
+    }
+    const noise = new Set(["bank", "limited", "ltd", "the", "cooperative"]);
+    for (const b of banks) {
+      const tokens = b.name
+        .toLowerCase()
+        .split(/\s+/)
+        .map((t) => t.replace(/[^a-z0-9]/gi, ""))
+        .filter((t) => t.length >= 3 && !noise.has(t));
+      for (const t of tokens) {
+        if (hint.includes(t)) {
+          const score = t.length;
+          if (!best || score > best.score) best = { id: b.id, score };
+        }
+      }
+    }
+    if (best) return best.id;
+  }
+
   if (banks.length === 1) return banks[0].id;
   const last =
     typeof window !== "undefined" ? window.localStorage.getItem(LAST_ACCOUNT_KEY) : null;
@@ -100,7 +133,15 @@ function ExpensesPage() {
   const currency = business?.currency ?? "INR";
 
   const { accounts } = useAccounts(activeId, []);
-  const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
+  const safeAccounts = useMemo(
+    () =>
+      accounts.filter((a) => {
+        if (!a.id) return false;
+        if (!activeId) return true;
+        return a.businessId === activeId;
+      }),
+    [accounts, activeId],
+  );
   const { parties, upsert: upsertParty } = useParties(activeId);
   const { categories, upsert: upsertCategory } = useExpenseCategories(activeId);
   const { items, upsert: upsertItem } = useItems(activeId);
@@ -111,6 +152,16 @@ function ExpensesPage() {
     [safeAccounts],
   );
   const partyById = useMemo(() => Object.fromEntries(parties.map((p) => [p.id, p])), [parties]);
+
+  const formatExpenseAccount = useCallback(
+    (e: Expense) => {
+      if (!e.mode || e.mode === "cash") return "Cash";
+      const accName = e.accountId ? accountById[e.accountId]?.name : undefined;
+      if (accName) return accName;
+      return e.mode === "cheque" ? "Cheque" : "Bank";
+    },
+    [accountById],
+  );
 
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -145,11 +196,43 @@ function ExpensesPage() {
     return hit?.value ?? "custom";
   }, [from, to, monthOptions]);
 
-  const parseMode = (raw: unknown): "cash" | "bank" | "cheque" => {
-    const v = String(raw ?? "").trim().toLowerCase();
+  const parseMode = (raw: unknown): PaymentMode => {
+    const rawTrim = String(raw ?? "").trim();
+    const v = rawTrim.toLowerCase();
+    if (!v) return "cash";
     if (v.includes("cheque") || v.includes("check")) return "cheque";
-    if (v.includes("bank") || v.includes("upi") || v.includes("online") || v.includes("card"))
-      return "bank";
+    if (/^(cash|petty cash|cash payment|paid by cash)$/i.test(rawTrim) || v === "cash in hand") {
+      return "cash";
+    }
+    const bankLike =
+      v.includes("bank") ||
+      v.includes("upi") ||
+      v.includes("imps") ||
+      v.includes("neft") ||
+      v.includes("rtgs") ||
+      v.includes("nach") ||
+      v.includes("ecs") ||
+      v.includes("online") ||
+      v.includes("card") ||
+      v.includes("debit") ||
+      v.includes("credit card") ||
+      v.includes("p2a") ||
+      v.includes("p2p") ||
+      v.includes("vpa") ||
+      v.includes("utr") ||
+      v.includes("ifsc") ||
+      v.includes("net banking") ||
+      v.includes("netbanking") ||
+      v.includes("atm") ||
+      v.includes("pos") ||
+      v.includes("gpay") ||
+      v.includes("google pay") ||
+      v.includes("phonepe") ||
+      v.includes("phone pe") ||
+      v.includes("paytm") ||
+      v.includes("razorpay");
+    if (bankLike) return "bank";
+    if (v.includes("cash")) return "cash";
     return "cash";
   };
   const normalizeMobile = (raw: unknown): string | undefined => {
@@ -285,7 +368,11 @@ function ExpensesPage() {
           continue;
         }
         const payMode = parseMode(row["Payment Type"]);
-        const importedAccountId = resolveImportedExpenseAccountId(payMode, safeAccounts);
+        const importedAccountId = resolveImportedExpenseAccountId(
+          payMode,
+          safeAccounts,
+          String(row["Payment Type"] ?? ""),
+        );
 
         const categoryKey = category.toLowerCase();
         if (category && !categoriesByName.has(categoryKey)) {
@@ -707,13 +794,7 @@ function ExpensesPage() {
                   <td className="px-4 py-3 text-muted-foreground">
                     {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {e.mode === "cash"
-                      ? "Cash"
-                      : e.accountId
-                        ? (accountById[e.accountId]?.name ?? "—")
-                        : "—"}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatExpenseAccount(e)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <span className="line-clamp-1 max-w-[28ch]">{e.notes ?? "—"}</span>
                   </td>
@@ -738,12 +819,7 @@ function ExpensesPage() {
                           <AlertDialogTitle>Delete expense?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This soft-deletes the entry and refunds the amount to{" "}
-                            {e.mode === "cash"
-                              ? "Cash"
-                              : e.accountId
-                                ? (accountById[e.accountId]?.name ?? "the account")
-                                : "the account"}
-                            .
+                            {formatExpenseAccount(e)}.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

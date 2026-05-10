@@ -11,18 +11,20 @@ import * as XLSX from "xlsx";
  */
 export function sheetToObjectsByHeaderMarker(
   sheet: WorkSheet,
-  markerHeader: string,
+  markerHeader: string | string[],
 ): Record<string, unknown>[] {
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: "",
   }) as unknown[][];
-  const marker = markerHeader.trim().toLowerCase();
+  const markers = (Array.isArray(markerHeader) ? markerHeader : [markerHeader]).map((m) =>
+    m.trim().toLowerCase(),
+  );
 
   let headerIdx = matrix.findIndex(
     (row) =>
       Array.isArray(row) &&
-      row.some((cell) => String(cell ?? "").trim().toLowerCase() === marker),
+      row.some((cell) => markers.includes(String(cell ?? "").trim().toLowerCase())),
   );
   if (headerIdx < 0) {
     headerIdx = matrix.findIndex(

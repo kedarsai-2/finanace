@@ -66,6 +66,58 @@ import {
   mapPurchaseReportRowToPurchaseFields,
 } from "@/lib/expensePurchaseImportMapping";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
+import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
+
+function sheetToMatrix(sheet: XLSX.WorkSheet): unknown[][] {
+  return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }) as unknown[][];
+}
+
+function gridHasExactCell(grid: unknown[][], needle: string): boolean {
+  const n = needle.trim().toLowerCase();
+  for (const row of grid.slice(0, 50)) {
+    if (!Array.isArray(row)) continue;
+    for (const cell of row) {
+      if (String(cell ?? "").trim().toLowerCase() === n) return true;
+    }
+  }
+  return false;
+}
+
+/** Vyapar sheet names vary; locate the tab that actually contains purchase header cells. */
+function findPurchaseMainSheet(workbook: XLSX.WorkBook): XLSX.WorkSheet | undefined {
+  const markers = ["Party Name", "Supplier Name"];
+  const preferred = ["Purchase Report", "Purchase report", "Purchases", "PurchaseReport"];
+  for (const name of preferred) {
+    const sh = workbook.Sheets[name];
+    if (!sh) continue;
+    const g = sheetToMatrix(sh);
+    if (markers.some((m) => gridHasExactCell(g, m))) return sh;
+  }
+  for (const name of workbook.SheetNames) {
+    const sh = workbook.Sheets[name];
+    if (!sh) continue;
+    const g = sheetToMatrix(sh);
+    if (markers.some((m) => gridHasExactCell(g, m))) return sh;
+  }
+  return undefined;
+}
+
+function findPurchaseItemSheet(workbook: XLSX.WorkBook, mainSheet: XLSX.WorkSheet): XLSX.WorkSheet | undefined {
+  const preferred = ["Item Details", "Purchase Item Details", "Item details"];
+  for (const name of preferred) {
+    const sh = workbook.Sheets[name];
+    if (!sh || sh === mainSheet) continue;
+    const g = sheetToMatrix(sh);
+    if (gridHasExactCell(g, "Item Name")) return sh;
+  }
+  for (const name of workbook.SheetNames) {
+    const sh = workbook.Sheets[name];
+    if (!sh || sh === mainSheet) continue;
+    const g = sheetToMatrix(sh);
+    if (gridHasExactCell(g, "Item Name")) return sh;
+  }
+  return undefined;
+}
 
 function purchasePaymentTypeLabel(mode?: Purchase["purchasePaymentMode"]) {
   if (mode === "cash") return "Cash";
@@ -250,16 +302,17 @@ function PurchasesPage() {
     try {
       const buf = await file.arrayBuffer();
       const workbook = XLSX.read(buf, { type: "array", cellDates: true });
-      const mainSheet =
-        workbook.Sheets["Purchase Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
-      if (!mainSheet) throw new Error("No sheet found in file");
-      const itemSheet =
-        workbook.Sheets["Item Details"] ?? workbook.Sheets["Purchase Item Details"];
+      const mainSheet = findPurchaseMainSheet(workbook);
+      if (!mainSheet) {
+        throw new Error(
+          'No purchase sheet found. Expect a worksheet with a "Party Name" or "Supplier Name" column (Vyapar-style Purchase Report).',
+        );
+      }
+      const itemSheet = findPurchaseItemSheet(workbook, mainSheet);
 
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
-      const itemRows = itemSheet
-        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "" })
-        : [];
+      const purchasePartyMarkers = ["Party Name", "Supplier Name"];
+      const rows = sheetToObjectsByHeaderMarker(mainSheet, purchasePartyMarkers);
+      const itemRows = itemSheet ? sheetToObjectsByHeaderMarker(itemSheet, "Item Name") : [];
       if (rows.length === 0) throw new Error("File has no rows");
 
       const linesByRef = new Map<string, Purchase["lines"]>();
@@ -312,7 +365,9 @@ function PurchasesPage() {
         }),
       );
       for (const row of rows) {
-        const partyName = String(row["Party Name"] ?? "").trim();
+        const partyName = String(
+          row["Party Name"] ?? row["Supplier Name"] ?? row["Supplier"] ?? "",
+        ).trim();
         if (!partyName) {
           skipped += 1;
           continue;
