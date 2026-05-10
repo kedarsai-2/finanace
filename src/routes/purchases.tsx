@@ -476,6 +476,7 @@ function PurchasesPage() {
           paidAmount,
           status: "draft",
           notes: mapped.notes,
+          purchaseCategory: "short-term",
           purchasePaymentMode: parsePaymentMode(row["Payment Type"]),
           createdAt: new Date().toISOString(),
         });
