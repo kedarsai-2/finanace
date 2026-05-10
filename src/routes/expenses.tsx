@@ -56,6 +56,22 @@ import {
   mapExpenseItemRowToExpenseFields,
   mapExpenseReportRowToExpenseFields,
 } from "@/lib/expensePurchaseImportMapping";
+import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
+
+const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
+
+function resolveImportedExpenseAccountId(
+  mode: "cash" | "bank" | "cheque",
+  safeAccounts: Array<{ id: string; type: string }>,
+): string | undefined {
+  const banks = safeAccounts.filter((a) => a.type === "bank");
+  if (mode === "cash") return undefined;
+  if (banks.length === 1) return banks[0].id;
+  const last =
+    typeof window !== "undefined" ? window.localStorage.getItem(LAST_ACCOUNT_KEY) : null;
+  if (last && banks.some((b) => b.id === last)) return last;
+  return banks[0]?.id;
+}
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -127,13 +143,6 @@ function ExpensesPage() {
     return hit?.value ?? "custom";
   }, [from, to, monthOptions]);
 
-  const parseDate = (raw: unknown) => {
-    const value = String(raw ?? "").trim();
-    if (!value) return new Date().toISOString();
-    const parsed = new Date(value);
-    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-  };
-
   const parseMode = (raw: unknown): "cash" | "bank" | "cheque" => {
     const v = String(raw ?? "").trim().toLowerCase();
     if (v.includes("cheque") || v.includes("check")) return "cheque";
@@ -155,12 +164,13 @@ function ExpensesPage() {
     setImporting(true);
     try {
       const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: "array" });
+      const workbook = XLSX.read(buf, { type: "array", cellDates: true });
       const mainSheet =
         workbook.Sheets["Expense Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
       if (!mainSheet) throw new Error("No sheet found in file");
 
-      const itemSheet = workbook.Sheets["Item Details"];
+      const itemSheet =
+        workbook.Sheets["Item Details"] ?? workbook.Sheets["Expense Item Details"];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
       const itemRows = itemSheet
         ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "" })
@@ -169,9 +179,14 @@ function ExpensesPage() {
 
       const itemMetaByKey = new Map<string, Record<string, unknown>>();
       for (const row of itemRows) {
-        const key = `${String(row["Date"] ?? "").trim()}|${String(row["Order No."] ?? row["Order No"] ?? "").trim()}|${String(row["Party Name"] ?? "").trim()}`.toLowerCase();
-        if (!key || itemMetaByKey.has(key)) continue;
-        itemMetaByKey.set(key, row);
+        const dateKey = format(new Date(parseSpreadsheetDate(row["Date"])), "yyyy-MM-dd");
+        const party = String(row["Party Name"] ?? "").trim().toLowerCase();
+        const orderNo = String(row["Order No."] ?? row["Order No"] ?? "").trim().toLowerCase();
+        const invoiceNo = String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim().toLowerCase();
+        for (const ref of [orderNo, invoiceNo].filter(Boolean)) {
+          const k = `${dateKey}|${ref}|${party}`;
+          if (!itemMetaByKey.has(k)) itemMetaByKey.set(k, row);
+        }
       }
 
       let created = 0;
@@ -206,8 +221,15 @@ function ExpensesPage() {
           skipped += 1;
           continue;
         }
-        const key = `${String(row["Date"] ?? "").trim()}|${String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim()}|${String(row["Party Name"] ?? "").trim()}`.toLowerCase();
-        const itemMeta = itemMetaByKey.get(key);
+        const importedDate = parseSpreadsheetDate(row["Date"]);
+        const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        const partyK = String(row["Party Name"] ?? "").trim().toLowerCase();
+        const invoiceK = String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim().toLowerCase();
+        const orderK = String(row["Order No"] ?? row["Order No."] ?? "").trim().toLowerCase();
+        const itemMeta =
+          (invoiceK && itemMetaByKey.get(`${importedDateKey}|${invoiceK}|${partyK}`)) ||
+          (orderK && itemMetaByKey.get(`${importedDateKey}|${orderK}|${partyK}`)) ||
+          undefined;
         const itemMapped = itemMeta ? mapExpenseItemRowToExpenseFields(itemMeta) : {};
 
         const partyNameRaw = String(row["Party Name"] ?? "").trim();
@@ -218,7 +240,7 @@ function ExpensesPage() {
             id: "",
             businessId: activeId,
             name: partyNameRaw,
-            mobile: normalizeMobile(row["Party Phone No."] ?? row["Phone"]),
+            mobile: normalizeMobile(row["Party Phone No."] ?? row["Phone"]) ?? "",
             gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
             state: String(row["State"] ?? "").trim() || undefined,
             city: String(row["City"] ?? "").trim() || undefined,
@@ -231,8 +253,6 @@ function ExpensesPage() {
         }
         const category =
           (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
-        const importedDate = parseDate(row["Date"]);
-        const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
         const dedupePartyKey = partyNameRaw.trim().toLowerCase();
         const dedupeRefKey = String(mapped.reference ?? "").trim().toLowerCase();
         const expenseKey = `${importedDateKey}|${dedupePartyKey}|${dedupeRefKey}|${Number(amount).toFixed(2)}`;
@@ -240,6 +260,9 @@ function ExpensesPage() {
           duplicates += 1;
           continue;
         }
+        const payMode = parseMode(row["Payment Type"]);
+        const importedAccountId = resolveImportedExpenseAccountId(payMode, safeAccounts);
+
         const categoryKey = category.toLowerCase();
         if (category && !categoriesByName.has(categoryKey)) {
           const savedCategory = await upsertCategory({
@@ -274,12 +297,13 @@ function ExpensesPage() {
         await add({
           id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
           businessId: activeId,
+          accountId: importedAccountId,
           date: importedDate,
           amount,
           type: "indirect",
           category,
           partyId: party?.id,
-          mode: parseMode(row["Payment Type"]),
+          mode: payMode,
           reference: mapped.reference,
           notes: mapped.notes,
           receivedPaidAmount: mapped.receivedPaidAmount,
@@ -649,7 +673,11 @@ function ExpensesPage() {
                     {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {accountById[e.accountId]?.name ?? "—"}
+                    {e.mode === "cash"
+                      ? "Cash"
+                      : e.accountId
+                        ? (accountById[e.accountId]?.name ?? "—")
+                        : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <span className="line-clamp-1 max-w-[28ch]">{e.notes ?? "—"}</span>
@@ -675,7 +703,12 @@ function ExpensesPage() {
                           <AlertDialogTitle>Delete expense?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This soft-deletes the entry and refunds the amount to{" "}
-                            {accountById[e.accountId]?.name ?? "the account"}.
+                            {e.mode === "cash"
+                              ? "Cash"
+                              : e.accountId
+                                ? (accountById[e.accountId]?.name ?? "the account")
+                                : "the account"}
+                            .
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

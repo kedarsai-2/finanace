@@ -63,6 +63,7 @@ import {
   mapPurchaseItemRowToPurchaseLineFields,
   mapPurchaseReportRowToPurchaseFields,
 } from "@/lib/expensePurchaseImportMapping";
+import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 
 function purchasePaymentTypeLabel(mode?: Purchase["purchasePaymentMode"]) {
   if (mode === "cash") return "Cash";
@@ -221,13 +222,6 @@ function PurchasesPage() {
     });
   };
 
-  const parseDate = (raw: unknown) => {
-    const value = String(raw ?? "").trim();
-    if (!value) return new Date().toISOString();
-    const parsed = new Date(value);
-    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-  };
-
   const parsePaymentMode = (raw: unknown): Purchase["purchasePaymentMode"] => {
     const v = String(raw ?? "").trim().toLowerCase();
     if (v.includes("cheque") || v.includes("check")) return "cheque";
@@ -249,11 +243,12 @@ function PurchasesPage() {
     setImporting(true);
     try {
       const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: "array" });
+      const workbook = XLSX.read(buf, { type: "array", cellDates: true });
       const mainSheet =
         workbook.Sheets["Purchase Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
       if (!mainSheet) throw new Error("No sheet found in file");
-      const itemSheet = workbook.Sheets["Item Details"];
+      const itemSheet =
+        workbook.Sheets["Item Details"] ?? workbook.Sheets["Purchase Item Details"];
 
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
       const itemRows = itemSheet
@@ -336,7 +331,7 @@ function PurchasesPage() {
         }
 
         const mapped = mapPurchaseReportRowToPurchaseFields(row);
-        const importedDate = parseDate(row["Date"]);
+        const importedDate = parseSpreadsheetDate(row["Date"]);
         const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
         const orderKey = String(mapped.orderNo ?? "").trim().toLowerCase();
         const invoiceKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();

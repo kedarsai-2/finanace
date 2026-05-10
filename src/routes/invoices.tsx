@@ -72,6 +72,7 @@ import {
   mapSalesItemRowToInvoiceLineFields,
   mapSalesReportRowToInvoiceFields,
 } from "@/lib/expensePurchaseImportMapping";
+import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -294,18 +295,6 @@ function InvoicesPage() {
       toast.error(message);
     }
   };
-  const parseDate = (raw: unknown) => {
-    const value = String(raw ?? "").trim();
-    if (!value) return new Date().toISOString();
-    const ddmmyyyy = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-    if (ddmmyyyy) {
-      const [, dd, mm, yyyy] = ddmmyyyy;
-      const parsed = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-      return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-    }
-    const parsed = new Date(value);
-    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
-  };
   const normalizeMobile = (raw: unknown): string | undefined => {
     const digits = String(raw ?? "").replace(/\D/g, "");
     return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
@@ -320,7 +309,7 @@ function InvoicesPage() {
     setImporting(true);
     try {
       const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: "array" });
+      const workbook = XLSX.read(buf, { type: "array", cellDates: true });
       const mainSheet = workbook.Sheets["Sale Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
       if (!mainSheet) throw new Error("No sheet found in file");
       const itemSheet = workbook.Sheets["Item Details"];
@@ -426,7 +415,7 @@ function InvoicesPage() {
           createdParties += 1;
         }
 
-        const importedDate = parseDate(row["Date"]);
+        const importedDate = parseSpreadsheetDate(row["Date"]);
         const dateKey = format(new Date(importedDate), "yyyy-MM-dd");
         importedDateKeys.push(dateKey);
         const invoiceNoKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
