@@ -188,6 +188,17 @@ function DashboardPage() {
   );
   /** Collections in the selected month (payment date), including invoice-linked receipts. */
   const totalReceived = totalPaymentsReceived;
+
+  /** Shown under cash/bank: they follow payment dates, not invoice dates (unlike Total Sales). */
+  const cashBankDashboardNote = useMemo(() => {
+    const mLong = format(monthStart, "MMMM yyyy");
+    const mShort = format(monthStart, "MMM yyyy");
+    if (totalSales > 0 && totalReceived === 0) {
+      return `No receipts dated ${mLong}. Cash and bank use payment / transfer / expense dates in ${mShort}, not invoice dates—record a payment dated ${mShort} to see movement here.`;
+    }
+    return `Net from payments, transfers & expenses dated in ${mShort}—not from invoice totals alone.`;
+  }, [monthStart, totalSales, totalReceived]);
+
   const netProfit =
     totalSales +
     totalPaymentsReceived -
@@ -474,6 +485,7 @@ function DashboardPage() {
           to="/cash"
           label="Cash Accounts"
           sublabel={`${accountBalances.cashCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
+          note={cashBankDashboardNote}
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
@@ -484,6 +496,7 @@ function DashboardPage() {
           to="/accounts"
           label="Bank Accounts"
           sublabel={`${accountBalances.bankCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
+          note={cashBankDashboardNote}
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"
@@ -649,6 +662,7 @@ function BalanceCard({
   to,
   label,
   sublabel,
+  note,
   amount,
   currency,
   tone,
@@ -658,6 +672,8 @@ function BalanceCard({
   to: string;
   label: string;
   sublabel: string;
+  /** Optional explainer under the amount (e.g. invoice vs payment dates). */
+  note?: string;
   amount: number;
   currency: string;
   tone: "primary" | "success" | "destructive";
@@ -692,6 +708,9 @@ function BalanceCard({
       >
         {formatCurrency(amount, currency)}
       </p>
+      {note ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{note}</p>
+      ) : null}
     </Link>
   );
 }
