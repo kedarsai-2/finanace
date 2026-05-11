@@ -59,6 +59,7 @@ const TAB_OPTIONS = [
 ] as const;
 
 const ROLE_OPTIONS = ["ROLE_ADMIN", "ROLE_MANAGER", "ROLE_USER", "ROLE_VIEWER"] as const;
+const ROLE_ACCESS_PAGE_SIZE = 100;
 const ROLE_LABEL: Record<string, string> = {
   ROLE_ADMIN: "Admin",
   ROLE_MANAGER: "Manager",
@@ -169,13 +170,13 @@ function RoleAccessPage() {
   }, [authorities]);
 
   const userListKey = useMemo(() => users.map((u) => u.login).sort().join(","), [users]);
-  const userPg = useListPagination(users, userListKey);
+  const userPg = useListPagination(users, userListKey, ROLE_ACCESS_PAGE_SIZE);
 
   const loadAll = async () => {
     setLoading(true);
     try {
       const [usersRes, authoritiesRes] = await Promise.all([
-        apiFetch<AdminUser[]>("/api/admin/users?size=200&sort=login,asc"),
+        apiFetch<AdminUser[]>("/api/admin/users?size=1000&sort=login,asc"),
         apiFetch<AuthorityRecord[]>("/api/authorities"),
       ]);
       setUsers(usersRes);
@@ -225,6 +226,16 @@ function RoleAccessPage() {
     setModuleEdit(editMap);
     setModuleDelete(deleteMap);
   }, [selectedUser]);
+
+  useEffect(() => {
+    if (!selectedLogin || users.length === 0) return;
+    const selectedIndex = users.findIndex((u) => u.login === selectedLogin);
+    if (selectedIndex < 0) return;
+    const targetPage = Math.floor(selectedIndex / userPg.pageSize) + 1;
+    if (targetPage !== userPg.page) {
+      userPg.setPage(targetPage);
+    }
+  }, [selectedLogin, users, userPg]);
 
   const toggleTab = (path: string, checked: boolean) => {
     setSelectedHiddenTabs((prev) => {
