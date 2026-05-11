@@ -46,6 +46,7 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
+  const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);
   const { parties } = useParties(activeId);
   const { categories } = useExpenseCategories(activeId);
   const { add, upsert } = useExpenses(activeId);
@@ -109,10 +110,11 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     setSubmitting(true);
     try {
       const now = new Date().toISOString();
+      const soleCashId = cashAccounts.length === 1 ? cashAccounts[0].id : undefined;
       const exp: Expense = {
         id: initial?.id ?? `exp_${Date.now().toString(36)}`,
         businessId: activeId,
-        accountId: mode === "cash" ? undefined : accountId,
+        accountId: mode === "cash" ? soleCashId : accountId,
         date: date.toISOString(),
         amount,
         type,

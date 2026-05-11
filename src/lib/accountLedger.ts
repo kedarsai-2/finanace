@@ -2,24 +2,14 @@ import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
-function isPurchaseLinkedPayment(p: Payment): boolean {
-  return p.allocations.some((a) => {
-    const docNo = (a.docNumber ?? "").toUpperCase();
-    return docNo.startsWith("PUR-") || docNo.startsWith("PRET-");
-  });
-}
-
-function isSalesLinkedPayment(p: Payment): boolean {
-  return p.allocations.some((a) => {
-    const docNo = (a.docNumber ?? "").toUpperCase();
-    return docNo.startsWith("INV-") || docNo.startsWith("CN-");
-  });
-}
-
-/** Ledger balance delta from this payment. Invoice/purchase-linked rows stay visible but do not move cash/bank balance. */
+/** Ledger balance delta from this payment (all settled payments move cash/bank). */
 export function paymentBalanceImpact(p: Payment): number {
-  if (isPurchaseLinkedPayment(p) || isSalesLinkedPayment(p)) return 0;
   return p.direction === "in" ? p.amount : -p.amount;
+}
+
+function stablePrimaryAccount<T extends { id: string }>(accounts: T[]): T | undefined {
+  if (accounts.length === 0) return undefined;
+  return [...accounts].sort((a, b) => String(a.id).localeCompare(String(b.id)))[0];
 }
 
 /**
@@ -36,8 +26,14 @@ export function buildAccountTxns(args: {
   const { account, payments, transfers, expenses, accountsById } = args;
   const txns: AccountTxn[] = [];
   const allAccounts = Object.values(accountsById);
-  const cashAccounts = allAccounts.filter((a) => a.type === "cash");
-  const bankAccounts = allAccounts.filter((a) => a.type === "bank");
+  const cashAccounts = allAccounts.filter(
+    (a) => a.type === "cash" && a.businessId === account.businessId,
+  );
+  const bankAccounts = allAccounts.filter(
+    (a) => a.type === "bank" && a.businessId === account.businessId,
+  );
+  const primaryCash = stablePrimaryAccount(cashAccounts);
+  const primaryBank = stablePrimaryAccount(bankAccounts);
 
   txns.push({
     id: `open_${account.id}`,
@@ -50,6 +46,7 @@ export function buildAccountTxns(args: {
   });
 
   for (const p of payments) {
+    if (p.businessId !== account.businessId) continue;
     const paymentAccountName = p.account?.trim().toLowerCase();
     const accountName = account.name.trim().toLowerCase();
     const inferredByText =
@@ -62,10 +59,10 @@ export function buildAccountTxns(args: {
     const inferredByMode =
       !p.accountId &&
       !paymentAccountName &&
-      ((p.mode === "cash" && account.type === "cash" && cashAccounts.length === 1) ||
+      ((p.mode === "cash" && account.type === "cash" && primaryCash?.id === account.id) ||
         ((p.mode === "bank" || p.mode === "cheque") &&
           account.type === "bank" &&
-          bankAccounts.length === 1));
+          primaryBank?.id === account.id));
     const belongsToAccount =
       p.accountId === account.id ||
       // Backward-compat: older records may only have free-text account label.
@@ -74,9 +71,6 @@ export function buildAccountTxns(args: {
       inferredByMode;
     if (!belongsToAccount) continue;
     const isIn = p.direction === "in";
-    const isPurchaseLinked = isPurchaseLinkedPayment(p);
-    const isSalesLinked = isSalesLinkedPayment(p);
-    const noBalanceImpact = isPurchaseLinked || isSalesLinked;
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
     const docRefLink = (() => {
       const docNo = (singleAlloc?.docNumber ?? "").toUpperCase();
@@ -98,15 +92,12 @@ export function buildAccountTxns(args: {
       // If the payment is allocated to a single document, link directly to it.
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
-      note: noBalanceImpact
-        ? `Transaction (no balance impact, amount ${Number(p.amount).toFixed(2)})`
-        : isIn
-          ? "Payment received"
-          : "Payment made",
+      note: isIn ? "Payment received" : "Payment made",
     });
   }
 
   for (const t of transfers) {
+    if (t.businessId !== account.businessId) continue;
     const isAdjustment = t.kind === "adjustment";
     if (isAdjustment && t.fromAccountId === account.id) {
       const delta = t.adjustmentDirection === "decrement" ? -t.amount : t.amount;
@@ -148,16 +139,30 @@ export function buildAccountTxns(args: {
   }
 
   for (const e of expenses) {
-    if (e.accountId !== account.id) continue;
+    if (e.businessId !== account.businessId) continue;
+    if (e.deleted) continue;
+    const amt = Math.max(0, Number(e.amount ?? 0));
+    if (!(amt > 0)) continue;
+    const inferredByExpenseMode =
+      (!e.accountId &&
+        e.mode === "cash" &&
+        account.type === "cash" &&
+        primaryCash?.id === account.id) ||
+      (!e.accountId &&
+        (e.mode === "bank" || e.mode === "cheque") &&
+        account.type === "bank" &&
+        primaryBank?.id === account.id);
+    const belongsToExpenseAccount = e.accountId === account.id || inferredByExpenseMode;
+    if (!belongsToExpenseAccount) continue;
     txns.push({
       id: `exp_${e.id}`,
       accountId: account.id,
       date: e.date,
       kind: "expense",
-      // Expense entries are recorded in account history but should not change balance.
-      amount: 0,
+      amount: -amt,
       refNo: e.category,
-      note: e.notes || "Expense (no balance impact)",
+      note: e.notes || "Expense",
+      refLink: `/expenses/${e.id}`,
     });
   }
 

@@ -47,6 +47,7 @@ export function QuickAddExpenseDialog({
   const { accounts } = useAccounts(activeId, []);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
+  const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);
   const { categories } = useExpenseCategories(activeId);
   const { add } = useExpenses(activeId);
 
@@ -68,10 +69,12 @@ export function QuickAddExpenseDialog({
     if (!category.trim()) return toast.error("Enter expense category");
     setSubmitting(true);
     try {
+      const soleCashId = cashAccounts.length === 1 ? cashAccounts[0].id : undefined;
+      const isCash = !accountId;
       const exp: Expense = {
         id: "",
         businessId: activeId,
-        accountId: accountId || undefined,
+        accountId: isCash ? soleCashId : accountId || undefined,
         date: new Date().toISOString(),
         amount,
         type,

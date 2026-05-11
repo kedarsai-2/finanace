@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { format } from "date-fns";
 import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { Plus, Wallet, Building2, Banknote, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
@@ -32,7 +33,13 @@ import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
-import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
+import {
+  ACCOUNT_TYPE_LABEL,
+  type Account,
+  type AccountType,
+  type AccountTxn,
+  type AccountTxnKind,
+} from "@/types/account";
 import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/accounts")({
@@ -65,6 +72,31 @@ const TYPE_TONE: Record<AccountType, string> = {
   bank: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
 };
 
+const KIND_LABEL: Record<AccountTxnKind, string> = {
+  opening: "Opening",
+  "payment-in": "Payment in",
+  "payment-out": "Payment out",
+  "transfer-in": "Transfer in",
+  "transfer-out": "Transfer out",
+  expense: "Expense",
+};
+
+function bankTxnTypeLabel(r: {
+  kind: AccountTxnKind;
+  refLink?: string;
+  refNo?: string;
+  note?: string;
+}) {
+  if (r.kind === "payment-in" && r.refLink?.startsWith("/invoices/")) return "Sales";
+  if (r.kind === "payment-out" && r.refLink?.startsWith("/purchases/")) return "Purchase";
+  if ((r.kind === "transfer-in" || r.kind === "transfer-out") && r.refNo === "Adjustment") {
+    return r.note?.toLowerCase().includes("cash")
+      ? "Cash edit transaction"
+      : "Bank edit transaction";
+  }
+  return KIND_LABEL[r.kind];
+}
+
 function AccountsPage() {
   const { businesses, activeId, scopedBusinessId, hydrated: bHyd } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
@@ -95,8 +127,43 @@ function AccountsPage() {
     });
   }, [bankAccounts, payments, transfers, expenses, accountsById]);
 
+  const { totalBankBalance, allBankTxns } = useMemo(() => {
+    let total = 0;
+    const all: (AccountTxn & { accountName: string; accountId: string })[] = [];
+    for (const a of bankAccounts) {
+      const txns = buildAccountTxns({
+        account: a,
+        payments,
+        transfers,
+        expenses,
+        accountsById,
+      });
+      total += accountBalance(txns);
+      for (const t of txns) {
+        if (t.kind === "opening") continue;
+        all.push({ ...t, accountName: a.name, accountId: a.id });
+      }
+    }
+    all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return { totalBankBalance: total, allBankTxns: all };
+  }, [bankAccounts, payments, transfers, expenses, accountsById]);
+
+  const bankTxnKey = useMemo(
+    () =>
+      `${bankAccounts
+        .map((a) => a.id)
+        .sort()
+        .join(",")}|${payments.length}|${transfers.length}|${expenses.length}`,
+    [bankAccounts, payments.length, transfers.length, expenses.length],
+  );
+  const bankTxnPg = useListPagination(allBankTxns, bankTxnKey);
+
   const accountsPgKey = useMemo(
-    () => bankAccounts.map((a) => a.id).sort().join("|"),
+    () =>
+      bankAccounts
+        .map((a) => a.id)
+        .sort()
+        .join("|"),
     [bankAccounts],
   );
   const acctPg = useListPagination(cards, accountsPgKey);
@@ -176,6 +243,31 @@ function AccountsPage() {
         <EmptyState />
       ) : (
         <>
+          <div className="mb-4 rounded-xl border border-border bg-linear-to-br from-blue-500/10 to-blue-500/0 p-6 sm:mb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Total bank balance
+                </p>
+                <p
+                  className={cn(
+                    "text-2xl font-semibold tabular-nums",
+                    totalBankBalance < 0 ? "text-destructive" : "text-foreground",
+                  )}
+                >
+                  {totalBankBalance < 0 ? "-" : ""}
+                  {formatCurrency(totalBankBalance, currency)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Across {bankAccounts.length} bank account{bankAccounts.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {acctPg.pageItems.map(({ account, balance, txns }) => (
               <AccountCard
@@ -205,6 +297,74 @@ function AccountsPage() {
             onPageChange={acctPg.setPage}
             className="mt-4 rounded-xl border border-border bg-card"
           />
+
+          <section className="mt-8 overflow-x-auto rounded-xl border border-border">
+            <header className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
+              <div>
+                <h2 className="text-sm font-semibold">Bank transactions</h2>
+                <p className="text-xs text-muted-foreground">
+                  All entries across bank accounts, newest first (same view as Cash)
+                </p>
+              </div>
+            </header>
+            {allBankTxns.length === 0 ? (
+              <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+                No bank transactions yet.
+              </div>
+            ) : (
+              <>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/20 text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Date</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">Account</th>
+                      <th className="px-4 py-3 text-left">Reference</th>
+                      <th className="px-4 py-3 text-right">Debit</th>
+                      <th className="px-4 py-3 text-right">Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {bankTxnPg.pageItems.map((r) => (
+                      <tr key={`${r.accountId}-${r.id}`} className="hover:bg-muted/30">
+                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {format(new Date(r.date), "dd MMM yyyy")}
+                        </td>
+                        <td className="px-4 py-3">{bankTxnTypeLabel(r)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
+                        <td className="px-4 py-3 font-mono text-xs">
+                          {r.refLink ? (
+                            <a href={r.refLink} className="text-primary hover:underline">
+                              {r.refNo}
+                            </a>
+                          ) : (
+                            r.refNo
+                          )}
+                          {r.note && (
+                            <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                          {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {r.amount > 0 ? formatCurrency(r.amount, currency) : ""}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <ListPaginationBar
+                  page={bankTxnPg.page}
+                  totalPages={bankTxnPg.totalPages}
+                  totalCount={bankTxnPg.totalCount}
+                  rangeFrom={bankTxnPg.rangeFrom}
+                  rangeTo={bankTxnPg.rangeTo}
+                  onPageChange={bankTxnPg.setPage}
+                />
+              </>
+            )}
+          </section>
         </>
       )}
     </div>

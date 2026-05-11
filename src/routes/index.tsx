@@ -89,7 +89,9 @@ function parseDashDate(raw: string): Date | null {
 
 /** First calendar day of `yyyy-MM` in local time (must not use `new Date("yyyy-MM-dd")` — that is UTC). */
 function parseYearMonthFirstDay(ym: string): Date | null {
-  const m = String(ym ?? "").trim().match(/^(\d{4})-(\d{2})$/);
+  const m = String(ym ?? "")
+    .trim()
+    .match(/^(\d{4})-(\d{2})$/);
   if (!m) return null;
   const y = Number(m[1]);
   const mo = Number(m[2]) - 1;
@@ -170,7 +172,6 @@ function DashboardPage() {
 
   const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
   const totalCreditNotes = monthCreditNotes.reduce((s, cn) => s + cn.total, 0);
-  const totalReceived = monthInvoices.reduce((s, i) => s + i.paidAmount, 0);
   const totalReceivable = monthInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
   const totalPurchases = monthPurchases.reduce((s, p) => s + p.total, 0);
   const totalPurchaseReturns = monthPurchaseReturns.reduce((s, p) => s + p.total, 0);
@@ -185,6 +186,8 @@ function DashboardPage() {
     (s, p) => (p.direction === "in" ? s + p.amount : s),
     0,
   );
+  /** Collections in the selected month (payment date), including invoice-linked receipts. */
+  const totalReceived = totalPaymentsReceived;
   const netProfit =
     totalSales +
     totalPaymentsReceived -
@@ -376,7 +379,9 @@ function DashboardPage() {
         <div className="mb-6 rounded-xl border border-dashed border-border bg-card/40 p-5 text-sm text-muted-foreground">
           {hasAnyActivityEver ? (
             <>
-              <p className="font-medium text-foreground">No activity in {format(monthStart, "MMMM yyyy")}.</p>
+              <p className="font-medium text-foreground">
+                No activity in {format(monthStart, "MMMM yyyy")}.
+              </p>
               <p className="mt-1">
                 Summary cards only include the month selected above. Choose a different month to see
                 your data, or add new transactions for this period.

@@ -24,7 +24,7 @@ type PaymentDTO = {
   updatedAt?: string | null;
   business?: { id: number } | null;
   party?: { id: number } | null;
-  account?: { id: number } | null;
+  account?: { id: number; name?: string | null } | null;
 };
 
 type PaymentAllocationDTO = {
@@ -55,6 +55,9 @@ function fromBackendDirection(d: BackendPaymentDirection | null | undefined): Pa
 }
 
 function dtoToPayment(dto: PaymentDTO, allocations: Payment["allocations"] = []): Payment {
+  const acc = dto.account;
+  const accountName =
+    acc?.name != null && String(acc.name).trim() !== "" ? String(acc.name).trim() : undefined;
   return {
     id: toStrId(dto.id),
     businessId: toStrId(dto.business?.id),
@@ -67,7 +70,8 @@ function dtoToPayment(dto: PaymentDTO, allocations: Payment["allocations"] = [])
     notes: dto.notes ?? undefined,
     proofDataUrl: dto.proofDataUrl ?? undefined,
     proofName: dto.proofName ?? undefined,
-    accountId: dto.account?.id != null ? toStrId(dto.account.id) : undefined,
+    accountId: acc?.id != null ? toStrId(acc.id) : undefined,
+    account: accountName,
     allocations,
   };
 }

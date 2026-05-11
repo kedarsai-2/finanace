@@ -59,7 +59,11 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   const accountId = dto.account?.id;
   const rawMode = String(dto.mode ?? "").toUpperCase();
   let mode: Expense["mode"] =
-    rawMode === "BANK" || rawMode === "UPI" ? "bank" : rawMode === "CASH" ? "cash" : undefined;
+    rawMode === "BANK" || rawMode === "UPI" || rawMode === "CHEQUE"
+      ? "bank"
+      : rawMode === "CASH"
+        ? "cash"
+        : undefined;
   // Cheque/bank expenses always carry an account; older rows may have null mode after import.
   if (!mode && accountId != null) mode = "bank";
   const rawCategory = String(dto.category ?? "").trim();
@@ -86,8 +90,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
     mode,
     reference: dto.reference ?? undefined,
     notes: dto.notes ?? undefined,
-    receivedPaidAmount:
-      dto.receivedPaidAmount == null ? undefined : Number(dto.receivedPaidAmount),
+    receivedPaidAmount: dto.receivedPaidAmount == null ? undefined : Number(dto.receivedPaidAmount),
     balanceDue: dto.balanceDue == null ? undefined : Number(dto.balanceDue),
     orderNo: dto.orderNo ?? undefined,
     itemName: dto.itemName ?? undefined,
@@ -95,8 +98,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
     hsnSac: dto.hsnSac ?? undefined,
     quantity: dto.quantity == null ? undefined : Number(dto.quantity),
     unitPrice: dto.unitPrice == null ? undefined : Number(dto.unitPrice),
-    discountPercent:
-      dto.discountPercent == null ? undefined : Number(dto.discountPercent),
+    discountPercent: dto.discountPercent == null ? undefined : Number(dto.discountPercent),
     discountAmount: dto.discountAmount == null ? undefined : Number(dto.discountAmount),
     taxPercent: dto.taxPercent == null ? undefined : Number(dto.taxPercent),
     taxAmount: dto.taxAmount == null ? undefined : Number(dto.taxAmount),

@@ -84,6 +84,37 @@ const TYPE_FILTERS = ["all", "standard", "subscription", "advance"] as const;
 const DEFAULT_FROM = format(startOfMonth(new Date()), "yyyy-MM-dd");
 const DEFAULT_TO = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
+/** Invoice / range `yyyy-MM-dd` in local time — avoids UTC shift from `new Date("yyyy-MM-dd")`. */
+function parseInvoiceCalendarDay(raw: string): Date | null {
+  const s = String(raw ?? "").trim();
+  const head = s.slice(0, 10);
+  const m = head.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    const dt = new Date(y, mo, d);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  }
+  const t = new Date(s);
+  return Number.isNaN(t.getTime()) ? null : t;
+}
+
+function parseRangeBoundary(ymd: string, endOfDay: boolean): Date | null {
+  const m = String(ymd ?? "")
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const dt = new Date(y, mo, d);
+  if (Number.isNaN(dt.getTime())) return null;
+  if (endOfDay) dt.setHours(23, 59, 59, 999);
+  else dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
 type TypeFilter = (typeof TYPE_FILTERS)[number];
@@ -154,8 +185,8 @@ function InvoicesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  const fromDate = from ? new Date(from) : undefined;
-  const toDate = to ? new Date(to) : undefined;
+  const fromBoundary = useMemo(() => (from ? parseRangeBoundary(from, false) : null), [from]);
+  const toBoundary = useMemo(() => (to ? parseRangeBoundary(to, true) : null), [to]);
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -164,16 +195,21 @@ function InvoicesPage() {
         if (status !== "all" && inv.status !== status) return false;
         if (payment !== "all" && paymentStatusOf(inv) !== payment) return false;
         if (type !== "all" && (inv.invoiceType ?? "standard") !== type) return false;
-        const d = new Date(inv.date).getTime();
-        if (fromDate && d < fromDate.setHours(0, 0, 0, 0)) return false;
-        if (toDate && d > toDate.setHours(23, 59, 59, 999)) return false;
+        const invDay = parseInvoiceCalendarDay(inv.date);
+        const invMs = invDay?.getTime();
+        if (fromBoundary != null) {
+          if (invDay == null || invMs == null || invMs < fromBoundary.getTime()) return false;
+        }
+        if (toBoundary != null) {
+          if (invDay == null || invMs == null || invMs > toBoundary.getTime()) return false;
+        }
         if (!term) return true;
         return (
           inv.number.toLowerCase().includes(term) || inv.partyName.toLowerCase().includes(term)
         );
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [invoices, q, status, payment, type, fromDate, toDate]);
+  }, [invoices, q, status, payment, type, fromBoundary, toBoundary]);
 
   const listPgKey = useMemo(
     () => `${q}|${status}|${payment}|${type}|${from}|${to}`,
@@ -185,14 +221,14 @@ function InvoicesPage() {
     let total = 0;
     let paid = 0;
     let count = 0;
-    for (const inv of invoices) {
+    for (const inv of visible) {
       if (inv.status === "cancelled") continue;
       total += inv.total;
       paid += inv.paidAmount;
       count += 1;
     }
     return { total, paid, outstanding: total - paid, count };
-  }, [invoices]);
+  }, [visible]);
 
   const paymentTypeByInvoiceId = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -205,8 +241,7 @@ function InvoicesPage() {
       docNumber?: string | null;
     }): string => {
       const raw = alloc.docId;
-      const docIdStr =
-        raw != null && String(raw).trim() !== "" ? toStrId(raw).trim() : "";
+      const docIdStr = raw != null && String(raw).trim() !== "" ? toStrId(raw).trim() : "";
       if (docIdStr) {
         const hit = invoices.find((i) => i.id === docIdStr);
         if (hit) return hit.id;
@@ -399,7 +434,10 @@ function InvoicesPage() {
       let duplicates = 0;
       let createdParties = 0;
       const importedDateKeys: string[] = [];
-      const existingForNumber = invoices.map((i) => ({ number: i.number, businessId: i.businessId }));
+      const existingForNumber = invoices.map((i) => ({
+        number: i.number,
+        businessId: i.businessId,
+      }));
       const invoiceKeys = new Set(
         invoices.map((i) => {
           const dateKey = format(new Date(i.date), "yyyy-MM-dd");
@@ -441,7 +479,9 @@ function InvoicesPage() {
         const importedDate = parseSpreadsheetDate(row["Date"]);
         const dateKey = format(new Date(importedDate), "yyyy-MM-dd");
         importedDateKeys.push(dateKey);
-        const invoiceNoKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
+        const invoiceNoKey = String(mapped.invoiceNo ?? "")
+          .trim()
+          .toLowerCase();
         const totalHint = Number(mapped.total ?? 0);
         const dedupeKey = `${dateKey}|${partyNameKey}|${invoiceNoKey}|${totalHint.toFixed(2)}`;
         if (invoiceKeys.has(dedupeKey)) {
@@ -449,8 +489,12 @@ function InvoicesPage() {
           continue;
         }
 
-        const refA = String(row["Invoice No"] ?? "").trim().toLowerCase();
-        const refB = String(row["Order No"] ?? "").trim().toLowerCase();
+        const refA = String(row["Invoice No"] ?? "")
+          .trim()
+          .toLowerCase();
+        const refB = String(row["Order No"] ?? "")
+          .trim()
+          .toLowerCase();
         const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
         const lines =
           sourceLines.length > 0
@@ -616,11 +660,11 @@ function InvoicesPage() {
                 Bulk Delete{selectedCount ? ` (${selectedCount})` : ""}
               </Button>
               <Button asChild size="lg" className="gap-2">
-              <Link to="/invoices/new">
-                <Plus className="h-4 w-4" />
-                Create Sale
-              </Link>
-            </Button>
+                <Link to="/invoices/new">
+                  <Plus className="h-4 w-4" />
+                  Create Sale
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -684,8 +728,8 @@ function InvoicesPage() {
               </FilterGroup>
 
               <DateRange
-                from={fromDate}
-                to={toDate}
+                from={fromBoundary ?? undefined}
+                to={toBoundary ?? undefined}
                 onFrom={(d) => setSearch({ from: d ? format(d, "yyyy-MM-dd") : "" })}
                 onTo={(d) => setSearch({ to: d ? format(d, "yyyy-MM-dd") : "" })}
               />
