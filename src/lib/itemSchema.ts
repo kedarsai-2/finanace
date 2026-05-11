@@ -5,7 +5,7 @@ export const ITEM_UNITS = ["number", "pcs", "kg", "litre", "hour"] as const;
 export type ItemUnit = (typeof ITEM_UNITS)[number];
 
 export const itemFormSchema = z.object({
-  name: z.string().trim().min(1, "Item name is required").max(200, "Max 200 characters"),
+  name: z.string().trim().min(1, "Item name is required").max(500, "Max 500 characters"),
   type: z.enum(["product", "service"]),
   sku: z.string().trim().max(60).optional().or(z.literal("")),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),

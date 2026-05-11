@@ -15,7 +15,7 @@ public class ItemDTO implements Serializable {
     private Long id;
 
     @NotNull
-    @Size(min = 1, max = 200)
+    @Size(min = 1, max = 500)
     private String name;
 
     @Size(max = 64)

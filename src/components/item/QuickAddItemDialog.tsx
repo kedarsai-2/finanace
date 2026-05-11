@@ -32,7 +32,7 @@ import type { Item, ItemType } from "@/types/item";
 import { cn } from "@/lib/utils";
 
 const quickSchema = z.object({
-  name: z.string().trim().min(1, "Item name is required").max(200, "Max 200 characters"),
+  name: z.string().trim().min(1, "Item name is required").max(500, "Max 500 characters"),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
   unit: z.enum(ITEM_UNITS),
 });

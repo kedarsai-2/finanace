@@ -9,7 +9,7 @@
       "fieldName": "name",
       "fieldType": "String",
       "fieldValidateRules": ["required", "minlength", "maxlength"],
-      "fieldValidateRulesMaxlength": "200",
+      "fieldValidateRulesMaxlength": "500",
       "fieldValidateRulesMinlength": "1"
     },
     {

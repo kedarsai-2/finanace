@@ -217,10 +217,10 @@ export function useItems(businessId?: string | null) {
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
         if (!dto.name) {
-          throw new Error("Item name is required (1–200 characters).");
+          throw new Error("Item name is required (1–500 characters).");
         }
-        if (dto.name.length > 200) {
-          throw new Error("Item name cannot exceed 200 characters.");
+        if (dto.name.length > 500) {
+          throw new Error("Item name cannot exceed 500 characters.");
         }
         if (!dto.business && before?.businessId) {
           dto.business = businessRefFromId(before.businessId);

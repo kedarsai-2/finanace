@@ -28,8 +28,8 @@ public class Item implements Serializable {
     private Long id;
 
     @NotNull
-    @Size(min = 1, max = 200)
-    @Column(name = "name", length = 200, nullable = false)
+    @Size(min = 1, max = 500)
+    @Column(name = "name", length = 500, nullable = false)
     private String name;
 
     @Size(max = 64)

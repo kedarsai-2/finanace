@@ -218,6 +218,56 @@ export function accountNetChangeInMonth(txns: AccountTxn[], monthStart: Date): n
   return sum;
 }
 
+/** True if any non-opening ledger line falls in `monthStart`'s calendar month. */
+export function accountHasNonOpeningActivityInMonth(txns: AccountTxn[], monthStart: Date): boolean {
+  const start = startOfMonth(monthStart);
+  const end = endOfMonth(monthStart);
+  for (const t of txns) {
+    if (t.kind === "opening") continue;
+    const day = parseTxnCalendarDay(String(t.date ?? ""));
+    if (!day) continue;
+    const d0 = startOfDay(day);
+    if (isBefore(d0, start)) continue;
+    if (isAfter(d0, end)) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Allocations on this account toward docs in `docIds` when the **payment date** is **outside**
+ * `monthStart`'s month. Pairs with {@link accountNetChangeInMonth} (which already counts payments
+ * dated inside the month) so March sales can show April-dated receipts on the right account.
+ */
+export function accountAllocatedOutsidePaymentMonth(
+  account: Account,
+  payments: Payment[],
+  monthStart: Date,
+  docIds: Set<string>,
+  direction: "in" | "out",
+  accountsById: Record<string, Account>,
+): number {
+  const start = startOfMonth(monthStart);
+  const end = endOfMonth(monthStart);
+  let sum = 0;
+  for (const p of payments) {
+    if (p.direction !== direction) continue;
+    if (!paymentBelongsToAccount(p, account, accountsById)) continue;
+    const payDay = parseTxnCalendarDay(String(p.date ?? ""));
+    if (!payDay) continue;
+    const payInMonth = !isBefore(startOfDay(payDay), start) && !isAfter(startOfDay(payDay), end);
+    if (payInMonth) continue;
+
+    for (const a of p.allocations) {
+      if (!docIds.has(a.docId)) continue;
+      const amt = Math.max(0, Number(a.amount ?? 0));
+      if (direction === "in") sum += amt;
+      else sum -= amt;
+    }
+  }
+  return sum;
+}
+
 /**
  * Balance implied by summing every recorded ledger line on or before the last day of
  * `monthStart`'s month (opening + payments + transfers + expenses), by each line's date.
