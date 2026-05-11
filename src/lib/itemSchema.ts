@@ -5,7 +5,7 @@ export const ITEM_UNITS = ["number", "pcs", "kg", "litre", "hour"] as const;
 export type ItemUnit = (typeof ITEM_UNITS)[number];
 
 export const itemFormSchema = z.object({
-  name: z.string().trim().min(1, "Item name is required").max(120),
+  name: z.string().trim().min(1, "Item name is required").max(200, "Max 200 characters"),
   type: z.enum(["product", "service"]),
   sku: z.string().trim().max(60).optional().or(z.literal("")),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
@@ -16,7 +16,7 @@ export const itemFormSchema = z.object({
   unit: z.enum(ITEM_UNITS),
   openingStock: z.number().min(0).max(1000, "Opening stock cannot exceed 1000").optional(),
   reorderLevel: z.number().min(0).max(1000, "Reorder level cannot exceed 1000").optional(),
-  description: z.string().trim().max(1000).optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional().or(z.literal("")),
   active: z.boolean(),
 });
 

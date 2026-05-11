@@ -24,6 +24,7 @@ import { useItems } from "@/hooks/useItems";
 import type { Item } from "@/types/item";
 import { itemFormSchema, ITEM_UNITS, TAX_RATES, type ItemFormValues } from "@/lib/itemSchema";
 import { emptyToUndef } from "@/lib/businessSchema";
+import { ApiError, formatJhipsterFieldErrors } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -178,8 +179,11 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
         await upsert(item);
         toast.success(mode === "edit" ? `${labels.singular} updated` : `${labels.singular} added`);
         navigate(cancelHref);
-      } catch {
-        toast.error(`Could not save ${labels.singular.toLowerCase()}`);
+      } catch (e) {
+        const hint = e instanceof ApiError ? formatJhipsterFieldErrors(e.bodyText) : null;
+        toast.error(
+          hint ?? (e instanceof Error ? e.message : `Could not save ${labels.singular.toLowerCase()}`),
+        );
       } finally {
         setSubmitting(false);
       }

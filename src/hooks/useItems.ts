@@ -54,7 +54,7 @@ function itemToDto(it: Item): ItemDTO {
     id: toNumId(it.id) ?? undefined,
     createdAt: it.createdAt ?? null,
     updatedAt: it.updatedAt ?? null,
-    name: it.name,
+    name: (it.name ?? "").trim(),
     sku: it.sku ?? null,
     type: it.type === "product" ? "PRODUCT" : "SERVICE",
     sellingPrice: it.sellingPrice ?? 0,
@@ -216,6 +216,12 @@ export function useItems(businessId?: string | null) {
         const before = itemsRef.current.find((x) => x.id === it.id);
         const isUpdate = /^\d+$/.test(it.id);
         const dto = itemToDto(it);
+        if (!dto.name) {
+          throw new Error("Item name is required (1–200 characters).");
+        }
+        if (dto.name.length > 200) {
+          throw new Error("Item name cannot exceed 200 characters.");
+        }
         if (!dto.business && before?.businessId) {
           dto.business = businessRefFromId(before.businessId);
         }

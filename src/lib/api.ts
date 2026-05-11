@@ -12,6 +12,30 @@ export class ApiError extends Error {
   }
 }
 
+/** Parse JHipster / Spring `problem+json` `fieldErrors` into a short user-facing message. */
+export function formatJhipsterFieldErrors(bodyText: string | undefined): string | null {
+  if (!bodyText?.trim()) return null;
+  try {
+    const j = JSON.parse(bodyText) as {
+      fieldErrors?: Array<{ field?: string; message?: string }>;
+      detail?: string;
+    };
+    if (Array.isArray(j.fieldErrors) && j.fieldErrors.length > 0) {
+      return j.fieldErrors
+        .map((e) => {
+          const f = e.field ?? "?";
+          const m = e.message ?? "";
+          return m ? `${f}: ${m}` : f;
+        })
+        .join(" · ");
+    }
+    if (typeof j.detail === "string" && j.detail.trim()) return j.detail.trim();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeNativeBody(
   body: BodyInit | null | undefined,
   contentType: string | undefined,

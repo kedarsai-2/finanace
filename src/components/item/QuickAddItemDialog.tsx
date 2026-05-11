@@ -26,12 +26,13 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useItems } from "@/hooks/useItems";
+import { ApiError, formatJhipsterFieldErrors } from "@/lib/api";
 import { ITEM_UNITS } from "@/lib/itemSchema";
 import type { Item, ItemType } from "@/types/item";
 import { cn } from "@/lib/utils";
 
 const quickSchema = z.object({
-  name: z.string().trim().min(1, "Item name is required").max(120),
+  name: z.string().trim().min(1, "Item name is required").max(200, "Max 200 characters"),
   sellingPrice: z.number().min(0, "Selling price cannot be negative"),
   unit: z.enum(ITEM_UNITS),
 });
@@ -102,7 +103,7 @@ export function QuickAddItemDialog({
     msg ? <p className="mt-1 text-xs text-destructive">{msg}</p> : null;
 
   const onSubmit = handleSubmit(
-    (values) => {
+    async (values) => {
       if (!activeId) {
         toast.error("Select an active business first");
         return;
@@ -133,12 +134,14 @@ export function QuickAddItemDialog({
           openingStock: defaultType === "product" ? 1 : undefined,
           active: true,
         };
-        upsert(item);
-        toast.success(`${item.name} added`);
-        onCreated?.(item);
+        const saved = await upsert(item);
+        const created = saved ?? item;
+        toast.success(`${created.name} added`);
+        onCreated?.(created);
         onOpenChange(false);
-      } catch {
-        toast.error("Could not save item");
+      } catch (e) {
+        const hint = e instanceof ApiError ? formatJhipsterFieldErrors(e.bodyText) : null;
+        toast.error(hint ?? (e instanceof Error ? e.message : "Could not save item"));
       } finally {
         setSubmitting(false);
       }
