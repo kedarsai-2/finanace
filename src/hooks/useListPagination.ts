@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-export const DEFAULT_LIST_PAGE_SIZE = 25;
+export const DEFAULT_LIST_PAGE_SIZE = 100;
 
 /**
  * Client-side pagination for filtered arrays. Resets to page 1 when `resetKey` changes.

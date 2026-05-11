@@ -291,7 +291,7 @@ function DashboardPage() {
     return items.sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [monthInvoices, monthPayments, monthExpenses]);
 
-  const recentPg = useListPagination(recent, `${range}|${selectedMonth}`, 10);
+  const recentPg = useListPagination(recent, `${range}|${selectedMonth}`);
 
   if (!hydrated) {
     return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
