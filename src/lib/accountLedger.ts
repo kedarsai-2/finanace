@@ -1,4 +1,4 @@
-import { endOfMonth, isAfter, startOfDay } from "date-fns";
+import { endOfMonth, isAfter, isBefore, startOfDay, startOfMonth } from "date-fns";
 
 import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
@@ -188,14 +188,20 @@ function parseTxnCalendarDay(raw: string): Date | null {
   return startOfDay(new Date(s));
 }
 
-/** Sum of ledger lines for transactions on or before the last calendar day of `monthStart`'s month. */
-export function accountBalanceThroughMonth(txns: AccountTxn[], monthStart: Date): number {
-  const periodEnd = endOfMonth(monthStart);
+/**
+ * Net ledger movement in `monthStart`'s calendar month (matches dashboard month filter).
+ * Only lines dated inside that month count; months with no activity sum to 0.
+ */
+export function accountNetChangeInMonth(txns: AccountTxn[], monthStart: Date): number {
+  const start = startOfMonth(monthStart);
+  const end = endOfMonth(monthStart);
   let sum = 0;
   for (const t of txns) {
     const day = parseTxnCalendarDay(String(t.date ?? ""));
     if (!day) continue;
-    if (isAfter(startOfDay(day), periodEnd)) continue;
+    const d0 = startOfDay(day);
+    if (isBefore(d0, start)) continue;
+    if (isAfter(d0, end)) continue;
     sum += t.amount;
   }
   return sum;

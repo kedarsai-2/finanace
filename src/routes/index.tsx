@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   endOfDay,
-  endOfMonth,
   format,
   isSameMonth,
   startOfDay,
@@ -51,7 +50,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
-import { accountBalanceThroughMonth, buildAccountTxns } from "@/lib/accountLedger";
+import { accountNetChangeInMonth, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -198,16 +197,11 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
-  /** Cash/bank cards use the same ledger as account pages, but only through the selected month end. */
+  /** Cash/bank: net ledger movement in the selected month (same date rule as sales / payments). */
   const accountsForBalances = useMemo(() => {
     if (!scopedBusinessId) return accounts;
     return accounts.filter((a) => a.businessId === scopedBusinessId);
   }, [accounts, scopedBusinessId]);
-
-  const balanceAsOfLabel = useMemo(
-    () => format(endOfMonth(monthStart), "d MMM yyyy"),
-    [monthStart],
-  );
 
   const accountBalances = useMemo(() => {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
@@ -223,7 +217,7 @@ function DashboardPage() {
         expenses,
         accountsById,
       });
-      const bal = accountBalanceThroughMonth(txns, monthStart);
+      const bal = accountNetChangeInMonth(txns, monthStart);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;
@@ -479,7 +473,7 @@ function DashboardPage() {
         <BalanceCard
           to="/cash"
           label="Cash Accounts"
-          sublabel={`${accountBalances.cashCount} accounts · as of ${balanceAsOfLabel}`}
+          sublabel={`${accountBalances.cashCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
@@ -489,7 +483,7 @@ function DashboardPage() {
         <BalanceCard
           to="/accounts"
           label="Bank Accounts"
-          sublabel={`${accountBalances.bankCount} accounts · as of ${balanceAsOfLabel}`}
+          sublabel={`${accountBalances.bankCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"
