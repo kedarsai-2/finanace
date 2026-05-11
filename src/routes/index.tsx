@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   endOfDay,
-  endOfMonth,
   format,
   isSameMonth,
   startOfDay,
@@ -51,7 +50,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
-import { accountBalanceThroughMonth, buildAccountTxns } from "@/lib/accountLedger";
+import { accountCollectionsForInvoiceIds } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -128,10 +127,13 @@ function DashboardPage() {
     () => startOfMonth(parseYearMonthFirstDay(selectedMonth) ?? new Date()),
     [selectedMonth],
   );
-  const inSelectedMonth = (value: string) => {
-    const d = parseDashDate(value);
-    return d != null && isSameMonth(d, monthStart);
-  };
+  const inSelectedMonth = useCallback(
+    (value: string) => {
+      const d = parseDashDate(value);
+      return d != null && isSameMonth(d, monthStart);
+    },
+    [monthStart],
+  );
 
   const liveInvoices = useMemo(() => invoices.filter((i) => i.status !== "cancelled"), [invoices]);
   const livePurchases = useMemo(
@@ -148,27 +150,27 @@ function DashboardPage() {
   );
   const monthInvoices = useMemo(
     () => liveInvoices.filter((i) => inSelectedMonth(i.date)),
-    [liveInvoices, monthStart, selectedMonth],
+    [liveInvoices, inSelectedMonth],
   );
   const monthPurchases = useMemo(
     () => livePurchases.filter((p) => inSelectedMonth(p.date)),
-    [livePurchases, monthStart, selectedMonth],
+    [livePurchases, inSelectedMonth],
   );
   const monthCreditNotes = useMemo(
     () => liveCreditNotes.filter((cn) => inSelectedMonth(cn.date)),
-    [liveCreditNotes, monthStart, selectedMonth],
+    [liveCreditNotes, inSelectedMonth],
   );
   const monthPurchaseReturns = useMemo(
     () => livePurchaseReturns.filter((r) => inSelectedMonth(r.date)),
-    [livePurchaseReturns, monthStart, selectedMonth],
+    [livePurchaseReturns, inSelectedMonth],
   );
   const monthExpenses = useMemo(
     () => expenses.filter((e) => inSelectedMonth(e.date)),
-    [expenses, monthStart, selectedMonth],
+    [expenses, inSelectedMonth],
   );
   const monthPayments = useMemo(
     () => payments.filter((p) => inSelectedMonth(p.date)),
-    [payments, monthStart, selectedMonth],
+    [payments, inSelectedMonth],
   );
 
   const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
@@ -190,15 +192,11 @@ function DashboardPage() {
   /** Collections in the selected month (payment date), including invoice-linked receipts. */
   const totalReceived = totalPaymentsReceived;
 
-  /** Cash/bank: cumulative sum of recorded ledger lines through month end (not invoice totals). */
+  /** Cash/bank: receipts on each account allocated to invoices dated in the selected month. */
   const cashBankDashboardNote = useMemo(() => {
-    const thru = format(endOfMonth(monthStart), "d MMM yyyy");
-    const mShort = format(monthStart, "MMM yyyy");
-    if (totalSales > 0 && totalReceived === 0) {
-      return `Through ${thru}: balance is from recorded payments & other lines by date. Invoices dated ${mShort} only affect cash after you record a payment (with its own date).`;
-    }
-    return `Sum of recorded transactions (opening + payments, transfers & expenses) through ${thru}.`;
-  }, [monthStart, totalSales, totalReceived]);
+    const mLong = format(monthStart, "MMMM yyyy");
+    return `Customer receipts on this account that are allocated to invoices dated ${mLong} (allocation drives the link—payment date can be in another month). Unpaid sales count in Total Receivable, not here.`;
+  }, [monthStart]);
 
   const netProfit =
     totalSales +
@@ -209,11 +207,13 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
-  /** Cash/bank: balance from all recorded ledger lines through the selected month end. */
+  /** Cash/bank: collections on each account toward invoices dated in the dashboard month. */
   const accountsForBalances = useMemo(() => {
     if (!scopedBusinessId) return accounts;
     return accounts.filter((a) => a.businessId === scopedBusinessId);
   }, [accounts, scopedBusinessId]);
+
+  const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
 
   const accountBalances = useMemo(() => {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
@@ -222,14 +222,7 @@ function DashboardPage() {
     let cashCount = 0;
     let bankCount = 0;
     for (const a of accountsForBalances) {
-      const txns = buildAccountTxns({
-        account: a,
-        payments,
-        transfers,
-        expenses,
-        accountsById,
-      });
-      const bal = accountBalanceThroughMonth(txns, monthStart);
+      const bal = accountCollectionsForInvoiceIds(a, payments, monthInvoiceIds, accountsById);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;
@@ -239,7 +232,7 @@ function DashboardPage() {
       }
     }
     return { cash, bank, cashCount, bankCount };
-  }, [accountsForBalances, payments, transfers, expenses, monthStart]);
+  }, [accountsForBalances, payments, monthInvoiceIds]);
 
   // Trend uses all-time rows for the rolling window — not the dashboard month filter.
   const trendData = useMemo(
@@ -485,7 +478,7 @@ function DashboardPage() {
         <BalanceCard
           to="/cash"
           label="Cash Accounts"
-          sublabel={`${accountBalances.cashCount} accounts · through ${format(endOfMonth(monthStart), "d MMM yyyy")}`}
+          sublabel={`${accountBalances.cashCount} accounts · toward ${format(monthStart, "MMM yyyy")} sales`}
           note={cashBankDashboardNote}
           amount={accountBalances.cash}
           currency={currency}
@@ -496,7 +489,7 @@ function DashboardPage() {
         <BalanceCard
           to="/accounts"
           label="Bank Accounts"
-          sublabel={`${accountBalances.bankCount} accounts · through ${format(endOfMonth(monthStart), "d MMM yyyy")}`}
+          sublabel={`${accountBalances.bankCount} accounts · toward ${format(monthStart, "MMM yyyy")} sales`}
           note={cashBankDashboardNote}
           amount={accountBalances.bank}
           currency={currency}
@@ -709,9 +702,7 @@ function BalanceCard({
       >
         {formatCurrency(amount, currency)}
       </p>
-      {note ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{note}</p>
-      ) : null}
+      {note ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{note}</p> : null}
     </Link>
   );
 }

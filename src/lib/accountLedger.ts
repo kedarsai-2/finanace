@@ -14,6 +14,64 @@ function stablePrimaryAccount<T extends { id: string }>(accounts: T[]): T | unde
   return [...accounts].sort((a, b) => String(a.id).localeCompare(String(b.id)))[0];
 }
 
+/** Same routing rules as {@link buildAccountTxns} for whether a payment hits an account. */
+export function paymentBelongsToAccount(
+  p: Payment,
+  account: Account,
+  accountsById: Record<string, Account>,
+): boolean {
+  if (p.businessId !== account.businessId) return false;
+  const allAccounts = Object.values(accountsById);
+  const cashAccounts = allAccounts.filter(
+    (a) => a.type === "cash" && a.businessId === account.businessId,
+  );
+  const bankAccounts = allAccounts.filter(
+    (a) => a.type === "bank" && a.businessId === account.businessId,
+  );
+  const primaryCash = stablePrimaryAccount(cashAccounts);
+  const primaryBank = stablePrimaryAccount(bankAccounts);
+  const paymentAccountName = p.account?.trim().toLowerCase();
+  const accountName = account.name.trim().toLowerCase();
+  const inferredByText =
+    !p.accountId &&
+    !!paymentAccountName &&
+    (paymentAccountName === accountName ||
+      (paymentAccountName === "cash" && account.type === "cash" && cashAccounts.length === 1) ||
+      (paymentAccountName === "bank" && account.type === "bank" && bankAccounts.length === 1));
+  const inferredByMode =
+    !p.accountId &&
+    !paymentAccountName &&
+    ((p.mode === "cash" && account.type === "cash" && primaryCash?.id === account.id) ||
+      ((p.mode === "bank" || p.mode === "cheque") &&
+        account.type === "bank" &&
+        primaryBank?.id === account.id));
+  return p.accountId === account.id || inferredByText || inferredByMode;
+}
+
+/**
+ * Sum of customer **in** payment allocation amounts on this account toward invoices whose ids
+ * are in `invoiceIdsInMonth` (e.g. invoices dated in the dashboard month). Uses allocation rows,
+ * not payment date—so it aligns with “sales this month” when receipts are recorded.
+ */
+export function accountCollectionsForInvoiceIds(
+  account: Account,
+  payments: Payment[],
+  invoiceIdsInMonth: Set<string>,
+  accountsById: Record<string, Account>,
+): number {
+  let sum = 0;
+  for (const p of payments) {
+    if (p.direction !== "in") continue;
+    if (!paymentBelongsToAccount(p, account, accountsById)) continue;
+    const attributed = p.allocations
+      .filter((a) => invoiceIdsInMonth.has(a.docId))
+      .reduce((s, a) => s + Math.max(0, Number(a.amount ?? 0)), 0);
+    if (!(attributed > 0)) continue;
+    sum += Math.min(attributed, Math.max(0, p.amount));
+  }
+  return sum;
+}
+
 /**
  * Compute live transactions for an account from payments / transfers / expenses.
  * Sorted oldest → newest. Includes a synthetic "opening" entry.
@@ -48,30 +106,7 @@ export function buildAccountTxns(args: {
   });
 
   for (const p of payments) {
-    if (p.businessId !== account.businessId) continue;
-    const paymentAccountName = p.account?.trim().toLowerCase();
-    const accountName = account.name.trim().toLowerCase();
-    const inferredByText =
-      !p.accountId &&
-      !!paymentAccountName &&
-      (paymentAccountName === accountName ||
-        // Legacy generic labels ("cash"/"bank") map only when unambiguous.
-        (paymentAccountName === "cash" && account.type === "cash" && cashAccounts.length === 1) ||
-        (paymentAccountName === "bank" && account.type === "bank" && bankAccounts.length === 1));
-    const inferredByMode =
-      !p.accountId &&
-      !paymentAccountName &&
-      ((p.mode === "cash" && account.type === "cash" && primaryCash?.id === account.id) ||
-        ((p.mode === "bank" || p.mode === "cheque") &&
-          account.type === "bank" &&
-          primaryBank?.id === account.id));
-    const belongsToAccount =
-      p.accountId === account.id ||
-      // Backward-compat: older records may only have free-text account label.
-      inferredByText ||
-      // Final fallback for legacy rows with only payment mode and no account linkage.
-      inferredByMode;
-    if (!belongsToAccount) continue;
+    if (!paymentBelongsToAccount(p, account, accountsById)) continue;
     const isIn = p.direction === "in";
     const singleAlloc = p.allocations.length === 1 ? p.allocations[0] : undefined;
     const docRefLink = (() => {

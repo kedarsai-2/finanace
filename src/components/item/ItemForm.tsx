@@ -182,7 +182,8 @@ export function ItemForm({ mode, itemId, context = "items" }: Props) {
       } catch (e) {
         const hint = e instanceof ApiError ? formatJhipsterFieldErrors(e.bodyText) : null;
         toast.error(
-          hint ?? (e instanceof Error ? e.message : `Could not save ${labels.singular.toLowerCase()}`),
+          hint ??
+            (e instanceof Error ? e.message : `Could not save ${labels.singular.toLowerCase()}`),
         );
       } finally {
         setSubmitting(false);
