@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   endOfDay,
+  endOfMonth,
   format,
   isSameMonth,
   startOfDay,
@@ -50,7 +51,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
-import { accountNetChangeInMonth, buildAccountTxns } from "@/lib/accountLedger";
+import { accountBalanceThroughMonth, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -189,14 +190,14 @@ function DashboardPage() {
   /** Collections in the selected month (payment date), including invoice-linked receipts. */
   const totalReceived = totalPaymentsReceived;
 
-  /** Shown under cash/bank: they follow payment dates, not invoice dates (unlike Total Sales). */
+  /** Cash/bank: cumulative sum of recorded ledger lines through month end (not invoice totals). */
   const cashBankDashboardNote = useMemo(() => {
-    const mLong = format(monthStart, "MMMM yyyy");
+    const thru = format(endOfMonth(monthStart), "d MMM yyyy");
     const mShort = format(monthStart, "MMM yyyy");
     if (totalSales > 0 && totalReceived === 0) {
-      return `No receipts dated ${mLong}. Cash and bank use payment / transfer / expense dates in ${mShort}, not invoice dates—record a payment dated ${mShort} to see movement here.`;
+      return `Through ${thru}: balance is from recorded payments & other lines by date. Invoices dated ${mShort} only affect cash after you record a payment (with its own date).`;
     }
-    return `Net from payments, transfers & expenses dated in ${mShort}—not from invoice totals alone.`;
+    return `Sum of recorded transactions (opening + payments, transfers & expenses) through ${thru}.`;
   }, [monthStart, totalSales, totalReceived]);
 
   const netProfit =
@@ -208,7 +209,7 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
-  /** Cash/bank: net ledger movement in the selected month (same date rule as sales / payments). */
+  /** Cash/bank: balance from all recorded ledger lines through the selected month end. */
   const accountsForBalances = useMemo(() => {
     if (!scopedBusinessId) return accounts;
     return accounts.filter((a) => a.businessId === scopedBusinessId);
@@ -228,7 +229,7 @@ function DashboardPage() {
         expenses,
         accountsById,
       });
-      const bal = accountNetChangeInMonth(txns, monthStart);
+      const bal = accountBalanceThroughMonth(txns, monthStart);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;
@@ -484,7 +485,7 @@ function DashboardPage() {
         <BalanceCard
           to="/cash"
           label="Cash Accounts"
-          sublabel={`${accountBalances.cashCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
+          sublabel={`${accountBalances.cashCount} accounts · through ${format(endOfMonth(monthStart), "d MMM yyyy")}`}
           note={cashBankDashboardNote}
           amount={accountBalances.cash}
           currency={currency}
@@ -495,7 +496,7 @@ function DashboardPage() {
         <BalanceCard
           to="/accounts"
           label="Bank Accounts"
-          sublabel={`${accountBalances.bankCount} accounts · net in ${format(monthStart, "MMM yyyy")}`}
+          sublabel={`${accountBalances.bankCount} accounts · through ${format(endOfMonth(monthStart), "d MMM yyyy")}`}
           note={cashBankDashboardNote}
           amount={accountBalances.bank}
           currency={currency}

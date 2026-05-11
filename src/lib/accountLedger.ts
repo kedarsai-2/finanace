@@ -207,6 +207,22 @@ export function accountNetChangeInMonth(txns: AccountTxn[], monthStart: Date): n
   return sum;
 }
 
+/**
+ * Balance implied by summing every recorded ledger line on or before the last day of
+ * `monthStart`'s month (opening + payments + transfers + expenses), by each line's date.
+ */
+export function accountBalanceThroughMonth(txns: AccountTxn[], monthStart: Date): number {
+  const periodEnd = endOfMonth(monthStart);
+  let sum = 0;
+  for (const t of txns) {
+    const day = parseTxnCalendarDay(String(t.date ?? ""));
+    if (!day) continue;
+    if (isAfter(startOfDay(day), periodEnd)) continue;
+    sum += t.amount;
+  }
+  return sum;
+}
+
 export function accountBalance(txns: AccountTxn[]): number {
   return txns.reduce((s, t) => s + t.amount, 0);
 }
