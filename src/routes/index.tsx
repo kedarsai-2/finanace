@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   endOfDay,
+  endOfMonth,
   format,
   isSameMonth,
   startOfDay,
@@ -50,7 +51,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
-import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
+import { accountBalanceThroughMonth, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -197,11 +198,16 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
-  /** Same scope as Cash / Bank Accounts pages: full ledgers, not the dashboard month filter. */
+  /** Cash/bank cards use the same ledger as account pages, but only through the selected month end. */
   const accountsForBalances = useMemo(() => {
     if (!scopedBusinessId) return accounts;
     return accounts.filter((a) => a.businessId === scopedBusinessId);
   }, [accounts, scopedBusinessId]);
+
+  const balanceAsOfLabel = useMemo(
+    () => format(endOfMonth(monthStart), "d MMM yyyy"),
+    [monthStart],
+  );
 
   const accountBalances = useMemo(() => {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
@@ -217,7 +223,7 @@ function DashboardPage() {
         expenses,
         accountsById,
       });
-      const bal = accountBalance(txns);
+      const bal = accountBalanceThroughMonth(txns, monthStart);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;
@@ -227,7 +233,7 @@ function DashboardPage() {
       }
     }
     return { cash, bank, cashCount, bankCount };
-  }, [accountsForBalances, payments, transfers, expenses]);
+  }, [accountsForBalances, payments, transfers, expenses, monthStart]);
 
   // Trend uses all-time rows for the rolling window — not the dashboard month filter.
   const trendData = useMemo(
@@ -473,7 +479,7 @@ function DashboardPage() {
         <BalanceCard
           to="/cash"
           label="Cash Accounts"
-          sublabel={`${accountBalances.cashCount} accounts`}
+          sublabel={`${accountBalances.cashCount} accounts · as of ${balanceAsOfLabel}`}
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
@@ -483,7 +489,7 @@ function DashboardPage() {
         <BalanceCard
           to="/accounts"
           label="Bank Accounts"
-          sublabel={`${accountBalances.bankCount} accounts`}
+          sublabel={`${accountBalances.bankCount} accounts · as of ${balanceAsOfLabel}`}
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"

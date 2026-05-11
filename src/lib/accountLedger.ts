@@ -1,3 +1,5 @@
+import { endOfMonth, isAfter, startOfDay } from "date-fns";
+
 import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
@@ -167,6 +169,36 @@ export function buildAccountTxns(args: {
   }
 
   return txns.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+function parseTxnCalendarDay(raw: string): Date | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const head = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (head) {
+    const y = Number(head[1]);
+    const m = Number(head[2]) - 1;
+    const d = Number(head[3]);
+    const x = new Date(y, m, d, 0, 0, 0, 0).getTime();
+    if (Number.isNaN(x)) return null;
+    return new Date(y, m, d, 0, 0, 0, 0);
+  }
+  const t = new Date(s).getTime();
+  if (Number.isNaN(t)) return null;
+  return startOfDay(new Date(s));
+}
+
+/** Sum of ledger lines for transactions on or before the last calendar day of `monthStart`'s month. */
+export function accountBalanceThroughMonth(txns: AccountTxn[], monthStart: Date): number {
+  const periodEnd = endOfMonth(monthStart);
+  let sum = 0;
+  for (const t of txns) {
+    const day = parseTxnCalendarDay(String(t.date ?? ""));
+    if (!day) continue;
+    if (isAfter(startOfDay(day), periodEnd)) continue;
+    sum += t.amount;
+  }
+  return sum;
 }
 
 export function accountBalance(txns: AccountTxn[]): number {
