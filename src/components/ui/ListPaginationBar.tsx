@@ -23,18 +23,18 @@ export function ListPaginationBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-2 border-t border-border px-4 py-3 md:flex-row md:items-center md:justify-between",
         className,
       )}
     >
-      <p className="text-sm text-muted-foreground">
+      <p className="min-w-0 text-sm text-muted-foreground">
         Showing{" "}
         <span className="font-medium text-foreground">
           {rangeFrom}–{rangeTo}
         </span>{" "}
         of {totalCount.toLocaleString()}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 md:justify-end">
         <Button
           type="button"
           variant="outline"
@@ -44,7 +44,7 @@ export function ListPaginationBar({
         >
           Previous
         </Button>
-        <span className="min-w-28 text-center text-sm tabular-nums text-muted-foreground">
+        <span className="text-center text-sm tabular-nums text-muted-foreground">
           Page {page} of {totalPages}
         </span>
         <Button
