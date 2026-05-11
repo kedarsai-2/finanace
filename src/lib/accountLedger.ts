@@ -49,30 +49,6 @@ export function paymentBelongsToAccount(
 }
 
 /**
- * Sum of customer **in** payment allocation amounts on this account toward invoices whose ids
- * are in `invoiceIdsInMonth` (e.g. invoices dated in the dashboard month). Uses allocation rows,
- * not payment date—so it aligns with “sales this month” when receipts are recorded.
- */
-export function accountCollectionsForInvoiceIds(
-  account: Account,
-  payments: Payment[],
-  invoiceIdsInMonth: Set<string>,
-  accountsById: Record<string, Account>,
-): number {
-  let sum = 0;
-  for (const p of payments) {
-    if (p.direction !== "in") continue;
-    if (!paymentBelongsToAccount(p, account, accountsById)) continue;
-    const attributed = p.allocations
-      .filter((a) => invoiceIdsInMonth.has(a.docId))
-      .reduce((s, a) => s + Math.max(0, Number(a.amount ?? 0)), 0);
-    if (!(attributed > 0)) continue;
-    sum += Math.min(attributed, Math.max(0, p.amount));
-  }
-  return sum;
-}
-
-/**
  * Compute live transactions for an account from payments / transfers / expenses.
  * Sorted oldest → newest. Includes a synthetic "opening" entry.
  */
