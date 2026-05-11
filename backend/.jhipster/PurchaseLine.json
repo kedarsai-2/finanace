@@ -14,8 +14,9 @@
     {
       "fieldName": "qty",
       "fieldType": "BigDecimal",
-      "fieldValidateRules": ["required", "min"],
-      "fieldValidateRulesMin": "0"
+      "fieldValidateRules": ["required", "min", "max"],
+      "fieldValidateRulesMin": "0",
+      "fieldValidateRulesMax": "1000"
     },
     {
       "fieldName": "unit",

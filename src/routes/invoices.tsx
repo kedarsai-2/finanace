@@ -76,6 +76,7 @@ import {
 } from "@/lib/expensePurchaseImportMapping";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
+import { toStrId } from "@/lib/dto";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -199,18 +200,35 @@ function InvoicesPage() {
     for (const inv of invoices) {
       invoiceIdByNumber.set(inv.number.trim().toLowerCase(), inv.id);
     }
+    const resolveInvoiceId = (alloc: {
+      docId?: string | number | null;
+      docNumber?: string | null;
+    }): string => {
+      const raw = alloc.docId;
+      const docIdStr =
+        raw != null && String(raw).trim() !== "" ? toStrId(raw).trim() : "";
+      if (docIdStr) {
+        const hit = invoices.find((i) => i.id === docIdStr);
+        if (hit) return hit.id;
+      }
+      const docNum = (alloc.docNumber ?? "").trim().toLowerCase();
+      return (docNum && invoiceIdByNumber.get(docNum)) || "";
+    };
     for (const payment of payments) {
       if (payment.direction !== "in") continue;
       for (const alloc of payment.allocations ?? []) {
-        const resolvedInvoiceId =
-          alloc.docId || invoiceIdByNumber.get((alloc.docNumber ?? "").trim().toLowerCase()) || "";
+        const resolvedInvoiceId = resolveInvoiceId(alloc);
         if (!resolvedInvoiceId) continue;
         const current = map.get(resolvedInvoiceId) ?? new Set<string>();
         current.add(PAYMENT_MODE_LABEL[payment.mode]);
         map.set(resolvedInvoiceId, current);
       }
       if ((payment.allocations ?? []).length === 0 && payment.reference) {
-        const fallbackInvoiceId = invoiceIdByNumber.get(payment.reference.trim().toLowerCase());
+        const refRaw = payment.reference.trim();
+        const ref = refRaw.toLowerCase();
+        const fallbackInvoiceId =
+          invoiceIdByNumber.get(ref) ??
+          invoices.find((i) => i.id === toStrId(refRaw) || i.id === refRaw)?.id;
         if (!fallbackInvoiceId) continue;
         const current = map.get(fallbackInvoiceId) ?? new Set<string>();
         current.add(PAYMENT_MODE_LABEL[payment.mode]);
@@ -919,6 +937,37 @@ function DatePill({
   );
 }
 
+function summarizePaymentBreakupJson(raw: string | null | undefined): string | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  try {
+    const parsed = JSON.parse(s) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const entries = Object.entries(parsed as Record<string, unknown>).filter(([, v]) => {
+      if (typeof v === "number") return v > 0;
+      if (typeof v === "string") return Number(v) > 0;
+      return false;
+    });
+    if (entries.length === 0) return null;
+    if (entries.length === 1) return entries[0]![0];
+    return entries.map(([k]) => k).join(" · ");
+  } catch {
+    return null;
+  }
+}
+
+function formatInvoiceCardPaymentTypes(
+  inv: Invoice,
+  modesFromPayments: Set<string> | undefined,
+): string {
+  if (modesFromPayments && modesFromPayments.size > 0) {
+    return modesFromPayments.size === 1 ? Array.from(modesFromPayments)[0]! : "Mixed";
+  }
+  const pt = inv.paymentType?.trim();
+  if (pt) return pt;
+  return summarizePaymentBreakupJson(inv.paymentBreakupJson) ?? "Not set";
+}
+
 function InvoicesTable({
   invoices,
   currency,
@@ -965,12 +1014,7 @@ function InvoicesTable({
           const pay = paymentStatusOf(inv);
           const cancelled = inv.status === "cancelled";
           const modes = paymentTypeByInvoiceId.get(inv.id);
-          const paymentType =
-            !modes || modes.size === 0
-              ? "Not set"
-              : modes.size === 1
-                ? Array.from(modes)[0]
-                : "Mixed";
+          const paymentType = formatInvoiceCardPaymentTypes(inv, modes);
           return (
             <li
               key={inv.id}

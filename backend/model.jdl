@@ -132,8 +132,8 @@ entity Item {
   active Boolean required
   deleted Boolean
   description String maxlength(2000)
-  openingStock BigDecimal min(0)
-  reorderLevel BigDecimal min(0)
+  openingStock BigDecimal min(0) max(1000)
+  reorderLevel BigDecimal min(0) max(1000)
   createdAt Instant required
   updatedAt Instant
 }
@@ -217,7 +217,7 @@ entity Purchase {
 
 entity PurchaseLine {
   name String required maxlength(200)
-  qty BigDecimal required min(0)
+  qty BigDecimal required min(0) max(1000)
   unit String required maxlength(20)
   rate BigDecimal required min(0)
   discountKind DiscountKind required

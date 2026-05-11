@@ -163,7 +163,13 @@ export function usePayments(businessId?: string | null) {
       const pid = toStrId(a.payment?.id);
       if (!pid) continue;
       const cur = allocByPayment.get(pid) ?? [];
-      cur.push({ docId: a.docId, docNumber: a.docNumber, amount: Number(a.amount ?? 0) });
+      const docIdNorm =
+        a.docId != null && String(a.docId).trim() !== "" ? toStrId(a.docId).trim() : "";
+      cur.push({
+        docId: docIdNorm,
+        docNumber: a.docNumber != null ? String(a.docNumber) : "",
+        amount: Number(a.amount ?? 0),
+      });
       allocByPayment.set(pid, cur);
     }
 

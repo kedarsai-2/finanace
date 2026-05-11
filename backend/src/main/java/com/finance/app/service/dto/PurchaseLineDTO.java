@@ -20,6 +20,7 @@ public class PurchaseLineDTO implements Serializable {
 
     @NotNull
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     private BigDecimal qty;
 
     @NotNull

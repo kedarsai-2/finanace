@@ -35,6 +35,7 @@ public class PurchaseLine implements Serializable {
 
     @NotNull
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     @Column(name = "qty", precision = 21, scale = 2, nullable = false)
     private BigDecimal qty;
 

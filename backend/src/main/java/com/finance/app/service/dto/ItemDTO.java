@@ -49,9 +49,11 @@ public class ItemDTO implements Serializable {
     private String description;
 
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     private BigDecimal openingStock;
 
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     private BigDecimal reorderLevel;
 
     private Instant createdAt;

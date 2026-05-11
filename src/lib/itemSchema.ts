@@ -14,8 +14,8 @@ export const itemFormSchema = z.object({
     .number()
     .refine((v) => (TAX_RATES as readonly number[]).includes(v), "Select a valid tax rate"),
   unit: z.enum(ITEM_UNITS),
-  openingStock: z.number().min(0).max(500, "Opening stock cannot exceed 500").optional(),
-  reorderLevel: z.number().min(0).max(500, "Reorder level cannot exceed 500").optional(),
+  openingStock: z.number().min(0).max(1000, "Opening stock cannot exceed 1000").optional(),
+  reorderLevel: z.number().min(0).max(1000, "Reorder level cannot exceed 1000").optional(),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   active: z.boolean(),
 });

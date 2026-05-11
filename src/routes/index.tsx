@@ -50,7 +50,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
-import { paymentBalanceImpact } from "@/lib/accountLedger";
+import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -87,6 +87,17 @@ function parseDashDate(raw: string): Date | null {
   return Number.isNaN(t.getTime()) ? null : t;
 }
 
+/** First calendar day of `yyyy-MM` in local time (must not use `new Date("yyyy-MM-dd")` — that is UTC). */
+function parseYearMonthFirstDay(ym: string): Date | null {
+  const m = String(ym ?? "").trim().match(/^(\d{4})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  if (!Number.isFinite(y) || mo < 0 || mo > 11) return null;
+  const dt = new Date(y, mo, 1);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 function DashboardPage() {
   const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
@@ -110,7 +121,10 @@ function DashboardPage() {
       }),
     [],
   );
-  const monthStart = useMemo(() => startOfMonth(new Date(`${selectedMonth}-01`)), [selectedMonth]);
+  const monthStart = useMemo(
+    () => startOfMonth(parseYearMonthFirstDay(selectedMonth) ?? new Date()),
+    [selectedMonth],
+  );
   const inSelectedMonth = (value: string) => {
     const d = parseDashDate(value);
     return d != null && isSameMonth(d, monthStart);
@@ -180,37 +194,27 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
+  /** Same scope as Cash / Bank Accounts pages: full ledgers, not the dashboard month filter. */
+  const accountsForBalances = useMemo(() => {
+    if (!scopedBusinessId) return accounts;
+    return accounts.filter((a) => a.businessId === scopedBusinessId);
+  }, [accounts, scopedBusinessId]);
+
   const accountBalances = useMemo(() => {
-    // Dashboard-only fast path: avoid building/sorting full ledgers per account.
-    const paySum = new Map<string, number>();
-    for (const p of monthPayments) {
-      if (!p.accountId) continue;
-      const delta = paymentBalanceImpact(p);
-      paySum.set(p.accountId, (paySum.get(p.accountId) ?? 0) + delta);
-    }
-
-    const trSum = new Map<string, number>();
-    for (const t of transfers) {
-      trSum.set(t.fromAccountId, (trSum.get(t.fromAccountId) ?? 0) - t.amount);
-      trSum.set(t.toAccountId, (trSum.get(t.toAccountId) ?? 0) + t.amount);
-    }
-
-    const expSum = new Map<string, number>();
-    for (const e of monthExpenses) {
-      if (!e.accountId) continue;
-      expSum.set(e.accountId, (expSum.get(e.accountId) ?? 0) - e.amount);
-    }
-
+    const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
     let cash = 0;
     let bank = 0;
     let cashCount = 0;
     let bankCount = 0;
-    for (const a of accounts) {
-      const bal =
-        a.openingBalance +
-        (paySum.get(a.id) ?? 0) +
-        (trSum.get(a.id) ?? 0) +
-        (expSum.get(a.id) ?? 0);
+    for (const a of accountsForBalances) {
+      const txns = buildAccountTxns({
+        account: a,
+        payments,
+        transfers,
+        expenses,
+        accountsById,
+      });
+      const bal = accountBalance(txns);
       if (a.type === "cash") {
         cash += bal;
         cashCount += 1;
@@ -220,7 +224,7 @@ function DashboardPage() {
       }
     }
     return { cash, bank, cashCount, bankCount };
-  }, [accounts, monthPayments, transfers, monthExpenses]);
+  }, [accountsForBalances, payments, transfers, expenses]);
 
   // Trend uses all-time rows for the rolling window — not the dashboard month filter.
   const trendData = useMemo(
@@ -468,6 +472,7 @@ function DashboardPage() {
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
+          amountToneFromSign
           icon={<Wallet className="h-4 w-4" />}
         />
         <BalanceCard
@@ -477,6 +482,7 @@ function DashboardPage() {
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"
+          amountToneFromSign
           icon={<CreditCard className="h-4 w-4" />}
         />
       </section>
@@ -642,6 +648,7 @@ function BalanceCard({
   currency,
   tone,
   icon,
+  amountToneFromSign,
 }: {
   to: string;
   label: string;
@@ -650,6 +657,8 @@ function BalanceCard({
   currency: string;
   tone: "primary" | "success" | "destructive";
   icon: React.ReactNode;
+  /** When set, balance text is green when non-negative, red when negative. */
+  amountToneFromSign?: boolean;
 }) {
   const toneCls = {
     primary: "bg-primary/10 text-primary",
@@ -670,7 +679,14 @@ function BalanceCard({
           {icon}
         </span>
       </div>
-      <p className="mt-3 text-3xl font-bold tabular-nums">{formatCurrency(amount, currency)}</p>
+      <p
+        className={cn(
+          "mt-3 text-3xl font-bold tabular-nums",
+          amountToneFromSign && (amount >= 0 ? "text-success" : "text-destructive"),
+        )}
+      >
+        {formatCurrency(amount, currency)}
+      </p>
     </Link>
   );
 }

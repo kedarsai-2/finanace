@@ -39,12 +39,29 @@ type ExpenseDTO = {
   account?: { id: number; name?: string | null } | null;
 };
 
+/** Calendar date for lists/dashboards: keep plain yyyy-MM-dd; map Instants to local calendar day. */
+function normalizeExpenseDateInput(raw: unknown): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return s;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return s.slice(0, 10);
+  const d = new Date(t);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${day}`;
+}
+
 function dtoToExpense(dto: ExpenseDTO): Expense {
   const bizId = dto.business?.id;
   const partyId = dto.party?.id;
   const accountId = dto.account?.id;
-  const mode =
-    dto.mode === "BANK" || dto.mode === "UPI" ? "bank" : dto.mode === "CASH" ? "cash" : undefined;
+  const rawMode = String(dto.mode ?? "").toUpperCase();
+  let mode: Expense["mode"] =
+    rawMode === "BANK" || rawMode === "UPI" ? "bank" : rawMode === "CASH" ? "cash" : undefined;
+  // Cheque/bank expenses always carry an account; older rows may have null mode after import.
+  if (!mode && accountId != null) mode = "bank";
   const rawCategory = String(dto.category ?? "").trim();
   const norm = rawCategory.toLowerCase();
   const splitIdx = rawCategory.indexOf(":");
@@ -62,7 +79,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
   return {
     id: toStrId(dto.id),
     businessId: bizId != null ? String(bizId) : "",
-    date: dto.date,
+    date: normalizeExpenseDateInput(dto.date),
     amount: Number(dto.amount ?? 0),
     type,
     category,
@@ -95,7 +112,8 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
 }
 
 function expenseToDto(e: Expense): ExpenseDTO {
-  const mode = e.mode === "bank" ? "BANK" : e.mode === "cash" ? "CASH" : null;
+  const mode =
+    e.mode === "bank" || e.mode === "cheque" ? "BANK" : e.mode === "cash" ? "CASH" : null;
   return {
     id: toNumId(e.id) ?? undefined,
     date: e.date,
@@ -168,8 +186,8 @@ export function useExpenses(businessId?: string | null) {
       try {
         const list = await apiFetch<ExpenseDTO[]>(
           businessId && !isNaN(biz)
-            ? `/api/expenses?businessId.equals=${biz}&size=300&sort=date,desc`
-            : `/api/expenses?size=1000&sort=date,desc`,
+            ? `/api/expenses?businessId.equals=${biz}&size=2000&sort=date,desc`
+            : `/api/expenses?size=2500&sort=date,desc`,
         );
         if (cancelled) return;
         setExpenses(list.filter((dto) => !dto.deleted).map(dtoToExpense));

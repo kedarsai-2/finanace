@@ -330,6 +330,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     for (const l of lines) {
       if (!l.name.trim()) return "Each line needs an item name";
       if (!(l.qty > 0)) return `Quantity must be greater than 0 for ${l.name}`;
+      if (l.qty > 1000) return `Quantity cannot exceed 1000 for ${l.name}`;
       if (l.rate < 0) return `Price cannot be negative for ${l.name}`;
     }
     if (capturedAmount - 0.001 > effectiveTotal) {
@@ -780,6 +781,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                         <Input
                           type="number"
                           min={0}
+                          max={1000}
                           step="0.01"
                           value={line.qty}
                           onChange={(e) => updateLine(line.id, { qty: Number(e.target.value) })}

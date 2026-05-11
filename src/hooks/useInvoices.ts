@@ -485,14 +485,10 @@ export function useInvoices(businessId?: string | null) {
 
   const refresh = useCallback(async () => {
     if (!USE_BACKEND) return;
-    if (!businessId) {
-      setInvoices([]);
-      setHydrated(true);
-      return;
-    }
-    const list = await apiFetch<InvoiceDTO[]>(
-      `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`,
-    );
+    const query = businessId
+      ? `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`
+      : `/api/invoices?size=500&sort=id,desc`;
+    const list = await apiFetch<InvoiceDTO[]>(query);
     setInvoices(list.filter((dto) => !dto.deleted).map(dtoToInvoice));
     setHydrated(true);
   }, [businessId]);

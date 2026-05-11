@@ -72,10 +72,12 @@ public class Item implements Serializable {
     private String description;
 
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     @Column(name = "opening_stock", precision = 21, scale = 2)
     private BigDecimal openingStock;
 
     @DecimalMin(value = "0")
+    @DecimalMax(value = "1000")
     @Column(name = "reorder_level", precision = 21, scale = 2)
     private BigDecimal reorderLevel;
 
