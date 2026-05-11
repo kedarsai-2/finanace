@@ -15,7 +15,7 @@ public class InvoiceLineDTO implements Serializable {
     private Long id;
 
     @NotNull
-    @Size(max = 200)
+    @Size(min = 1, max = 500)
     private String name;
 
     @Size(max = 120)

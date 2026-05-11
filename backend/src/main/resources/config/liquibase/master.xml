@@ -55,4 +55,5 @@
     <include file="config/liquibase/changelog/20260509184000_add_import_fields_for_sales.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260509185500_make_party_mobile_optional.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260511120000_expand_item_name_length.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260511123000_expand_invoice_purchase_line_name_length.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

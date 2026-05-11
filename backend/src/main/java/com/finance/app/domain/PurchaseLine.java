@@ -29,8 +29,8 @@ public class PurchaseLine implements Serializable {
     private Long id;
 
     @NotNull
-    @Size(max = 200)
-    @Column(name = "name", length = 200, nullable = false)
+    @Size(min = 1, max = 500)
+    @Column(name = "name", length = 500, nullable = false)
     private String name;
 
     @NotNull

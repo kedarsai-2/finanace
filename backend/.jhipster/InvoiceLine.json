@@ -9,7 +9,7 @@
       "fieldName": "name",
       "fieldType": "String",
       "fieldValidateRules": ["required", "maxlength"],
-      "fieldValidateRulesMaxlength": "200"
+      "fieldValidateRulesMaxlength": "500"
     },
     {
       "fieldName": "qty",
