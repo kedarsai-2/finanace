@@ -356,7 +356,7 @@ function ExpensesPage() {
         createdItems = newItemsByKey.size;
       }
 
-      const localDupKeys = new Set(expenseKeys);
+      const dbDupKeys = new Set(expenseKeys);
       let expSeq = 0;
 
       for (const row of rows) {
@@ -402,10 +402,12 @@ function ExpensesPage() {
         const baseOnly = `${importedDateKey}|${dedupePartyKey}|${dedupeRefKey}|${Number(amount).toFixed(2)}`;
         const richNoPay = `${baseOnly}|${catFrag}||${notesFrag}`;
         const fullKey = `${baseOnly}|${catFrag}|${payFrag}|${notesFrag}`;
+        // Only skip rows already present in books — Vyapar often exports several same-day lines
+        // (e.g. multiple ₹100 cash allowances) that share the same sparse key but are distinct.
         const isDup =
-          localDupKeys.has(fullKey) ||
-          (!payFrag && localDupKeys.has(richNoPay)) ||
-          ((dedupePartyKey || dedupeRefKey) && localDupKeys.has(baseOnly));
+          dbDupKeys.has(fullKey) ||
+          (!payFrag && dbDupKeys.has(richNoPay)) ||
+          ((dedupePartyKey || dedupeRefKey) && dbDupKeys.has(baseOnly));
         if (isDup) {
           duplicates += 1;
           continue;
@@ -461,9 +463,6 @@ function ExpensesPage() {
           continue;
         }
 
-        localDupKeys.add(fullKey);
-        if (!payFrag) localDupKeys.add(richNoPay);
-        if (dedupePartyKey || dedupeRefKey) localDupKeys.add(baseOnly);
         created += 1;
       }
 
