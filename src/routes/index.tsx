@@ -54,6 +54,8 @@ import {
   accountAllocatedOutsidePaymentMonth,
   accountNetChangeInMonth,
   buildAccountTxns,
+  expenseExcludedFromLedger,
+  paymentExcludedFromLedger,
 } from "@/lib/accountLedger";
 
 export const Route = createFileRoute("/")({
@@ -177,7 +179,7 @@ function DashboardPage() {
     [payments, inSelectedMonth],
   );
   const monthPaymentsForLedger = useMemo(
-    () => monthPayments.filter((p) => !p.excludeFromLedger),
+    () => monthPayments.filter((p) => !paymentExcludedFromLedger(p)),
     [monthPayments],
   );
 
@@ -314,7 +316,7 @@ function DashboardPage() {
       });
     }
     for (const p of monthPayments) {
-      const historyOnly = Boolean(p.excludeFromLedger);
+      const historyOnly = paymentExcludedFromLedger(p);
       const docLine = p.allocations.map((a) => a.docNumber).join(", ") || p.reference || "—";
       items.push({
         id: `pay_${p.id}`,
@@ -329,7 +331,7 @@ function DashboardPage() {
       });
     }
     for (const e of monthExpenses) {
-      const historyOnly = Boolean(e.excludeFromLedger);
+      const historyOnly = expenseExcludedFromLedger(e);
       const baseSub = e.notes || e.reference || "Expense";
       items.push({
         id: `exp_${e.id}`,

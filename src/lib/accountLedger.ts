@@ -4,9 +4,24 @@ import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
-/** Ledger balance delta from this payment. Bulk-import rows use {@link Payment.excludeFromLedger}. */
+/** True when this payment must not change bank/cash ledger (bulk import or legacy import marker). */
+export function paymentExcludedFromLedger(
+  p: Pick<Payment, "excludeFromLedger" | "notes">,
+): boolean {
+  if (p.excludeFromLedger) return true;
+  return String(p.notes ?? "")
+    .toLowerCase()
+    .includes("excel import");
+}
+
+/** True when this expense must not change bank/cash ledger (bulk import flag). */
+export function expenseExcludedFromLedger(e: Pick<Expense, "excludeFromLedger">): boolean {
+  return Boolean(e.excludeFromLedger);
+}
+
+/** Ledger balance delta from this payment. Bulk-import rows do not move bank/cash. */
 export function paymentBalanceImpact(p: Payment): number {
-  if (p.excludeFromLedger) return 0;
+  if (paymentExcludedFromLedger(p)) return 0;
   return p.direction === "in" ? p.amount : -p.amount;
 }
 
@@ -115,7 +130,7 @@ export function buildAccountTxns(args: {
     const allocLink = singleAlloc ? docRefLink : undefined;
     const paymentsListLink = `/payments?account=${encodeURIComponent(account.id)}`;
     const ledgerAmt = paymentBalanceImpact(p);
-    const memo = Boolean(p.excludeFromLedger);
+    const memo = paymentExcludedFromLedger(p);
     const displayAmt = memo ? paymentDisplaySignedAmount(p) : undefined;
     const baseNote = isIn ? "Payment received" : "Payment made";
     txns.push({
@@ -192,7 +207,7 @@ export function buildAccountTxns(args: {
         primaryBank?.id === account.id);
     const belongsToExpenseAccount = e.accountId === account.id || inferredByExpenseMode;
     if (!belongsToExpenseAccount) continue;
-    const memo = Boolean(e.excludeFromLedger);
+    const memo = expenseExcludedFromLedger(e);
     const ledgerAmt = memo ? 0 : -amt;
     const displayAmt = memo ? -amt : undefined;
     const baseNote = e.notes || "Expense";
@@ -267,7 +282,7 @@ export function accountHasNonOpeningActivityInMonth(txns: AccountTxn[], monthSta
 
 /**
  * Allocations on this account toward docs in `docIds` when the **payment date** is **outside**
- * `monthStart`'s month. Skips {@link Payment.excludeFromLedger} (bulk import) payments.
+ * `monthStart`'s month. Skips bulk-import and legacy import-marker payments.
  */
 export function accountAllocatedOutsidePaymentMonth(
   account: Account,
@@ -282,7 +297,7 @@ export function accountAllocatedOutsidePaymentMonth(
   let sum = 0;
   for (const p of payments) {
     if (p.direction !== direction) continue;
-    if (p.excludeFromLedger) continue;
+    if (paymentExcludedFromLedger(p)) continue;
     if (!paymentBelongsToAccount(p, account, accountsById)) continue;
     const payDay = parseTxnCalendarDay(String(p.date ?? ""));
     if (!payDay) continue;

@@ -263,6 +263,7 @@ export function usePayments(businessId?: string | null) {
             proofDataUrl: merged.proofDataUrl,
             proofName: merged.proofName,
             allocations: merged.allocations,
+            excludeFromLedger: merged.excludeFromLedger,
           },
           businessId,
         );
