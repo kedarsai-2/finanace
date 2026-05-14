@@ -357,7 +357,6 @@ function ExpensesPage() {
       }
 
       const localDupKeys = new Set(expenseKeys);
-      const preparedExpenses: Expense[] = [];
       let expSeq = 0;
 
       for (const row of rows) {
@@ -426,44 +425,47 @@ function ExpensesPage() {
           continue;
         }
 
+        const baseNotes = (mapped.notes ?? "").trim();
+        try {
+          await add({
+            id: `exp_imp_${expSeq++}_${Math.random().toString(36).slice(2, 11)}`,
+            businessId: activeId,
+            accountId: importedAccountId,
+            date: importedDate,
+            amount,
+            type: "indirect",
+            category,
+            partyId: party?.id,
+            mode: payMode,
+            reference: mapped.reference,
+            notes: baseNotes ? `${baseNotes} · Excel import` : "Excel import",
+            receivedPaidAmount: mapped.receivedPaidAmount,
+            balanceDue: mapped.balanceDue,
+            orderNo: itemMapped.orderNo,
+            itemName: itemMapped.itemName,
+            itemDescription: itemMapped.itemDescription,
+            hsnSac: itemMapped.hsnSac,
+            quantity: itemMapped.quantity,
+            unitPrice: itemMapped.unitPrice,
+            discountPercent: itemMapped.discountPercent,
+            discountAmount: itemMapped.discountAmount,
+            taxPercent: itemMapped.taxPercent,
+            taxAmount: itemMapped.taxAmount,
+            lineAmount: itemMapped.lineAmount,
+            createdAt: new Date().toISOString(),
+            excludeFromLedger: true,
+          });
+        } catch (rowErr) {
+          console.error(rowErr);
+          skipped += 1;
+          continue;
+        }
+
         localDupKeys.add(fullKey);
         if (!payFrag) localDupKeys.add(richNoPay);
         if (dedupePartyKey || dedupeRefKey) localDupKeys.add(baseOnly);
-
-        const baseNotes = (mapped.notes ?? "").trim();
-        preparedExpenses.push({
-          id: `exp_imp_${expSeq++}_${Math.random().toString(36).slice(2, 11)}`,
-          businessId: activeId,
-          accountId: importedAccountId,
-          date: importedDate,
-          amount,
-          type: "indirect",
-          category,
-          partyId: party?.id,
-          mode: payMode,
-          reference: mapped.reference,
-          notes: baseNotes ? `${baseNotes} · Excel import` : "Excel import",
-          receivedPaidAmount: mapped.receivedPaidAmount,
-          balanceDue: mapped.balanceDue,
-          orderNo: itemMapped.orderNo,
-          itemName: itemMapped.itemName,
-          itemDescription: itemMapped.itemDescription,
-          hsnSac: itemMapped.hsnSac,
-          quantity: itemMapped.quantity,
-          unitPrice: itemMapped.unitPrice,
-          discountPercent: itemMapped.discountPercent,
-          discountAmount: itemMapped.discountAmount,
-          taxPercent: itemMapped.taxPercent,
-          taxAmount: itemMapped.taxAmount,
-          lineAmount: itemMapped.lineAmount,
-          createdAt: new Date().toISOString(),
-          excludeFromLedger: true,
-        });
+        created += 1;
       }
-
-      await asyncPool(BULK_IO_CONCURRENCY, preparedExpenses, (e) => add(e));
-
-      created = preparedExpenses.length;
 
       if (created === 0) toast.error("No valid rows imported");
       else
