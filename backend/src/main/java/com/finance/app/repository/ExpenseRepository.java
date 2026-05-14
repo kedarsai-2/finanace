@@ -44,7 +44,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
     Optional<Expense> findOneWithToOneRelationships(@Param("id") Long id);
 
     @Query(
-        "select coalesce(sum(expense.amount), 0) from Expense expense where expense.account.id = :accountId and (expense.deleted is null or expense.deleted = false)"
+        "select coalesce(sum(expense.amount), 0) from Expense expense where expense.account.id = :accountId and (expense.deleted is null or expense.deleted = false) and (expense.excludeFromLedger is null or expense.excludeFromLedger = false)"
     )
     BigDecimal sumAmountByAccountId(@Param("accountId") Long accountId);
 }

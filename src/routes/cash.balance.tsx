@@ -26,7 +26,8 @@ import { formatCurrency } from "@/hooks/useParties";
 import { apiFetch } from "@/lib/api";
 import { USE_BACKEND } from "@/lib/flags";
 import { buildAccountTxns } from "@/lib/accountLedger";
-import type { AccountTxnKind } from "@/types/account";
+import { cn } from "@/lib/utils";
+import { accountTxnDisplayFlow, type AccountTxnKind } from "@/types/account";
 
 export const Route = createFileRoute("/cash/balance")({
   head: () => ({
@@ -340,33 +341,39 @@ function CashBalancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {balTxnPg.pageItems.map((t) => (
-                    <tr key={`${t.accountId}-${t.id}`} className="hover:bg-muted/30">
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {format(new Date(t.date), "dd MMM yyyy")}
-                      </td>
-                      <td className="px-4 py-3">{txnTypeLabel(t)}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{t.accountName}</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {t.refLink ? (
-                          <a href={t.refLink} className="text-primary hover:underline">
-                            {t.refNo}
-                          </a>
-                        ) : (
-                          t.refNo
-                        )}
-                        {t.note && (
-                          <span className="ml-2 text-xs text-muted-foreground">{t.note}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                        {t.amount < 0 ? formatCurrency(t.amount, currency) : ""}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                        {t.amount > 0 ? formatCurrency(t.amount, currency) : ""}
-                      </td>
-                    </tr>
-                  ))}
+                  {balTxnPg.pageItems.map((t) => {
+                    const flow = accountTxnDisplayFlow(t);
+                    return (
+                      <tr
+                        key={`${t.accountId}-${t.id}`}
+                        className={cn("hover:bg-muted/30", t.ledgerMemo && "bg-muted/15")}
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {format(new Date(t.date), "dd MMM yyyy")}
+                        </td>
+                        <td className="px-4 py-3">{txnTypeLabel(t)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{t.accountName}</td>
+                        <td className="px-4 py-3 font-mono text-xs">
+                          {t.refLink ? (
+                            <a href={t.refLink} className="text-primary hover:underline">
+                              {t.refNo}
+                            </a>
+                          ) : (
+                            t.refNo
+                          )}
+                          {t.note && (
+                            <span className="ml-2 text-xs text-muted-foreground">{t.note}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                          {flow < 0 ? formatCurrency(flow, currency) : ""}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {flow > 0 ? formatCurrency(flow, currency) : ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

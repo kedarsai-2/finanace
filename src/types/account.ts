@@ -41,10 +41,25 @@ export interface AccountTxn {
   kind: AccountTxnKind;
   /** Positive = credit (money in). Negative = debit (money out). */
   amount: number;
+  /**
+   * When set, debit/credit columns use this for display while {@link amount} drives balance.
+   * Used for history-only (import) rows that must not move the running balance.
+   */
+  displayAmount?: number;
+  /** True when this row is shown for audit/history but excluded from balance. */
+  ledgerMemo?: boolean;
   refNo?: string;
   refLink?: string;
   note?: string;
   partyName?: string;
+}
+
+/** Flow used in UI debit/credit columns; falls back to ledger {@link AccountTxn.amount}. */
+export function accountTxnDisplayFlow(t: Pick<AccountTxn, "amount" | "displayAmount">): number {
+  if (t.displayAmount !== undefined && !Number.isNaN(Number(t.displayAmount))) {
+    return Number(t.displayAmount);
+  }
+  return t.amount;
 }
 
 export interface Transfer {

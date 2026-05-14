@@ -63,11 +63,14 @@ public class Payment implements Serializable {
     @Column(name = "proof_data_url")
     private String proofDataUrl;
 
-    @Size(max = 255)
-    @Column(name = "proof_name", length = 255)
-    private String proofName;
+  @Size(max = 255)
+  @Column(name = "proof_name", length = 255)
+  private String proofName;
 
-    @PrePersist
+  @Column(name = "exclude_from_ledger")
+  private Boolean excludeFromLedger;
+
+  @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
         if (updatedAt == null) updatedAt = createdAt;
@@ -313,6 +316,19 @@ public class Payment implements Serializable {
 
     public Payment account(Account account) {
         this.setAccount(account);
+        return this;
+    }
+
+    public Boolean getExcludeFromLedger() {
+        return this.excludeFromLedger;
+    }
+
+    public void setExcludeFromLedger(Boolean excludeFromLedger) {
+        this.excludeFromLedger = excludeFromLedger;
+    }
+
+    public Payment excludeFromLedger(Boolean excludeFromLedger) {
+        this.setExcludeFromLedger(excludeFromLedger);
         return this;
     }
 

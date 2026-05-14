@@ -6,6 +6,12 @@ import type { Expense } from "@/types/expense";
 
 /** Ledger balance delta from this payment (all settled payments move cash/bank). */
 export function paymentBalanceImpact(p: Payment): number {
+  if (p.excludeFromLedger) return 0;
+  return p.direction === "in" ? p.amount : -p.amount;
+}
+
+/** Signed amount for display when the payment is history-only. */
+export function paymentDisplaySignedAmount(p: Payment): number {
   return p.direction === "in" ? p.amount : -p.amount;
 }
 
@@ -108,17 +114,23 @@ export function buildAccountTxns(args: {
     })();
     const allocLink = singleAlloc ? docRefLink : undefined;
     const paymentsListLink = `/payments?account=${encodeURIComponent(account.id)}`;
+    const ledgerAmt = paymentBalanceImpact(p);
+    const memo = Boolean(p.excludeFromLedger);
+    const displayAmt = memo ? paymentDisplaySignedAmount(p) : undefined;
+    const baseNote = isIn ? "Payment received" : "Payment made";
     txns.push({
       id: `pay_${p.id}`,
       accountId: account.id,
       date: p.date,
       kind: isIn ? "payment-in" : "payment-out",
-      amount: paymentBalanceImpact(p),
+      amount: ledgerAmt,
+      displayAmount: displayAmt,
+      ledgerMemo: memo,
       refNo: p.allocations.map((a) => a.docNumber).join(", ") || p.reference,
       // If the payment is allocated to a single document, link directly to it.
       // Otherwise route to the payments list filtered by this account.
       refLink: allocLink ?? paymentsListLink,
-      note: isIn ? "Payment received" : "Payment made",
+      note: memo ? `${baseNote} (history only)` : baseNote,
     });
   }
 
@@ -180,14 +192,20 @@ export function buildAccountTxns(args: {
         primaryBank?.id === account.id);
     const belongsToExpenseAccount = e.accountId === account.id || inferredByExpenseMode;
     if (!belongsToExpenseAccount) continue;
+    const memo = Boolean(e.excludeFromLedger);
+    const ledgerAmt = memo ? 0 : -amt;
+    const displayAmt = memo ? -amt : undefined;
+    const baseNote = e.notes || "Expense";
     txns.push({
       id: `exp_${e.id}`,
       accountId: account.id,
       date: e.date,
       kind: "expense",
-      amount: -amt,
+      amount: ledgerAmt,
+      displayAmount: displayAmt,
+      ledgerMemo: memo,
       refNo: e.category,
-      note: e.notes || "Expense",
+      note: memo ? `${baseNote} (history only)` : baseNote,
       refLink: `/expenses/${e.id}`,
     });
   }
@@ -265,6 +283,7 @@ export function accountAllocatedOutsidePaymentMonth(
   let sum = 0;
   for (const p of payments) {
     if (p.direction !== direction) continue;
+    if (p.excludeFromLedger) continue;
     if (!paymentBelongsToAccount(p, account, accountsById)) continue;
     const payDay = parseTxnCalendarDay(String(p.date ?? ""));
     if (!payDay) continue;

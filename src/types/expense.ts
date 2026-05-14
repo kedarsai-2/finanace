@@ -54,4 +54,9 @@ export interface Expense {
   deleted?: boolean;
   createdAt: string;
   updatedAt?: string;
+  /**
+   * When true, the expense line appears on cash/bank history but does not change balances
+   * (used for spreadsheet imports that mirror external books).
+   */
+  excludeFromLedger?: boolean;
 }

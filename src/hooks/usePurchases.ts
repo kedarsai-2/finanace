@@ -472,7 +472,7 @@ export function usePurchases(businessId?: string | null) {
           before: before ? snapshot(before) : null,
           after: snapshot(p),
         });
-        return;
+        return p;
       }
 
       const before = purchasesRef.current.find((x) => x.id === p.id);
@@ -514,6 +514,7 @@ export function usePurchases(businessId?: string | null) {
         const next = exists ? prev.map((x) => (x.id === savedId ? after : x)) : [...prev, after];
         return normalizePurchases(next);
       });
+      return after;
     },
     [syncLedger],
   );

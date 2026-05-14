@@ -20,6 +20,7 @@ type PaymentDTO = {
   notes?: string | null;
   proofDataUrl?: string | null;
   proofName?: string | null;
+  excludeFromLedger?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   business?: { id: number } | null;
@@ -73,6 +74,7 @@ function dtoToPayment(dto: PaymentDTO, allocations: Payment["allocations"] = [])
     accountId: acc?.id != null ? toStrId(acc.id) : undefined,
     account: accountName,
     allocations,
+    excludeFromLedger: dto.excludeFromLedger === true,
   };
 }
 
@@ -107,6 +109,7 @@ function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
     business: businessRefFromId(businessId),
     party: toNumId(p.partyId) == null ? null : { id: toNumId(p.partyId)! },
     account: p.accountId && toNumId(p.accountId) != null ? { id: toNumId(p.accountId)! } : null,
+    excludeFromLedger: p.excludeFromLedger === true ? true : null,
   };
 }
 

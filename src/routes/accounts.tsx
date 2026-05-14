@@ -35,6 +35,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
 import {
   ACCOUNT_TYPE_LABEL,
+  accountTxnDisplayFlow,
   type Account,
   type AccountType,
   type AccountTxn,
@@ -325,33 +326,39 @@ function AccountsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {bankTxnPg.pageItems.map((r) => (
-                      <tr key={`${r.accountId}-${r.id}`} className="hover:bg-muted/30">
-                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                          {format(new Date(r.date), "dd MMM yyyy")}
-                        </td>
-                        <td className="px-4 py-3">{bankTxnTypeLabel(r)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
-                        <td className="px-4 py-3 font-mono text-xs">
-                          {r.refLink ? (
-                            <a href={r.refLink} className="text-primary hover:underline">
-                              {r.refNo}
-                            </a>
-                          ) : (
-                            r.refNo
-                          )}
-                          {r.note && (
-                            <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                          {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                          {r.amount > 0 ? formatCurrency(r.amount, currency) : ""}
-                        </td>
-                      </tr>
-                    ))}
+                    {bankTxnPg.pageItems.map((r) => {
+                      const flow = accountTxnDisplayFlow(r);
+                      return (
+                        <tr
+                          key={`${r.accountId}-${r.id}`}
+                          className={cn("hover:bg-muted/30", r.ledgerMemo && "bg-muted/15")}
+                        >
+                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                            {format(new Date(r.date), "dd MMM yyyy")}
+                          </td>
+                          <td className="px-4 py-3">{bankTxnTypeLabel(r)}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
+                          <td className="px-4 py-3 font-mono text-xs">
+                            {r.refLink ? (
+                              <a href={r.refLink} className="text-primary hover:underline">
+                                {r.refNo}
+                              </a>
+                            ) : (
+                              r.refNo
+                            )}
+                            {r.note && (
+                              <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                            {flow < 0 ? formatCurrency(flow, currency) : ""}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                            {flow > 0 ? formatCurrency(flow, currency) : ""}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <ListPaginationBar

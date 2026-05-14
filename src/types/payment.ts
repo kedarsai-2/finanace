@@ -25,6 +25,11 @@ export interface Payment {
   proofName?: string;
   /** Allocations against invoices (direction "in") or purchases (direction "out"). */
   allocations: PaymentAllocation[];
+  /**
+   * When true, the payment appears on cash/bank history but does not change balances
+   * (used for spreadsheet imports that mirror external books).
+   */
+  excludeFromLedger?: boolean;
 }
 
 export interface PaymentAllocation {

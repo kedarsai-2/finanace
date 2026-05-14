@@ -22,7 +22,7 @@ import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
 import { buildAccountTxns, accountBalance } from "@/lib/accountLedger";
-import type { AccountTxn, AccountTxnKind } from "@/types/account";
+import { accountTxnDisplayFlow, type AccountTxn, type AccountTxnKind } from "@/types/account";
 
 export const Route = createFileRoute("/cash")({
   head: () => ({
@@ -118,7 +118,10 @@ function CashPage() {
 
   const cashTxnKey = useMemo(
     () =>
-      `${cashAccounts.map((a) => a.id).sort().join(",")}|${payments.length}|${transfers.length}|${expenses.length}`,
+      `${cashAccounts
+        .map((a) => a.id)
+        .sort()
+        .join(",")}|${payments.length}|${transfers.length}|${expenses.length}`,
     [cashAccounts, payments.length, transfers.length, expenses.length],
   );
   const cashTxnPg = useListPagination(allCashTxns, cashTxnKey);
@@ -280,55 +283,61 @@ function CashPage() {
               </div>
             ) : (
               <>
-              <table className="w-full text-sm">
-                <thead className="bg-muted/20 text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Date</th>
-                    <th className="px-4 py-3 text-left">Type</th>
-                    <th className="px-4 py-3 text-left">Account</th>
-                    <th className="px-4 py-3 text-left">Reference</th>
-                    <th className="px-4 py-3 text-right">Debit</th>
-                    <th className="px-4 py-3 text-right">Credit</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {cashTxnPg.pageItems.map((r) => (
-                    <tr key={`${r.accountId}-${r.id}`} className="hover:bg-muted/30">
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {format(new Date(r.date), "dd MMM yyyy")}
-                      </td>
-                      <td className="px-4 py-3">{txnTypeLabel(r)}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {r.refLink ? (
-                          <a href={r.refLink} className="text-primary hover:underline">
-                            {r.refNo}
-                          </a>
-                        ) : (
-                          r.refNo
-                        )}
-                        {r.note && (
-                          <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                        {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                        {r.amount > 0 ? formatCurrency(r.amount, currency) : ""}
-                      </td>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/20 text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Date</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">Account</th>
+                      <th className="px-4 py-3 text-left">Reference</th>
+                      <th className="px-4 py-3 text-right">Debit</th>
+                      <th className="px-4 py-3 text-right">Credit</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <ListPaginationBar
-                page={cashTxnPg.page}
-                totalPages={cashTxnPg.totalPages}
-                totalCount={cashTxnPg.totalCount}
-                rangeFrom={cashTxnPg.rangeFrom}
-                rangeTo={cashTxnPg.rangeTo}
-                onPageChange={cashTxnPg.setPage}
-              />
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {cashTxnPg.pageItems.map((r) => {
+                      const flow = accountTxnDisplayFlow(r);
+                      return (
+                        <tr
+                          key={`${r.accountId}-${r.id}`}
+                          className={cn("hover:bg-muted/30", r.ledgerMemo && "bg-muted/15")}
+                        >
+                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                            {format(new Date(r.date), "dd MMM yyyy")}
+                          </td>
+                          <td className="px-4 py-3">{txnTypeLabel(r)}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.accountName}</td>
+                          <td className="px-4 py-3 font-mono text-xs">
+                            {r.refLink ? (
+                              <a href={r.refLink} className="text-primary hover:underline">
+                                {r.refNo}
+                              </a>
+                            ) : (
+                              r.refNo
+                            )}
+                            {r.note && (
+                              <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                            {flow < 0 ? formatCurrency(flow, currency) : ""}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                            {flow > 0 ? formatCurrency(flow, currency) : ""}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <ListPaginationBar
+                  page={cashTxnPg.page}
+                  totalPages={cashTxnPg.totalPages}
+                  totalCount={cashTxnPg.totalCount}
+                  rangeFrom={cashTxnPg.rangeFrom}
+                  rangeTo={cashTxnPg.rangeTo}
+                  onPageChange={cashTxnPg.setPage}
+                />
               </>
             )}
           </section>

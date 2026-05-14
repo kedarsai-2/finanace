@@ -32,6 +32,7 @@ type ExpenseDTO = {
   proofDataUrl?: string | null;
   proofName?: string | null;
   deleted?: boolean | null;
+  excludeFromLedger?: boolean | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   business?: { id: number } | null;
@@ -110,6 +111,7 @@ function dtoToExpense(dto: ExpenseDTO): Expense {
     updatedAt: dto.updatedAt ?? undefined,
     partyId: partyId != null ? String(partyId) : undefined,
     accountId: accountId != null ? String(accountId) : undefined,
+    excludeFromLedger: dto.excludeFromLedger === true,
   };
 }
 
@@ -140,6 +142,7 @@ function expenseToDto(e: Expense): ExpenseDTO {
     proofDataUrl: e.proofDataUrl ?? null,
     proofName: e.proofName ?? null,
     deleted: e.deleted ?? false,
+    excludeFromLedger: e.excludeFromLedger === true ? true : null,
     createdAt: e.createdAt ?? null,
     updatedAt: e.updatedAt ?? null,
     business: businessRefFromId(e.businessId),

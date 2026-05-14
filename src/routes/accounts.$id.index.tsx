@@ -38,7 +38,12 @@ import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/hooks/useParties";
-import { ACCOUNT_TYPE_LABEL, type AccountType, type AccountTxnKind } from "@/types/account";
+import {
+  ACCOUNT_TYPE_LABEL,
+  accountTxnDisplayFlow,
+  type AccountType,
+  type AccountTxnKind,
+} from "@/types/account";
 import { buildAccountTxns } from "@/lib/accountLedger";
 
 const KIND_FILTERS = ["all", "payment", "transfer", "expense"] as const;
@@ -198,15 +203,18 @@ function AccountDetailsPage() {
 
   const exportCsv = () => {
     const header = ["Date", "Type", "Reference", "Note", "Debit", "Credit", "Balance"];
-    const lines = filteredRows.map((r) => [
-      format(new Date(r.date), "yyyy-MM-dd"),
-      txnTypeLabel(r),
-      r.refNo ?? "",
-      (r.note ?? "").replace(/[",\n]/g, " "),
-      r.amount < 0 ? Math.abs(r.amount).toFixed(2) : "",
-      r.amount > 0 ? r.amount.toFixed(2) : "",
-      r.balance.toFixed(2),
-    ]);
+    const lines = filteredRows.map((r) => {
+      const flow = accountTxnDisplayFlow(r);
+      return [
+        format(new Date(r.date), "yyyy-MM-dd"),
+        txnTypeLabel(r),
+        r.refNo ?? "",
+        (r.note ?? "").replace(/[",\n]/g, " "),
+        flow < 0 ? Math.abs(flow).toFixed(2) : "",
+        flow > 0 ? flow.toFixed(2) : "",
+        r.balance.toFixed(2),
+      ];
+    });
     const csv = [header, ...lines].map((row) => row.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -356,61 +364,69 @@ function AccountDetailsPage() {
           </div>
         ) : (
           <>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-left">Reference</th>
-                <th className="px-4 py-3 text-right">Debit</th>
-                <th className="px-4 py-3 text-right">Credit</th>
-                <th className="px-4 py-3 text-right">Balance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {stmtPg.pageItems.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    {format(new Date(r.date), "dd MMM yyyy")}
-                  </td>
-                  <td className="px-4 py-3">{txnTypeLabel(r)}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {r.refLink ? (
-                      <a href={r.refLink} className="text-primary hover:underline">
-                        {r.refNo}
-                      </a>
-                    ) : (
-                      r.refNo
-                    )}
-                    {r.note && <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                    {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                    {r.amount > 0 ? formatCurrency(r.amount, currency) : ""}
-                  </td>
-                  <td
-                    className={cn(
-                      "px-4 py-3 text-right font-medium tabular-nums",
-                      r.balance < 0 ? "text-destructive" : "text-foreground",
-                    )}
-                  >
-                    {r.balance < 0 ? "-" : ""}
-                    {formatCurrency(r.balance, currency)}
-                  </td>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">Reference</th>
+                  <th className="px-4 py-3 text-right">Debit</th>
+                  <th className="px-4 py-3 text-right">Credit</th>
+                  <th className="px-4 py-3 text-right">Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <ListPaginationBar
-            page={stmtPg.page}
-            totalPages={stmtPg.totalPages}
-            totalCount={stmtPg.totalCount}
-            rangeFrom={stmtPg.rangeFrom}
-            rangeTo={stmtPg.rangeTo}
-            onPageChange={stmtPg.setPage}
-          />
+              </thead>
+              <tbody className="divide-y divide-border">
+                {stmtPg.pageItems.map((r) => {
+                  const flow = accountTxnDisplayFlow(r);
+                  return (
+                    <tr
+                      key={r.id}
+                      className={cn("hover:bg-muted/30", r.ledgerMemo && "bg-muted/15")}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {format(new Date(r.date), "dd MMM yyyy")}
+                      </td>
+                      <td className="px-4 py-3">{txnTypeLabel(r)}</td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {r.refLink ? (
+                          <a href={r.refLink} className="text-primary hover:underline">
+                            {r.refNo}
+                          </a>
+                        ) : (
+                          r.refNo
+                        )}
+                        {r.note && (
+                          <span className="ml-2 text-xs text-muted-foreground">{r.note}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                        {flow < 0 ? formatCurrency(flow, currency) : ""}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {flow > 0 ? formatCurrency(flow, currency) : ""}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right font-medium tabular-nums",
+                          r.balance < 0 ? "text-destructive" : "text-foreground",
+                        )}
+                      >
+                        {r.balance < 0 ? "-" : ""}
+                        {formatCurrency(r.balance, currency)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <ListPaginationBar
+              page={stmtPg.page}
+              totalPages={stmtPg.totalPages}
+              totalCount={stmtPg.totalCount}
+              rangeFrom={stmtPg.rangeFrom}
+              rangeTo={stmtPg.rangeTo}
+              onPageChange={stmtPg.setPage}
+            />
           </>
         )}
       </div>

@@ -176,6 +176,10 @@ function DashboardPage() {
     () => payments.filter((p) => inSelectedMonth(p.date)),
     [payments, inSelectedMonth],
   );
+  const monthPaymentsForLedger = useMemo(
+    () => monthPayments.filter((p) => !p.excludeFromLedger),
+    [monthPayments],
+  );
 
   const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
   const totalCreditNotes = monthCreditNotes.reduce((s, cn) => s + cn.total, 0);
@@ -185,11 +189,11 @@ function DashboardPage() {
   const totalPaidSuppliers = monthPurchases.reduce((s, p) => s + p.paidAmount, 0);
   const totalPayable = monthPurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
   const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const totalPaymentsPaid = monthPayments.reduce(
+  const totalPaymentsPaid = monthPaymentsForLedger.reduce(
     (s, p) => (p.direction === "out" ? s + p.amount : s),
     0,
   );
-  const totalPaymentsReceived = monthPayments.reduce(
+  const totalPaymentsReceived = monthPaymentsForLedger.reduce(
     (s, p) => (p.direction === "in" ? s + p.amount : s),
     0,
   );
@@ -294,6 +298,8 @@ function DashboardPage() {
       amount: number;
       sign: "in" | "out";
       href: string;
+      /** Shown in recent list; does not change bank/cash ledger (e.g. spreadsheet import). */
+      historyOnly?: boolean;
     };
     const items: Item[] = [];
     for (const i of monthInvoices) {
@@ -309,27 +315,33 @@ function DashboardPage() {
       });
     }
     for (const p of monthPayments) {
+      const historyOnly = Boolean(p.excludeFromLedger);
+      const docLine = p.allocations.map((a) => a.docNumber).join(", ") || p.reference || "—";
       items.push({
         id: `pay_${p.id}`,
         kind: "payment",
         date: p.date,
         title: p.direction === "in" ? "Payment received" : "Payment paid",
-        subtitle: p.allocations.map((a) => a.docNumber).join(", ") || p.reference || "—",
+        subtitle: historyOnly ? `${docLine} · History only (no bank/cash change)` : docLine,
         amount: p.amount,
         sign: p.direction === "in" ? "in" : "out",
         href: `/payments`,
+        historyOnly,
       });
     }
     for (const e of monthExpenses) {
+      const historyOnly = Boolean(e.excludeFromLedger);
+      const baseSub = e.notes || e.reference || "Expense";
       items.push({
         id: `exp_${e.id}`,
         kind: "expense",
         date: e.date,
         title: e.category,
-        subtitle: e.notes || e.reference || "Expense",
+        subtitle: historyOnly ? `${baseSub} · History only (no bank/cash change)` : baseSub,
         amount: e.amount,
         sign: "out",
         href: `/expenses/${e.id}`,
+        historyOnly,
       });
     }
     return items.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -616,7 +628,9 @@ function DashboardPage() {
                   <p
                     className={cn(
                       "text-sm font-semibold tabular-nums",
-                      r.sign === "in" ? "text-success" : "text-destructive",
+                      r.historyOnly && "text-muted-foreground",
+                      !r.historyOnly && r.sign === "in" && "text-success",
+                      !r.historyOnly && r.sign === "out" && "text-destructive",
                     )}
                   >
                     {r.sign === "in" ? "+" : "-"}

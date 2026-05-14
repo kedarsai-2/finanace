@@ -118,6 +118,9 @@ public class Expense implements Serializable {
     @Column(name = "deleted")
     private Boolean deleted;
 
+    @Column(name = "exclude_from_ledger")
+    private Boolean excludeFromLedger;
+
     @NotNull
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -452,6 +455,19 @@ public class Expense implements Serializable {
 
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public Boolean getExcludeFromLedger() {
+        return this.excludeFromLedger;
+    }
+
+    public Expense excludeFromLedger(Boolean excludeFromLedger) {
+        this.setExcludeFromLedger(excludeFromLedger);
+        return this;
+    }
+
+    public void setExcludeFromLedger(Boolean excludeFromLedger) {
+        this.excludeFromLedger = excludeFromLedger;
     }
 
     public Instant getCreatedAt() {

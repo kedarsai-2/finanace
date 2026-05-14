@@ -45,7 +45,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     Optional<Payment> findOneWithToOneRelationships(@Param("id") Long id);
 
     @Query(
-        "select coalesce(sum(case when payment.direction = :inDir then payment.amount else -payment.amount end), 0) from Payment payment where payment.account.id = :accountId"
+        "select coalesce(sum(case when payment.direction = :inDir then payment.amount else -payment.amount end), 0) from Payment payment where payment.account.id = :accountId and (payment.excludeFromLedger is null or payment.excludeFromLedger = false)"
     )
     BigDecimal sumSignedAmountByAccountId(@Param("accountId") Long accountId, @Param("inDir") PaymentDirection inDir);
 }

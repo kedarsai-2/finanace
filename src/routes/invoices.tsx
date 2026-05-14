@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useInvoices } from "@/hooks/useInvoices";
 import { formatCurrency } from "@/hooks/useParties";
 import { useParties } from "@/hooks/useParties";
@@ -74,6 +75,11 @@ import {
   mapSalesItemRowToInvoiceLineFields,
   mapSalesReportRowToInvoiceFields,
 } from "@/lib/expensePurchaseImportMapping";
+import {
+  IMPORT_PLACEHOLDER_PROOF,
+  parseSpreadsheetPaymentMode,
+  resolveImportBankAccountId,
+} from "@/lib/spreadsheetImportLedger";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 import { toStrId } from "@/lib/dto";
@@ -177,6 +183,8 @@ function InvoicesPage() {
   const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
   const { items, upsert: upsertItem } = useItems(scopedBusinessId);
   const { payments } = usePayments(scopedBusinessId);
+  const { create: createImportPayment } = usePayments(activeId);
+  const { accounts: accountsForImport } = useAccounts(activeId, []);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Invoice | null>(null);
@@ -521,7 +529,8 @@ function InvoicesPage() {
         const number = nextInvoiceNumber(existingForNumber, activeId);
         existingForNumber.push({ number, businessId: activeId });
 
-        await upsert({
+        const finalizedAt = new Date().toISOString();
+        const savedInv = await upsert({
           id: `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
           businessId: activeId,
           number,
@@ -553,10 +562,47 @@ function InvoicesPage() {
           taxTotal: 0,
           total,
           paidAmount,
-          status: "draft",
+          status: "final",
+          finalizedAt,
           notes: mapped.notes,
           createdAt: new Date().toISOString(),
         });
+        const payAmt = Math.min(Math.max(0, paidAmount), total);
+        if (payAmt > 0.001) {
+          try {
+            const mode = parseSpreadsheetPaymentMode(mapped.paymentType ?? row["Payment Type"]);
+            const proof = IMPORT_PLACEHOLDER_PROOF[mode];
+            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+            const accountId = resolveImportBankAccountId(
+              mode,
+              bizAccounts,
+              String(row["Payment Type"] ?? ""),
+              null,
+            );
+            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+            await createImportPayment({
+              businessId: activeId,
+              partyId: savedInv.partyId || "_advance",
+              direction: "in",
+              date: savedInv.date,
+              amount: payAmt,
+              mode,
+              accountId,
+              account: acc?.name,
+              reference: savedInv.number,
+              notes: `Excel import receipt for ${savedInv.number}`,
+              proofDataUrl: proof.proofDataUrl,
+              proofName: proof.proofName,
+              allocations: [{ docId: savedInv.id, docNumber: savedInv.number, amount: payAmt }],
+              excludeFromLedger: true,
+            });
+          } catch (payErr) {
+            console.error(payErr);
+            toast.warning(
+              `${savedInv.number}: marked final but receipt was not posted to cash/bank. Record payment from the sale if needed.`,
+            );
+          }
+        }
         invoiceKeys.add(dedupeKey);
         created += 1;
       }
@@ -568,7 +614,7 @@ function InvoicesPage() {
           setSearch({ from: sorted[0], to: sorted[sorted.length - 1] });
         }
         toast.success(
-          `Bulk import successful: Imported ${created} sales${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
+          `Bulk import successful: Imported ${created} final sales${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
         );
       }
     } catch (err) {

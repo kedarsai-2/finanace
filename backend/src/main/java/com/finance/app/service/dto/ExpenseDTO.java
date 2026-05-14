@@ -90,6 +90,8 @@ public class ExpenseDTO implements Serializable {
 
     private AccountDTO account;
 
+    private Boolean excludeFromLedger;
+
     public Long getId() {
         return id;
     }
@@ -312,6 +314,14 @@ public class ExpenseDTO implements Serializable {
 
     public void setAccount(AccountDTO account) {
         this.account = account;
+    }
+
+    public Boolean getExcludeFromLedger() {
+        return excludeFromLedger;
+    }
+
+    public void setExcludeFromLedger(Boolean excludeFromLedger) {
+        this.excludeFromLedger = excludeFromLedger;
     }
 
     @Override

@@ -23,7 +23,7 @@ import { formatCurrency } from "@/hooks/useParties";
 import { buildAccountTxns } from "@/lib/accountLedger";
 import { downloadCsv } from "@/lib/reportExport";
 import { cn } from "@/lib/utils";
-import type { AccountTxnKind } from "@/types/account";
+import { accountTxnDisplayFlow, type AccountTxnKind } from "@/types/account";
 
 export const Route = createFileRoute("/reports/accounts")({
   head: () => ({ meta: [{ title: "Account Report - QOBOX" }] }),
@@ -100,10 +100,7 @@ function AccountReport() {
       .reverse();
   }, [selected, payments, transfers, expenses, accountsById, from, to]);
 
-  const rowPgKey = useMemo(
-    () => `${selected?.id ?? ""}|${from}|${to}`,
-    [selected?.id, from, to],
-  );
+  const rowPgKey = useMemo(() => `${selected?.id ?? ""}|${from}|${to}`, [selected?.id, from, to]);
   const rowPg = useListPagination(rows, rowPgKey);
 
   const closingBalance = rows.length ? rows[0].balance : (selected?.openingBalance ?? 0);
@@ -113,16 +110,17 @@ function AccountReport() {
     downloadCsv(
       `${selected.name}-account-report.csv`,
       ["Date", "Type", "Reference", "Debit", "Credit", "Balance"],
-      [...rows]
-        .reverse()
-        .map((r) => [
+      [...rows].reverse().map((r) => {
+        const flow = accountTxnDisplayFlow(r);
+        return [
           format(new Date(r.date), "yyyy-MM-dd"),
           txnTypeLabel(r),
           r.refNo ?? "",
-          r.amount < 0 ? Math.abs(r.amount).toFixed(2) : "",
-          r.amount > 0 ? r.amount.toFixed(2) : "",
+          flow < 0 ? Math.abs(flow).toFixed(2) : "",
+          flow > 0 ? flow.toFixed(2) : "",
           r.balance.toFixed(2),
-        ]),
+        ];
+      }),
     );
   };
 
@@ -207,30 +205,33 @@ function AccountReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rowPg.pageItems.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {format(new Date(r.date), "dd MMM yyyy")}
-                  </td>
-                  <td className="px-4 py-3">{txnTypeLabel(r)}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{r.refNo ?? "—"}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                    {r.amount < 0 ? formatCurrency(r.amount, currency) : ""}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-success">
-                    {r.amount > 0 ? formatCurrency(r.amount, currency) : ""}
-                  </td>
-                  <td
-                    className={cn(
-                      "px-4 py-3 text-right font-medium tabular-nums",
-                      r.balance < 0 && "text-destructive",
-                    )}
-                  >
-                    {r.balance < 0 ? "-" : ""}
-                    {formatCurrency(r.balance, currency)}
-                  </td>
-                </tr>
-              ))}
+              {rowPg.pageItems.map((r) => {
+                const flow = accountTxnDisplayFlow(r);
+                return (
+                  <tr key={r.id} className={cn("hover:bg-muted/30", r.ledgerMemo && "bg-muted/15")}>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {format(new Date(r.date), "dd MMM yyyy")}
+                    </td>
+                    <td className="px-4 py-3">{txnTypeLabel(r)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{r.refNo ?? "—"}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
+                      {flow < 0 ? formatCurrency(flow, currency) : ""}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-success">
+                      {flow > 0 ? formatCurrency(flow, currency) : ""}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-right font-medium tabular-nums",
+                        r.balance < 0 && "text-destructive",
+                      )}
+                    >
+                      {r.balance < 0 ? "-" : ""}
+                      {formatCurrency(r.balance, currency)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

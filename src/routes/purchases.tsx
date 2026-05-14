@@ -53,8 +53,10 @@ import { cn } from "@/lib/utils";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useItems } from "@/hooks/useItems";
 import { usePurchases } from "@/hooks/usePurchases";
+import { usePayments } from "@/hooks/usePayments";
 import { formatCurrency, useParties } from "@/hooks/useParties";
 import type { Purchase, PurchaseStatus } from "@/types/purchase";
 import { computeTotals } from "@/types/invoice";
@@ -65,6 +67,11 @@ import {
   mapPurchaseItemRowToPurchaseLineFields,
   mapPurchaseReportRowToPurchaseFields,
 } from "@/lib/expensePurchaseImportMapping";
+import {
+  IMPORT_PLACEHOLDER_PROOF,
+  parseSpreadsheetPaymentMode,
+  resolveImportBankAccountId,
+} from "@/lib/spreadsheetImportLedger";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 
@@ -77,7 +84,12 @@ function gridHasExactCell(grid: unknown[][], needle: string): boolean {
   for (const row of grid.slice(0, 50)) {
     if (!Array.isArray(row)) continue;
     for (const cell of row) {
-      if (String(cell ?? "").trim().toLowerCase() === n) return true;
+      if (
+        String(cell ?? "")
+          .trim()
+          .toLowerCase() === n
+      )
+        return true;
     }
   }
   return false;
@@ -102,7 +114,10 @@ function findPurchaseMainSheet(workbook: XLSX.WorkBook): XLSX.WorkSheet | undefi
   return undefined;
 }
 
-function findPurchaseItemSheet(workbook: XLSX.WorkBook, mainSheet: XLSX.WorkSheet): XLSX.WorkSheet | undefined {
+function findPurchaseItemSheet(
+  workbook: XLSX.WorkBook,
+  mainSheet: XLSX.WorkSheet,
+): XLSX.WorkSheet | undefined {
   const preferred = ["Item Details", "Purchase Item Details", "Item details"];
   for (const name of preferred) {
     const sh = workbook.Sheets[name];
@@ -196,6 +211,8 @@ function PurchasesPage() {
   const { purchases, hydrated, upsert, remove, cancel } = usePurchases(scopedBusinessId);
   const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
   const { items, upsert: upsertItem } = useItems(scopedBusinessId);
+  const { create: createImportPayment } = usePayments(activeId);
+  const { accounts: accountsForImport } = useAccounts(activeId, []);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   const [deleting, setDeleting] = useState<Purchase | null>(null);
@@ -280,13 +297,6 @@ function PurchasesPage() {
     });
   };
 
-  const parsePaymentMode = (raw: unknown): Purchase["purchasePaymentMode"] => {
-    const v = String(raw ?? "").trim().toLowerCase();
-    if (v.includes("cheque") || v.includes("check")) return "cheque";
-    if (v.includes("bank") || v.includes("upi") || v.includes("online") || v.includes("card"))
-      return "bank";
-    return "cash";
-  };
   const normalizeMobile = (raw: unknown): string | undefined => {
     const digits = String(raw ?? "").replace(/\D/g, "");
     return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
@@ -348,7 +358,10 @@ function PurchasesPage() {
       let duplicates = 0;
       let createdParties = 0;
       let createdItems = 0;
-      const existingForNumber = purchases.map((p) => ({ number: p.number, businessId: p.businessId }));
+      const existingForNumber = purchases.map((p) => ({
+        number: p.number,
+        businessId: p.businessId,
+      }));
       const partiesByName = new Map(
         parties
           .filter((p) => p.businessId === activeId)
@@ -394,16 +407,24 @@ function PurchasesPage() {
         const mapped = mapPurchaseReportRowToPurchaseFields(row);
         const importedDate = parseSpreadsheetDate(row["Date"]);
         const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
-        const orderKey = String(mapped.orderNo ?? "").trim().toLowerCase();
-        const invoiceKey = String(mapped.invoiceNo ?? "").trim().toLowerCase();
+        const orderKey = String(mapped.orderNo ?? "")
+          .trim()
+          .toLowerCase();
+        const invoiceKey = String(mapped.invoiceNo ?? "")
+          .trim()
+          .toLowerCase();
         const totalKey = Number(mapped.total ?? 0).toFixed(2);
         const purchaseKey = `${importedDateKey}|${partyNameKey}|${orderKey}|${invoiceKey}|${totalKey}`;
         if (purchaseKeys.has(purchaseKey)) {
           duplicates += 1;
           continue;
         }
-        const refA = String(row["Invoice No"] ?? "").trim().toLowerCase();
-        const refB = String(row["Order No"] ?? "").trim().toLowerCase();
+        const refA = String(row["Invoice No"] ?? "")
+          .trim()
+          .toLowerCase();
+        const refB = String(row["Order No"] ?? "")
+          .trim()
+          .toLowerCase();
         const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
         const fallbackTotal = Number(mapped.total ?? 0);
         const lines =
@@ -423,7 +444,8 @@ function PurchasesPage() {
               ];
         for (const line of lines) {
           const itemNameKey = line.name.trim().toLowerCase();
-          if (!itemNameKey || itemNameKey === "imported line" || itemNames.has(itemNameKey)) continue;
+          if (!itemNameKey || itemNameKey === "imported line" || itemNames.has(itemNameKey))
+            continue;
           await upsertItem({
             id: "",
             businessId: activeId,
@@ -450,7 +472,10 @@ function PurchasesPage() {
         const number = nextPurchaseNumber(existingForNumber, activeId);
         existingForNumber.push({ number, businessId: activeId });
 
-        await upsert({
+        const purchasePaymentMode = parseSpreadsheetPaymentMode(row["Payment Type"]);
+        const importProof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
+        const finalizedAt = new Date().toISOString();
+        const savedPur = await upsert({
           id: `pur_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
           businessId: activeId,
           number,
@@ -474,12 +499,50 @@ function PurchasesPage() {
           taxTotal: 0,
           total,
           paidAmount,
-          status: "draft",
+          status: "final",
+          finalizedAt,
           notes: mapped.notes,
           purchaseCategory: "short-term",
-          purchasePaymentMode: parsePaymentMode(row["Payment Type"]),
+          purchasePaymentMode,
+          proofDataUrl: importProof.proofDataUrl,
+          proofName: importProof.proofName,
           createdAt: new Date().toISOString(),
         });
+        const payOut = Math.min(Math.max(0, paidAmount), total);
+        if (savedPur && payOut > 0.001) {
+          try {
+            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+            const accountId = resolveImportBankAccountId(
+              purchasePaymentMode,
+              bizAccounts,
+              String(row["Payment Type"] ?? ""),
+              null,
+            );
+            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+            const proof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
+            await createImportPayment({
+              businessId: activeId,
+              partyId: savedPur.partyId || "_advance",
+              direction: "out",
+              date: savedPur.date,
+              amount: payOut,
+              mode: purchasePaymentMode,
+              accountId,
+              account: acc?.name,
+              reference: savedPur.number,
+              notes: `Excel import payment for ${savedPur.number}`,
+              proofDataUrl: proof.proofDataUrl,
+              proofName: proof.proofName,
+              allocations: [{ docId: savedPur.id, docNumber: savedPur.number, amount: payOut }],
+              excludeFromLedger: true,
+            });
+          } catch (payErr) {
+            console.error(payErr);
+            toast.warning(
+              `${savedPur.number}: marked final but payment was not posted to cash/bank. Record payment from the purchase if needed.`,
+            );
+          }
+        }
         purchaseKeys.add(purchaseKey);
         created += 1;
       }
@@ -488,7 +551,7 @@ function PurchasesPage() {
         toast.error("No valid rows imported.");
       } else {
         toast.success(
-          `Imported ${created} purchases${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
+          `Imported ${created} final purchases${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdItems} items/assets`,
         );
       }
     } catch (err) {

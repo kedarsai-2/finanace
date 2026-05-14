@@ -51,62 +51,20 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useItems } from "@/hooks/useItems";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
-import type { Account } from "@/types/account";
 import { DEFAULT_EXPENSE_TYPES, type Expense } from "@/types/expense";
-import type { PaymentMode } from "@/types/payment";
 import {
   EXPENSE_ITEM_HEADERS,
   EXPENSE_REPORT_HEADERS,
   mapExpenseItemRowToExpenseFields,
   mapExpenseReportRowToExpenseFields,
 } from "@/lib/expensePurchaseImportMapping";
+import {
+  parseSpreadsheetPaymentMode,
+  resolveImportBankAccountId,
+} from "@/lib/spreadsheetImportLedger";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
-
-/** Pick bank account for import: match narration text (e.g. Vyapar "AXIS BANK (IMPS/...)") to account names. */
-function resolveImportedExpenseAccountId(
-  mode: PaymentMode,
-  accountsForBusiness: Account[],
-  paymentTypeHint?: string,
-): string | undefined {
-  if (mode === "cash") return undefined;
-  const banks = accountsForBusiness.filter((a) => a.type === "bank");
-  if (banks.length === 0) return undefined;
-
-  const hint = String(paymentTypeHint ?? "").trim().toLowerCase();
-  if (hint.length >= 2) {
-    let best: { id: string; score: number } | undefined;
-    for (const b of banks) {
-      const bn = b.name.trim().toLowerCase();
-      if (bn.length >= 3 && hint.includes(bn)) {
-        const score = bn.length;
-        if (!best || score > best.score) best = { id: b.id, score };
-      }
-    }
-    const noise = new Set(["bank", "limited", "ltd", "the", "cooperative"]);
-    for (const b of banks) {
-      const tokens = b.name
-        .toLowerCase()
-        .split(/\s+/)
-        .map((t) => t.replace(/[^a-z0-9]/gi, ""))
-        .filter((t) => t.length >= 3 && !noise.has(t));
-      for (const t of tokens) {
-        if (hint.includes(t)) {
-          const score = t.length;
-          if (!best || score > best.score) best = { id: b.id, score };
-        }
-      }
-    }
-    if (best) return best.id;
-  }
-
-  if (banks.length === 1) return banks[0].id;
-  const last =
-    typeof window !== "undefined" ? window.localStorage.getItem(LAST_ACCOUNT_KEY) : null;
-  if (last && banks.some((b) => b.id === last)) return last;
-  return banks[0]?.id;
-}
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -196,45 +154,6 @@ function ExpensesPage() {
     return hit?.value ?? "custom";
   }, [from, to, monthOptions]);
 
-  const parseMode = (raw: unknown): PaymentMode => {
-    const rawTrim = String(raw ?? "").trim();
-    const v = rawTrim.toLowerCase();
-    if (!v) return "cash";
-    if (v.includes("cheque") || v.includes("check")) return "cheque";
-    if (/^(cash|petty cash|cash payment|paid by cash)$/i.test(rawTrim) || v === "cash in hand") {
-      return "cash";
-    }
-    const bankLike =
-      v.includes("bank") ||
-      v.includes("upi") ||
-      v.includes("imps") ||
-      v.includes("neft") ||
-      v.includes("rtgs") ||
-      v.includes("nach") ||
-      v.includes("ecs") ||
-      v.includes("online") ||
-      v.includes("card") ||
-      v.includes("debit") ||
-      v.includes("credit card") ||
-      v.includes("p2a") ||
-      v.includes("p2p") ||
-      v.includes("vpa") ||
-      v.includes("utr") ||
-      v.includes("ifsc") ||
-      v.includes("net banking") ||
-      v.includes("netbanking") ||
-      v.includes("atm") ||
-      v.includes("pos") ||
-      v.includes("gpay") ||
-      v.includes("google pay") ||
-      v.includes("phonepe") ||
-      v.includes("phone pe") ||
-      v.includes("paytm") ||
-      v.includes("razorpay");
-    if (bankLike) return "bank";
-    if (v.includes("cash")) return "cash";
-    return "cash";
-  };
   const normalizeMobile = (raw: unknown): string | undefined => {
     const digits = String(raw ?? "").replace(/\D/g, "");
     return /^[6-9]\d{9}$/.test(digits) ? digits : undefined;
@@ -260,8 +179,7 @@ function ExpensesPage() {
         workbook.Sheets["Expense Report"] ?? workbook.Sheets[workbook.SheetNames[0]];
       if (!mainSheet) throw new Error("No sheet found in file");
 
-      const itemSheet =
-        workbook.Sheets["Item Details"] ?? workbook.Sheets["Expense Item Details"];
+      const itemSheet = workbook.Sheets["Item Details"] ?? workbook.Sheets["Expense Item Details"];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(mainSheet, { defval: "" });
       const itemRows = itemSheet
         ? XLSX.utils.sheet_to_json<Record<string, unknown>>(itemSheet, { defval: "" })
@@ -271,9 +189,15 @@ function ExpensesPage() {
       const itemMetaByKey = new Map<string, Record<string, unknown>>();
       for (const row of itemRows) {
         const dateKey = format(new Date(parseSpreadsheetDate(row["Date"])), "yyyy-MM-dd");
-        const party = String(row["Party Name"] ?? "").trim().toLowerCase();
-        const orderNo = String(row["Order No."] ?? row["Order No"] ?? "").trim().toLowerCase();
-        const invoiceNo = String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim().toLowerCase();
+        const party = String(row["Party Name"] ?? "")
+          .trim()
+          .toLowerCase();
+        const orderNo = String(row["Order No."] ?? row["Order No"] ?? "")
+          .trim()
+          .toLowerCase();
+        const invoiceNo = String(row["Invoice No"] ?? row["Invoice No."] ?? "")
+          .trim()
+          .toLowerCase();
         for (const ref of [orderNo, invoiceNo].filter(Boolean)) {
           const k = `${dateKey}|${ref}|${party}`;
           if (!itemMetaByKey.has(k)) itemMetaByKey.set(k, row);
@@ -294,13 +218,12 @@ function ExpensesPage() {
       const categoriesByName = new Map(
         categories.map((c) => [c.name.trim().toLowerCase(), c] as const),
       );
-      const itemNames = new Set(
-        items.map((it) => it.name.trim().toLowerCase()).filter(Boolean),
-      );
+      const itemNames = new Set(items.map((it) => it.name.trim().toLowerCase()).filter(Boolean));
       const expenseKeys = new Set(
         expenses.flatMap((e) => {
           const dateKey = format(new Date(e.date), "yyyy-MM-dd");
-          const partyKey = (e.partyId ? partyById[e.partyId]?.name : "")?.trim().toLowerCase() ?? "";
+          const partyKey =
+            (e.partyId ? partyById[e.partyId]?.name : "")?.trim().toLowerCase() ?? "";
           const refKey = (e.reference ?? "").trim().toLowerCase();
           const amt = Number(e.amount).toFixed(2);
           const base = `${dateKey}|${partyKey}|${refKey}|${amt}`;
@@ -321,9 +244,15 @@ function ExpensesPage() {
         }
         const importedDate = parseSpreadsheetDate(row["Date"]);
         const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
-        const partyK = String(row["Party Name"] ?? "").trim().toLowerCase();
-        const invoiceK = String(row["Invoice No"] ?? row["Invoice No."] ?? "").trim().toLowerCase();
-        const orderK = String(row["Order No"] ?? row["Order No."] ?? "").trim().toLowerCase();
+        const partyK = String(row["Party Name"] ?? "")
+          .trim()
+          .toLowerCase();
+        const invoiceK = String(row["Invoice No"] ?? row["Invoice No."] ?? "")
+          .trim()
+          .toLowerCase();
+        const orderK = String(row["Order No"] ?? row["Order No."] ?? "")
+          .trim()
+          .toLowerCase();
         const itemMeta =
           (invoiceK && itemMetaByKey.get(`${importedDateKey}|${invoiceK}|${partyK}`)) ||
           (orderK && itemMetaByKey.get(`${importedDateKey}|${orderK}|${partyK}`)) ||
@@ -352,7 +281,9 @@ function ExpensesPage() {
         const category =
           (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
         const dedupePartyKey = partyNameRaw.trim().toLowerCase();
-        const dedupeRefKey = String(mapped.reference ?? "").trim().toLowerCase();
+        const dedupeRefKey = String(mapped.reference ?? "")
+          .trim()
+          .toLowerCase();
         const catFrag = normalizeDedupeFragment(category);
         const payFrag = normalizeDedupeFragment(row["Payment Type"]);
         const notesFrag = normalizeDedupeFragment(mapped.notes);
@@ -367,11 +298,12 @@ function ExpensesPage() {
           duplicates += 1;
           continue;
         }
-        const payMode = parseMode(row["Payment Type"]);
-        const importedAccountId = resolveImportedExpenseAccountId(
+        const payMode = parseSpreadsheetPaymentMode(row["Payment Type"]);
+        const importedAccountId = resolveImportBankAccountId(
           payMode,
           safeAccounts,
           String(row["Payment Type"] ?? ""),
+          LAST_ACCOUNT_KEY,
         );
 
         const categoryKey = category.toLowerCase();
@@ -431,6 +363,7 @@ function ExpensesPage() {
           taxAmount: itemMapped.taxAmount,
           lineAmount: itemMapped.lineAmount,
           createdAt: new Date().toISOString(),
+          excludeFromLedger: true,
         });
         expenseKeys.add(fullKey);
         if (!payFrag) expenseKeys.add(richNoPay);
@@ -441,7 +374,7 @@ function ExpensesPage() {
       if (created === 0) toast.error("No valid rows imported");
       else
         toast.success(
-          `Imported ${created} expenses${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdCategories} categories • +${createdItems} items/assets`,
+          `Imported ${created} expenses (posted)${skipped ? ` (${skipped} skipped)` : ""}${duplicates ? ` (${duplicates} duplicates)` : ""} • +${createdParties} parties • +${createdCategories} categories • +${createdItems} items/assets`,
         );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Bulk import failed";
@@ -742,119 +675,119 @@ function ExpensesPage() {
           </div>
         ) : (
           <>
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="w-10 px-2 py-3 text-center">
-                  <Checkbox
-                    checked={allVisibleSelected}
-                    onCheckedChange={(v) => toggleSelectAllVisible(!!v)}
-                    aria-label="Select all on this page"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-left">Party</th>
-                <th className="px-4 py-3 text-left">Account</th>
-                <th className="px-4 py-3 text-left">Notes</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="w-10 px-2 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {pg.pageItems.map((e) => (
-                <tr key={e.id} className="hover:bg-muted/30">
-                  <td className="px-2 py-3 text-center">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="w-10 px-2 py-3 text-center">
                     <Checkbox
-                      checked={selectedIds.has(e.id)}
-                      onCheckedChange={(v) => toggleSelectOne(e.id, !!v)}
-                      aria-label={`Select expense ${e.id}`}
+                      checked={allVisibleSelected}
+                      onCheckedChange={(v) => toggleSelectAllVisible(!!v)}
+                      aria-label="Select all on this page"
                     />
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    <Link
-                      to="/expenses/$id"
-                      params={{ id: e.id }}
-                      className="hover:text-foreground"
-                    >
-                      {format(new Date(e.date), "dd/MM/yyyy")}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
-                      {e.type === "direct" ? "Direct" : "Indirect"}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
-                      {e.category}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatExpenseAccount(e)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <span className="line-clamp-1 max-w-[28ch]">{e.notes ?? "—"}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-destructive">
-                    {formatCurrency(e.amount, currency)}
-                  </td>
-                  <td className="px-2 py-3">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive"
-                          aria-label="Delete expense"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete expense?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This soft-deletes the entry and refunds the amount to{" "}
-                            {formatExpenseAccount(e)}.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              if (!verifyActionPassword()) return;
-                              try {
-                                await remove(e.id);
-                                toast.success("Expense deleted");
-                              } catch (err) {
-                                const message =
-                                  err instanceof Error ? err.message : "Could not delete expense";
-                                toast.error(message);
-                              }
-                            }}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </td>
+                  </th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-4 py-3 text-left">Party</th>
+                  <th className="px-4 py-3 text-left">Account</th>
+                  <th className="px-4 py-3 text-left">Notes</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="w-10 px-2 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <ListPaginationBar
-            page={pg.page}
-            totalPages={pg.totalPages}
-            totalCount={pg.totalCount}
-            rangeFrom={pg.rangeFrom}
-            rangeTo={pg.rangeTo}
-            onPageChange={pg.setPage}
-          />
+              </thead>
+              <tbody className="divide-y divide-border">
+                {pg.pageItems.map((e) => (
+                  <tr key={e.id} className="hover:bg-muted/30">
+                    <td className="px-2 py-3 text-center">
+                      <Checkbox
+                        checked={selectedIds.has(e.id)}
+                        onCheckedChange={(v) => toggleSelectOne(e.id, !!v)}
+                        aria-label={`Select expense ${e.id}`}
+                      />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                      <Link
+                        to="/expenses/$id"
+                        params={{ id: e.id }}
+                        className="hover:text-foreground"
+                      >
+                        {format(new Date(e.date), "dd/MM/yyyy")}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
+                        {e.type === "direct" ? "Direct" : "Indirect"}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
+                        {e.category}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatExpenseAccount(e)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <span className="line-clamp-1 max-w-[28ch]">{e.notes ?? "—"}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-destructive">
+                      {formatCurrency(e.amount, currency)}
+                    </td>
+                    <td className="px-2 py-3">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive"
+                            aria-label="Delete expense"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This soft-deletes the entry and refunds the amount to{" "}
+                              {formatExpenseAccount(e)}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                if (!verifyActionPassword()) return;
+                                try {
+                                  await remove(e.id);
+                                  toast.success("Expense deleted");
+                                } catch (err) {
+                                  const message =
+                                    err instanceof Error ? err.message : "Could not delete expense";
+                                  toast.error(message);
+                                }
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <ListPaginationBar
+              page={pg.page}
+              totalPages={pg.totalPages}
+              totalCount={pg.totalCount}
+              rangeFrom={pg.rangeFrom}
+              rangeTo={pg.rangeTo}
+              onPageChange={pg.setPage}
+            />
           </>
         )}
       </div>
