@@ -1,5 +1,5 @@
 /** Default concurrency for bulk API work (balance speed vs server load). */
-export const BULK_IO_CONCURRENCY = 8;
+export const BULK_IO_CONCURRENCY = 12;
 
 /**
  * Run `fn` over `items` with at most `concurrency` promises in flight.

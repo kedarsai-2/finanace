@@ -515,6 +515,19 @@ function InvoicesPage() {
         createdParties = pendingParties.size;
       }
 
+      const batchInvoiceKeys = new Set(invoiceKeys);
+      type SheetRow = (typeof rows)[number];
+      const preparedSales: {
+        row: SheetRow;
+        mapped: ReturnType<typeof mapSalesReportRowToInvoiceFields>;
+        party: NonNullable<ReturnType<(typeof partiesByName)["get"]>>;
+        importedDate: string;
+        lines: Invoice["lines"];
+        total: number;
+        paidAmount: number;
+        computed: ReturnType<typeof computeTotals>;
+      }[] = [];
+
       for (const row of rows) {
         const mapped = mapSalesReportRowToInvoiceFields(row);
         const partyName = String(row["Party Name"] ?? "").trim();
@@ -537,10 +550,11 @@ function InvoicesPage() {
           .toLowerCase();
         const totalHint = Number(mapped.total ?? 0);
         const dedupeKey = `${dateKey}|${partyNameKey}|${invoiceNoKey}|${totalHint.toFixed(2)}`;
-        if (invoiceKeys.has(dedupeKey)) {
+        if (batchInvoiceKeys.has(dedupeKey)) {
           duplicates += 1;
           continue;
         }
+        batchInvoiceKeys.add(dedupeKey);
 
         const refA = String(row["Invoice No"] ?? "")
           .trim()
@@ -571,86 +585,107 @@ function InvoicesPage() {
         });
         const total = totalHint > 0 ? totalHint : computed.total;
         const paidAmount = Number(mapped.receivedPaidAmount ?? 0);
-        const number = nextInvoiceNumber(existingForNumber, activeId);
-        existingForNumber.push({ number, businessId: activeId });
-
-        const finalizedAt = new Date().toISOString();
-        const savedInv = await upsert({
-          id: `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-          businessId: activeId,
-          number,
-          date: importedDate,
-          invoiceType: "standard",
-          orderNo: mapped.orderNo,
-          invoiceNo: mapped.invoiceNo,
-          gstin: mapped.gstin,
-          partyPhoneNo: mapped.partyPhoneNo,
-          transactionType: mapped.transactionType,
-          paymentType: mapped.paymentType,
-          receivedPaidAmount: mapped.receivedPaidAmount,
-          balanceDue: mapped.balanceDue,
-          paymentBreakupJson: mapped.paymentBreakupJson,
-          partyId: party.id,
-          partyName: party.name,
-          partyState: party.state,
-          businessState: activeBusiness?.state,
+        preparedSales.push({
+          row,
+          mapped,
+          party,
+          importedDate,
           lines,
-          subtotal: computed.subtotal,
-          itemDiscountTotal: computed.itemDiscountTotal,
-          overallDiscountKind: "percent",
-          overallDiscountValue: 0,
-          overallDiscountAmount: 0,
-          taxableValue: total,
-          cgst: 0,
-          sgst: 0,
-          igst: 0,
-          taxTotal: 0,
           total,
           paidAmount,
-          status: "final",
-          finalizedAt,
-          notes: mapped.notes,
-          createdAt: new Date().toISOString(),
+          computed,
         });
-        const payAmt = Math.min(Math.max(0, paidAmount), total);
-        if (payAmt > 0.001) {
-          try {
-            const mode = parseSpreadsheetPaymentMode(mapped.paymentType ?? row["Payment Type"]);
-            const proof = IMPORT_PLACEHOLDER_PROOF[mode];
-            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
-            const accountId = resolveImportBankAccountId(
-              mode,
-              bizAccounts,
-              String(row["Payment Type"] ?? ""),
-              null,
-            );
-            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
-            await createImportPayment({
-              businessId: activeId,
-              partyId: savedInv.partyId || "_advance",
-              direction: "in",
-              date: importedDate,
-              amount: payAmt,
-              mode,
-              accountId,
-              account: acc?.name,
-              reference: savedInv.number,
-              notes: `Excel import receipt for ${savedInv.number}`,
-              proofDataUrl: proof.proofDataUrl,
-              proofName: proof.proofName,
-              allocations: [{ docId: savedInv.id, docNumber: savedInv.number, amount: payAmt }],
-              excludeFromLedger: true,
-            });
-          } catch (payErr) {
-            console.error(payErr);
-            toast.warning(
-              `${savedInv.number}: marked final but receipt was not posted to cash/bank. Record payment from the sale if needed.`,
-            );
-          }
-        }
-        invoiceKeys.add(dedupeKey);
-        created += 1;
       }
+
+      const allocForInvoiceNumber = existingForNumber.map((x) => ({ ...x }));
+      const invoiceNumbers = preparedSales.map(() => {
+        const number = nextInvoiceNumber(allocForInvoiceNumber, activeId);
+        allocForInvoiceNumber.push({ number, businessId: activeId });
+        return number;
+      });
+
+      await asyncPool(
+        BULK_IO_CONCURRENCY,
+        preparedSales.map((p, i) => ({ ...p, number: invoiceNumbers[i] })),
+        async ({ number, row, mapped, party, importedDate, lines, total, paidAmount, computed }, idx) => {
+          const finalizedAt = new Date().toISOString();
+          const savedInv = await upsert({
+            id: `inv_imp_${idx}_${Math.random().toString(36).slice(2, 11)}`,
+            businessId: activeId,
+            number,
+            date: importedDate,
+            invoiceType: "standard",
+            orderNo: mapped.orderNo,
+            invoiceNo: mapped.invoiceNo,
+            gstin: mapped.gstin,
+            partyPhoneNo: mapped.partyPhoneNo,
+            transactionType: mapped.transactionType,
+            paymentType: mapped.paymentType,
+            receivedPaidAmount: mapped.receivedPaidAmount,
+            balanceDue: mapped.balanceDue,
+            paymentBreakupJson: mapped.paymentBreakupJson,
+            partyId: party.id,
+            partyName: party.name,
+            partyState: party.state,
+            businessState: activeBusiness?.state,
+            lines,
+            subtotal: computed.subtotal,
+            itemDiscountTotal: computed.itemDiscountTotal,
+            overallDiscountKind: "percent",
+            overallDiscountValue: 0,
+            overallDiscountAmount: 0,
+            taxableValue: total,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
+            taxTotal: 0,
+            total,
+            paidAmount,
+            status: "final",
+            finalizedAt,
+            notes: mapped.notes,
+            createdAt: new Date().toISOString(),
+          });
+          const payAmt = Math.min(Math.max(0, paidAmount), total);
+          if (payAmt > 0.001) {
+            try {
+              const mode = parseSpreadsheetPaymentMode(mapped.paymentType ?? row["Payment Type"]);
+              const proof = IMPORT_PLACEHOLDER_PROOF[mode];
+              const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+              const accountId = resolveImportBankAccountId(
+                mode,
+                bizAccounts,
+                String(row["Payment Type"] ?? ""),
+                null,
+              );
+              const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+              await createImportPayment({
+                businessId: activeId,
+                partyId: savedInv.partyId || "_advance",
+                direction: "in",
+                date: importedDate,
+                amount: payAmt,
+                mode,
+                accountId,
+                account: acc?.name,
+                reference: savedInv.number,
+                notes: `Excel import receipt for ${savedInv.number}`,
+                proofDataUrl: proof.proofDataUrl,
+                proofName: proof.proofName,
+                allocations: [{ docId: savedInv.id, docNumber: savedInv.number, amount: payAmt }],
+                excludeFromLedger: true,
+              });
+            } catch (payErr) {
+              console.error(payErr);
+              toast.warning(
+                `${savedInv.number}: marked final but receipt was not posted to cash/bank. Record payment from the sale if needed.`,
+              );
+            }
+          }
+        },
+      );
+
+      created = preparedSales.length;
 
       if (created === 0) toast.error("No valid rows imported");
       else {

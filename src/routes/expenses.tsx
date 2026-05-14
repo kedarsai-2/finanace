@@ -356,6 +356,10 @@ function ExpensesPage() {
         createdItems = newItemsByKey.size;
       }
 
+      const localDupKeys = new Set(expenseKeys);
+      const preparedExpenses: Expense[] = [];
+      let expSeq = 0;
+
       for (const row of rows) {
         const mapped = mapExpenseReportRowToExpenseFields(row);
         const amount = Number(mapped.amount ?? 0);
@@ -400,13 +404,14 @@ function ExpensesPage() {
         const richNoPay = `${baseOnly}|${catFrag}||${notesFrag}`;
         const fullKey = `${baseOnly}|${catFrag}|${payFrag}|${notesFrag}`;
         const isDup =
-          expenseKeys.has(fullKey) ||
-          (!payFrag && expenseKeys.has(richNoPay)) ||
-          ((dedupePartyKey || dedupeRefKey) && expenseKeys.has(baseOnly));
+          localDupKeys.has(fullKey) ||
+          (!payFrag && localDupKeys.has(richNoPay)) ||
+          ((dedupePartyKey || dedupeRefKey) && localDupKeys.has(baseOnly));
         if (isDup) {
           duplicates += 1;
           continue;
         }
+
         const payMode = parseSpreadsheetPaymentMode(row["Payment Type"]);
         const importedAccountId = resolveImportBankAccountId(
           payMode,
@@ -421,9 +426,13 @@ function ExpensesPage() {
           continue;
         }
 
+        localDupKeys.add(fullKey);
+        if (!payFrag) localDupKeys.add(richNoPay);
+        if (dedupePartyKey || dedupeRefKey) localDupKeys.add(baseOnly);
+
         const baseNotes = (mapped.notes ?? "").trim();
-        await add({
-          id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+        preparedExpenses.push({
+          id: `exp_imp_${expSeq++}_${Math.random().toString(36).slice(2, 11)}`,
           businessId: activeId,
           accountId: importedAccountId,
           date: importedDate,
@@ -450,11 +459,11 @@ function ExpensesPage() {
           createdAt: new Date().toISOString(),
           excludeFromLedger: true,
         });
-        expenseKeys.add(fullKey);
-        if (!payFrag) expenseKeys.add(richNoPay);
-        if (dedupePartyKey || dedupeRefKey) expenseKeys.add(baseOnly);
-        created += 1;
       }
+
+      await asyncPool(BULK_IO_CONCURRENCY, preparedExpenses, (e) => add(e));
+
+      created = preparedExpenses.length;
 
       if (created === 0) toast.error("No valid rows imported");
       else

@@ -421,6 +421,35 @@ function PurchasesPage() {
         createdParties = pendingParties.size;
       }
 
+      const batchPurchaseKeys = new Set(purchaseKeys);
+      type PurchaseSheetRow = (typeof rows)[number];
+      const newLineItemsByKey = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          type: "product";
+          sku: undefined;
+          sellingPrice: number;
+          purchasePrice: number;
+          taxPercent: number;
+          unit: string;
+          active: boolean;
+        }
+      >();
+      const preparedPurchases: {
+        row: PurchaseSheetRow;
+        mapped: ReturnType<typeof mapPurchaseReportRowToPurchaseFields>;
+        party: NonNullable<ReturnType<(typeof partiesByName)["get"]>>;
+        importedDate: string;
+        lines: Purchase["lines"];
+        total: number;
+        paidAmount: number;
+        computed: ReturnType<typeof computeTotals>;
+        purchasePaymentMode: ReturnType<typeof parseSpreadsheetPaymentMode>;
+      }[] = [];
+
       for (const row of rows) {
         const partyName = String(
           row["Party Name"] ?? row["Supplier Name"] ?? row["Supplier"] ?? "",
@@ -447,10 +476,12 @@ function PurchasesPage() {
           .toLowerCase();
         const totalKey = Number(mapped.total ?? 0).toFixed(2);
         const purchaseKey = `${importedDateKey}|${partyNameKey}|${orderKey}|${invoiceKey}|${totalKey}`;
-        if (purchaseKeys.has(purchaseKey)) {
+        if (batchPurchaseKeys.has(purchaseKey)) {
           duplicates += 1;
           continue;
         }
+        batchPurchaseKeys.add(purchaseKey);
+
         const refA = String(row["Invoice No"] ?? "")
           .trim()
           .toLowerCase();
@@ -476,9 +507,14 @@ function PurchasesPage() {
               ];
         for (const line of lines) {
           const itemNameKey = line.name.trim().toLowerCase();
-          if (!itemNameKey || itemNameKey === "imported line" || itemNames.has(itemNameKey))
+          if (
+            !itemNameKey ||
+            itemNameKey === "imported line" ||
+            itemNames.has(itemNameKey) ||
+            newLineItemsByKey.has(itemNameKey)
+          )
             continue;
-          await upsertItem({
+          newLineItemsByKey.set(itemNameKey, {
             id: "",
             businessId: activeId,
             name: line.name,
@@ -490,8 +526,6 @@ function PurchasesPage() {
             unit: String(line.unit ?? "pcs"),
             active: true,
           });
-          itemNames.add(itemNameKey);
-          createdItems += 1;
         }
 
         const computed = computeTotals({
@@ -501,83 +535,127 @@ function PurchasesPage() {
         });
         const total = fallbackTotal > 0 ? fallbackTotal : computed.total;
         const paidAmount = Number(mapped.paidAmount ?? 0);
-        const number = nextPurchaseNumber(existingForNumber, activeId);
-        existingForNumber.push({ number, businessId: activeId });
-
         const purchasePaymentMode = parseSpreadsheetPaymentMode(row["Payment Type"]);
-        const importProof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
-        const finalizedAt = new Date().toISOString();
-        const savedPur = await upsert({
-          id: `pur_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-          businessId: activeId,
-          number,
-          orderNo: mapped.orderNo,
-          invoiceNo: mapped.invoiceNo,
-          date: importedDate,
-          partyId: party.id,
-          partyName: party.name,
-          partyState: party.state,
-          businessState: activeBusiness?.state,
+        preparedPurchases.push({
+          row,
+          mapped,
+          party,
+          importedDate,
           lines,
-          subtotal: computed.subtotal,
-          itemDiscountTotal: computed.itemDiscountTotal,
-          overallDiscountKind: "percent",
-          overallDiscountValue: 0,
-          overallDiscountAmount: 0,
-          taxableValue: total,
-          cgst: 0,
-          sgst: 0,
-          igst: 0,
-          taxTotal: 0,
           total,
           paidAmount,
-          status: "final",
-          finalizedAt,
-          notes: composeNotesWithMeta(mapped.notes, { purchasePaymentMode }),
-          purchaseCategory: "short-term",
+          computed,
           purchasePaymentMode,
-          proofDataUrl: importProof.proofDataUrl,
-          proofName: importProof.proofName,
-          createdAt: new Date().toISOString(),
         });
-        const payOut = Math.min(Math.max(0, paidAmount), total);
-        if (savedPur && payOut > 0.001) {
-          try {
-            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
-            const accountId = resolveImportBankAccountId(
-              purchasePaymentMode,
-              bizAccounts,
-              String(row["Payment Type"] ?? ""),
-              null,
-            );
-            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
-            const proof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
-            await createImportPayment({
-              businessId: activeId,
-              partyId: savedPur.partyId || "_advance",
-              direction: "out",
-              date: importedDate,
-              amount: payOut,
-              mode: purchasePaymentMode,
-              accountId,
-              account: acc?.name,
-              reference: savedPur.number,
-              notes: `Excel import payment for ${savedPur.number}`,
-              proofDataUrl: proof.proofDataUrl,
-              proofName: proof.proofName,
-              allocations: [{ docId: savedPur.id, docNumber: savedPur.number, amount: payOut }],
-              excludeFromLedger: true,
-            });
-          } catch (payErr) {
-            console.error(payErr);
-            toast.warning(
-              `${savedPur.number}: marked final but payment was not posted to cash/bank. Record payment from the purchase if needed.`,
-            );
-          }
-        }
-        purchaseKeys.add(purchaseKey);
-        created += 1;
       }
+
+      if (newLineItemsByKey.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...newLineItemsByKey.values()], (payload) =>
+          upsertItem(payload),
+        );
+        for (const k of newLineItemsByKey.keys()) itemNames.add(k);
+        createdItems += newLineItemsByKey.size;
+      }
+
+      const allocForPurchaseNumber = existingForNumber.map((x) => ({ ...x }));
+      const purchaseNumbers = preparedPurchases.map(() => {
+        const number = nextPurchaseNumber(allocForPurchaseNumber, activeId);
+        allocForPurchaseNumber.push({ number, businessId: activeId });
+        return number;
+      });
+
+      await asyncPool(
+        BULK_IO_CONCURRENCY,
+        preparedPurchases.map((p, i) => ({ ...p, number: purchaseNumbers[i] })),
+        async (
+          {
+            number,
+            row,
+            mapped,
+            party,
+            importedDate,
+            lines,
+            total,
+            paidAmount,
+            computed,
+            purchasePaymentMode,
+          },
+          idx,
+        ) => {
+          const importProof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
+          const finalizedAt = new Date().toISOString();
+          const savedPur = await upsert({
+            id: `pur_imp_${idx}_${Math.random().toString(36).slice(2, 11)}`,
+            businessId: activeId,
+            number,
+            orderNo: mapped.orderNo,
+            invoiceNo: mapped.invoiceNo,
+            date: importedDate,
+            partyId: party.id,
+            partyName: party.name,
+            partyState: party.state,
+            businessState: activeBusiness?.state,
+            lines,
+            subtotal: computed.subtotal,
+            itemDiscountTotal: computed.itemDiscountTotal,
+            overallDiscountKind: "percent",
+            overallDiscountValue: 0,
+            overallDiscountAmount: 0,
+            taxableValue: total,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
+            taxTotal: 0,
+            total,
+            paidAmount,
+            status: "final",
+            finalizedAt,
+            notes: composeNotesWithMeta(mapped.notes, { purchasePaymentMode }),
+            purchaseCategory: "short-term",
+            purchasePaymentMode,
+            proofDataUrl: importProof.proofDataUrl,
+            proofName: importProof.proofName,
+            createdAt: new Date().toISOString(),
+          });
+          const payOut = Math.min(Math.max(0, paidAmount), total);
+          if (savedPur && payOut > 0.001) {
+            try {
+              const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+              const accountId = resolveImportBankAccountId(
+                purchasePaymentMode,
+                bizAccounts,
+                String(row["Payment Type"] ?? ""),
+                null,
+              );
+              const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+              const proof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
+              await createImportPayment({
+                businessId: activeId,
+                partyId: savedPur.partyId || "_advance",
+                direction: "out",
+                date: importedDate,
+                amount: payOut,
+                mode: purchasePaymentMode,
+                accountId,
+                account: acc?.name,
+                reference: savedPur.number,
+                notes: `Excel import payment for ${savedPur.number}`,
+                proofDataUrl: proof.proofDataUrl,
+                proofName: proof.proofName,
+                allocations: [{ docId: savedPur.id, docNumber: savedPur.number, amount: payOut }],
+                excludeFromLedger: true,
+              });
+            } catch (payErr) {
+              console.error(payErr);
+              toast.warning(
+                `${savedPur.number}: marked final but payment was not posted to cash/bank. Record payment from the purchase if needed.`,
+              );
+            }
+          }
+        },
+      );
+
+      created = preparedPurchases.length;
 
       if (created === 0) {
         toast.error("No valid rows imported.");
