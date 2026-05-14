@@ -202,7 +202,7 @@ function DashboardPage() {
 
   const netCashBankNote = useMemo(() => {
     const m = format(monthStart, "MMMM yyyy");
-    return `Net for ${m}: lines dated in ${m} (payments, transfers, expenses), plus money dated in other months but allocated to invoices or purchases dated in ${m}. Credit sales with no payment stay ₹0 here until you record one.`;
+    return `Net for ${m}: lines dated in ${m} (payments, transfers, expenses), plus money dated in other months but allocated to invoices or purchases dated in ${m}. Bulk-import payments and expenses marked history-only do not change bank or cash. Credit sales with no payment stay ₹0 here until you record one.`;
   }, [monthStart]);
 
   const netProfit =
@@ -298,7 +298,6 @@ function DashboardPage() {
       amount: number;
       sign: "in" | "out";
       href: string;
-      /** Shown in recent list; does not change bank/cash ledger (e.g. spreadsheet import). */
       historyOnly?: boolean;
     };
     const items: Item[] = [];
@@ -322,7 +321,7 @@ function DashboardPage() {
         kind: "payment",
         date: p.date,
         title: p.direction === "in" ? "Payment received" : "Payment paid",
-        subtitle: historyOnly ? `${docLine} · History only (no bank/cash change)` : docLine,
+        subtitle: historyOnly ? `${docLine} · Import — bank/cash unchanged` : docLine,
         amount: p.amount,
         sign: p.direction === "in" ? "in" : "out",
         href: `/payments`,
@@ -337,7 +336,7 @@ function DashboardPage() {
         kind: "expense",
         date: e.date,
         title: e.category,
-        subtitle: historyOnly ? `${baseSub} · History only (no bank/cash change)` : baseSub,
+        subtitle: historyOnly ? `${baseSub} · Import — bank/cash unchanged` : baseSub,
         amount: e.amount,
         sign: "out",
         href: `/expenses/${e.id}`,

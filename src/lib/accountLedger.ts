@@ -4,7 +4,7 @@ import type { Account, AccountTxn, Transfer } from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
-/** Ledger balance delta from this payment (all settled payments move cash/bank). */
+/** Ledger balance delta from this payment. Bulk-import rows use {@link Payment.excludeFromLedger}. */
 export function paymentBalanceImpact(p: Payment): number {
   if (p.excludeFromLedger) return 0;
   return p.direction === "in" ? p.amount : -p.amount;
@@ -267,8 +267,7 @@ export function accountHasNonOpeningActivityInMonth(txns: AccountTxn[], monthSta
 
 /**
  * Allocations on this account toward docs in `docIds` when the **payment date** is **outside**
- * `monthStart`'s month. Pairs with {@link accountNetChangeInMonth} (which already counts payments
- * dated inside the month) so March sales can show April-dated receipts on the right account.
+ * `monthStart`'s month. Skips {@link Payment.excludeFromLedger} (bulk import) payments.
  */
 export function accountAllocatedOutsidePaymentMonth(
   account: Account,

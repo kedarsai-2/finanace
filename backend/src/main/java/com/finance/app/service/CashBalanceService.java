@@ -70,4 +70,3 @@ public class CashBalanceService {
         return dto;
     }
 }
-
