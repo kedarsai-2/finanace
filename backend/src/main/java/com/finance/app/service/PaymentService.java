@@ -31,16 +31,20 @@ public class PaymentService {
 
     private final CashLedgerAccountService cashLedgerAccountService;
 
+    private final BankLedgerAccountService bankLedgerAccountService;
+
     public PaymentService(
         PaymentRepository paymentRepository,
         PaymentAllocationRepository paymentAllocationRepository,
         PaymentMapper paymentMapper,
-        CashLedgerAccountService cashLedgerAccountService
+        CashLedgerAccountService cashLedgerAccountService,
+        BankLedgerAccountService bankLedgerAccountService
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentAllocationRepository = paymentAllocationRepository;
         this.paymentMapper = paymentMapper;
         this.cashLedgerAccountService = cashLedgerAccountService;
+        this.bankLedgerAccountService = bankLedgerAccountService;
     }
 
     /**
@@ -54,6 +58,13 @@ public class PaymentService {
         Payment payment = paymentMapper.toEntity(paymentDTO);
         if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
             payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
+        }
+        if (
+            (payment.getMode() == PaymentMode.BANK || payment.getMode() == PaymentMode.UPI) &&
+            payment.getAccount() == null &&
+            payment.getBusiness() != null
+        ) {
+            payment.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(payment.getBusiness().getId()));
         }
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
@@ -70,6 +81,13 @@ public class PaymentService {
         Payment payment = paymentMapper.toEntity(paymentDTO);
         if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
             payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
+        }
+        if (
+            (payment.getMode() == PaymentMode.BANK || payment.getMode() == PaymentMode.UPI) &&
+            payment.getAccount() == null &&
+            payment.getBusiness() != null
+        ) {
+            payment.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(payment.getBusiness().getId()));
         }
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
@@ -94,6 +112,15 @@ public class PaymentService {
                     existingPayment.getBusiness() != null
                 ) {
                     existingPayment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(existingPayment.getBusiness().getId()));
+                }
+                if (
+                    (existingPayment.getMode() == PaymentMode.BANK || existingPayment.getMode() == PaymentMode.UPI) &&
+                    existingPayment.getAccount() == null &&
+                    existingPayment.getBusiness() != null
+                ) {
+                    existingPayment.setAccount(
+                        bankLedgerAccountService.getOrCreatePrimaryBankAccount(existingPayment.getBusiness().getId())
+                    );
                 }
 
                 return existingPayment;

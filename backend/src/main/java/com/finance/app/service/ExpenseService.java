@@ -28,10 +28,18 @@ public class ExpenseService {
 
     private final CashLedgerAccountService cashLedgerAccountService;
 
-    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper, CashLedgerAccountService cashLedgerAccountService) {
+    private final BankLedgerAccountService bankLedgerAccountService;
+
+    public ExpenseService(
+        ExpenseRepository expenseRepository,
+        ExpenseMapper expenseMapper,
+        CashLedgerAccountService cashLedgerAccountService,
+        BankLedgerAccountService bankLedgerAccountService
+    ) {
         this.expenseRepository = expenseRepository;
         this.expenseMapper = expenseMapper;
         this.cashLedgerAccountService = cashLedgerAccountService;
+        this.bankLedgerAccountService = bankLedgerAccountService;
     }
 
     /**
@@ -45,6 +53,13 @@ public class ExpenseService {
         Expense expense = expenseMapper.toEntity(expenseDTO);
         if (expense.getMode() == PaymentMode.CASH && expense.getAccount() == null && expense.getBusiness() != null) {
             expense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(expense.getBusiness().getId()));
+        }
+        if (
+            (expense.getMode() == PaymentMode.BANK || expense.getMode() == PaymentMode.UPI) &&
+            expense.getAccount() == null &&
+            expense.getBusiness() != null
+        ) {
+            expense.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(expense.getBusiness().getId()));
         }
         expense = expenseRepository.save(expense);
         return expenseMapper.toDto(expense);
@@ -61,6 +76,13 @@ public class ExpenseService {
         Expense expense = expenseMapper.toEntity(expenseDTO);
         if (expense.getMode() == PaymentMode.CASH && expense.getAccount() == null && expense.getBusiness() != null) {
             expense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(expense.getBusiness().getId()));
+        }
+        if (
+            (expense.getMode() == PaymentMode.BANK || expense.getMode() == PaymentMode.UPI) &&
+            expense.getAccount() == null &&
+            expense.getBusiness() != null
+        ) {
+            expense.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(expense.getBusiness().getId()));
         }
         expense = expenseRepository.save(expense);
         return expenseMapper.toDto(expense);
@@ -85,6 +107,15 @@ public class ExpenseService {
                     existingExpense.getBusiness() != null
                 ) {
                     existingExpense.setAccount(cashLedgerAccountService.getOrCreateCashAccount(existingExpense.getBusiness().getId()));
+                }
+                if (
+                    (existingExpense.getMode() == PaymentMode.BANK || existingExpense.getMode() == PaymentMode.UPI) &&
+                    existingExpense.getAccount() == null &&
+                    existingExpense.getBusiness() != null
+                ) {
+                    existingExpense.setAccount(
+                        bankLedgerAccountService.getOrCreatePrimaryBankAccount(existingExpense.getBusiness().getId())
+                    );
                 }
 
                 return existingExpense;

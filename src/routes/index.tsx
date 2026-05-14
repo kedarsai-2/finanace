@@ -59,6 +59,7 @@ import {
   expenseExcludedFromLedger,
   paymentExcludedFromLedger,
 } from "@/lib/accountLedger";
+import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -204,6 +205,20 @@ function DashboardPage() {
   /** Collections in the selected month (payment date), including invoice-linked receipts. */
   const totalReceived = totalPaymentsReceived;
 
+  /** Paid portions on invoices in the month, split by stored payment mode (import/UI). Not the same as ledger cash/bank. */
+  const salesPaidByChannel = useMemo(() => {
+    let bankLike = 0;
+    let cashLike = 0;
+    for (const i of monthInvoices) {
+      const paid = Math.max(0, Number(i.paidAmount ?? 0));
+      if (paid <= 0.005) continue;
+      const mode = parseSpreadsheetPaymentMode(i.paymentType ?? "");
+      if (mode === "cash") cashLike += paid;
+      else bankLike += paid;
+    }
+    return { bankLike, cashLike };
+  }, [monthInvoices]);
+
   const netCashBankNote = useMemo(() => {
     const m = format(monthStart, "MMMM yyyy");
     return `Net for ${m}: lines dated in ${m} (payments, transfers, expenses), plus money dated in other months but allocated to invoices or purchases dated in ${m}. Bulk-import payments and expenses marked history-only do not change bank or cash. Credit sales with no payment stay ₹0 here until you record one.`;
@@ -298,6 +313,67 @@ function DashboardPage() {
     monthStart,
     monthInvoiceIds,
     monthPurchaseIds,
+  ]);
+
+  const cashCardFooter = useMemo(() => {
+    if (accountBalances.cashRows.length > 0) {
+      return <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />;
+    }
+    if (salesPaidByChannel.cashLike > 0.005) {
+      return (
+        <InvoicePaidChannelHint
+          title="Cash / petty (from invoices paid this month)"
+          amount={salesPaidByChannel.cashLike}
+          currency={currency}
+        />
+      );
+    }
+    if (totalSales > 0.005) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          No cash ledger movement for {format(monthStart, "MMMM")} yet — usually credit sales,
+          history-only imports, or payments dated in another month.
+        </p>
+      );
+    }
+    return null;
+  }, [
+    accountBalances.cashRows,
+    salesPaidByChannel.cashLike,
+    totalSales,
+    currency,
+    monthStart,
+  ]);
+
+  const bankCardFooter = useMemo(() => {
+    if (accountBalances.bankRows.length > 0) {
+      return <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />;
+    }
+    if (salesPaidByChannel.bankLike > 0.005) {
+      return (
+        <InvoicePaidChannelHint
+          title="Bank / UPI / cheque (from invoices paid this month)"
+          amount={salesPaidByChannel.bankLike}
+          currency={currency}
+        />
+      );
+    }
+    if (totalSales > 0.005) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          No bank ledger movement for {format(monthStart, "MMMM")} yet — often unpaid invoices or
+          history-only imports. Saving a bank or UPI payment can create a default Bank account when
+          none exists.
+        </p>
+      );
+    }
+    return null;
+  }, [
+    accountBalances.bankRows,
+    salesPaidByChannel.bankLike,
+    totalSales,
+    currency,
+    monthStart,
   ]);
 
   // Trend uses all-time rows for the rolling window — not the dashboard month filter.
@@ -558,11 +634,7 @@ function DashboardPage() {
           tone="primary"
           amountToneFromSign
           icon={<Wallet className="h-4 w-4" />}
-          footer={
-            accountBalances.cashRows.length > 0 ? (
-              <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />
-            ) : null
-          }
+          footer={cashCardFooter}
         />
         <BalanceCard
           to="/accounts"
@@ -574,11 +646,7 @@ function DashboardPage() {
           tone="primary"
           amountToneFromSign
           icon={<CreditCard className="h-4 w-4" />}
-          footer={
-            accountBalances.bankRows.length > 0 ? (
-              <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />
-            ) : null
-          }
+          footer={bankCardFooter}
         />
       </section>
 
@@ -734,6 +802,28 @@ function SummaryCard({
       </p>
       {note ? <p className="mt-1 text-[11px] text-muted-foreground">{note}</p> : null}
     </Link>
+  );
+}
+
+function InvoicePaidChannelHint({
+  title,
+  amount,
+  currency,
+}: {
+  title: string;
+  amount: number;
+  currency: string;
+}) {
+  return (
+    <div className="text-xs text-muted-foreground">
+      <p className="mb-1 font-medium text-foreground/90">{title}</p>
+      <p className="tabular-nums text-foreground">{formatCurrency(amount, currency)}</p>
+      <p className="mt-1 text-[10px] leading-snug">
+        Split from each invoice&apos;s paid amount and payment mode. Card totals above follow the
+        cash/bank ledger (payments, transfers, expenses), so they can differ until those are
+        recorded.
+      </p>
+    </div>
   );
 }
 
