@@ -53,7 +53,6 @@ import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
 import {
   accountAllocatedOutsidePaymentMonth,
-  accountDisplayFlowNetInMonth,
   accountNetChangeInMonth,
   buildAccountTxns,
   expenseExcludedFromLedger,
@@ -284,21 +283,17 @@ function DashboardPage() {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
     let cash = 0;
     let bank = 0;
-    let cashActivity = 0;
-    let bankActivity = 0;
     let cashCount = 0;
     let bankCount = 0;
     const cashRows: {
       id: string;
       name: string;
       ledgerNet: number;
-      activityNet: number;
     }[] = [];
     const bankRows: {
       id: string;
       name: string;
       ledgerNet: number;
-      activityNet: number;
     }[] = [];
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
@@ -326,16 +321,13 @@ function DashboardPage() {
         accountsById,
       );
       const ledgerNet = inMonth + liftSales + liftPurchases;
-      const activityNet = accountDisplayFlowNetInMonth(txns, monthStart);
-      const row = { id: a.id, name: a.name, ledgerNet, activityNet };
+      const row = { id: a.id, name: a.name, ledgerNet };
       if (a.type === "cash") {
         cash += ledgerNet;
-        cashActivity += activityNet;
         cashCount += 1;
         cashRows.push(row);
       } else {
         bank += ledgerNet;
-        bankActivity += activityNet;
         bankCount += 1;
         bankRows.push(row);
       }
@@ -343,8 +335,6 @@ function DashboardPage() {
     return {
       cash,
       bank,
-      cashActivity,
-      bankActivity,
       cashCount,
       bankCount,
       cashRows,
@@ -992,7 +982,6 @@ function AccountMonthBreakdown({
     id: string;
     name: string;
     ledgerNet: number;
-    activityNet: number;
   }[];
   currency: string;
 }) {
@@ -1001,25 +990,14 @@ function AccountMonthBreakdown({
     <div className="text-xs text-muted-foreground">
       <p className="mb-1.5 font-medium text-foreground/90">Per account</p>
       <ul className="space-y-1">
-        {rows.map((r) => {
-          const diff = Math.abs(r.activityNet - r.ledgerNet) > 0.005;
-          return (
-            <li key={r.id} className="flex justify-between gap-2 tabular-nums">
-              <span className="min-w-0 truncate">{r.name}</span>
-              <span className="shrink-0 text-right">
-                <span title="Ledger net (balance impact)">{formatCurrency(r.ledgerNet, currency)}</span>
-                {diff ? (
-                  <>
-                    <span className="text-muted-foreground"> · </span>
-                    <span title="Same month, register view (may include history-only import lines)">
-                      {formatCurrency(r.activityNet, currency)}
-                    </span>
-                  </>
-                ) : null}
-              </span>
-            </li>
-          );
-        })}
+        {rows.map((r) => (
+          <li key={r.id} className="flex justify-between gap-2 tabular-nums">
+            <span className="min-w-0 truncate">{r.name}</span>
+            <span className="shrink-0 text-right" title="Ledger net (balance impact)">
+              {formatCurrency(r.ledgerNet, currency)}
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   );
