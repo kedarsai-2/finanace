@@ -1,4 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useBusinesses } from "@/hooks/useBusinesses";
 import type { Invoice, InvoiceLine, InvoiceType } from "@/types/invoice";
 import { computeTotals } from "@/types/invoice";
 import { useParties } from "@/hooks/useParties";
@@ -435,8 +446,40 @@ function read(): Invoice[] {
   }
 }
 
-export function useInvoices(businessId?: string | null) {
-  const [invoices, setInvoices] = useState<Invoice[]>(seed);
+function initialInvoicesState(): Invoice[] {
+  if (typeof window === "undefined") return seed;
+  if (USE_BACKEND) return [];
+  return read();
+}
+
+export type InvoicesRepository = {
+  allInvoices: Invoice[];
+  hydrated: boolean;
+  upsert: (inv: Invoice) => Promise<Invoice>;
+  remove: (id: string) => Promise<void>;
+  cancel: (id: string) => Promise<void>;
+  ensureLines: (invoiceId: string) => Promise<void>;
+  refresh: () => Promise<void>;
+  convertToCreditNote: (
+    sourceId: string,
+    creditAmount?: number,
+    paymentMode?: CreditNotePaymentMode,
+    creditDate?: string,
+    accountId?: string,
+  ) => Promise<Invoice | null>;
+};
+
+const InvoicesContext = createContext<InvoicesRepository | null>(null);
+
+/** One shared invoice store for the whole app shell — keeps Sales, Dashboard, and reports in sync. */
+export function InvoicesProvider({ children }: { children: ReactNode }) {
+  const { scopedBusinessId } = useBusinesses();
+  const repo = useInvoicesRepository(scopedBusinessId);
+  return createElement(InvoicesContext.Provider, { value: repo }, children);
+}
+
+function useInvoicesRepository(businessId?: string | null) {
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoicesState);
   const [hydrated, setHydrated] = useState(false);
   const { upsertLedgerEntry, removeLedgerEntry } = useParties();
 
@@ -484,7 +527,11 @@ export function useInvoices(businessId?: string | null) {
   }, [invoices, hydrated]);
 
   const refresh = useCallback(async () => {
-    if (!USE_BACKEND) return;
+    if (!USE_BACKEND) {
+      setInvoices(read());
+      setHydrated(true);
+      return;
+    }
     const query = businessId
       ? `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`
       : `/api/invoices?size=500&sort=id,desc`;
@@ -693,26 +740,6 @@ export function useInvoices(businessId?: string | null) {
     [syncLedger],
   );
 
-  const scoped = useMemo(
-    () =>
-      invoices.filter(
-        (x) =>
-          !x.deleted &&
-          (x.kind ?? "invoice") === "invoice" &&
-          (!businessId || x.businessId === businessId),
-      ),
-    [invoices, businessId],
-  );
-
-  const creditNotes = useMemo(
-    () =>
-      invoices.filter(
-        (x) =>
-          !x.deleted && x.kind === "credit-note" && (!businessId || x.businessId === businessId),
-      ),
-    [invoices, businessId],
-  );
-
   /**
    * Convert a finalised invoice into a draft credit-note that mirrors its
    * lines. The user can edit qty/lines before finalising.
@@ -790,8 +817,6 @@ export function useInvoices(businessId?: string | null) {
   );
 
   return {
-    invoices: scoped,
-    creditNotes,
     allInvoices: invoices,
     hydrated,
     upsert,
@@ -800,6 +825,43 @@ export function useInvoices(businessId?: string | null) {
     ensureLines,
     refresh,
     convertToCreditNote,
+  };
+}
+
+export function useInvoices(businessId?: string | null) {
+  const repo = useContext(InvoicesContext);
+  if (!repo) {
+    throw new Error("useInvoices must be used within <InvoicesProvider> (wrap the app <Outlet />).");
+  }
+  const invoices = useMemo(
+    () =>
+      repo.allInvoices.filter(
+        (x) =>
+          !x.deleted &&
+          (x.kind ?? "invoice") === "invoice" &&
+          (!businessId || x.businessId === businessId),
+      ),
+    [repo.allInvoices, businessId],
+  );
+  const creditNotes = useMemo(
+    () =>
+      repo.allInvoices.filter(
+        (x) =>
+          !x.deleted && x.kind === "credit-note" && (!businessId || x.businessId === businessId),
+      ),
+    [repo.allInvoices, businessId],
+  );
+  return {
+    invoices,
+    creditNotes,
+    allInvoices: repo.allInvoices,
+    hydrated: repo.hydrated,
+    upsert: repo.upsert,
+    remove: repo.remove,
+    cancel: repo.cancel,
+    ensureLines: repo.ensureLines,
+    refresh: repo.refresh,
+    convertToCreditNote: repo.convertToCreditNote,
   };
 }
 

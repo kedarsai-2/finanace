@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { InvoicesProvider } from "@/hooks/useInvoices";
 import appCss from "../styles.css?url";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
@@ -225,7 +226,9 @@ function RootComponent() {
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />
-        <Outlet />
+        <InvoicesProvider>
+          <Outlet />
+        </InvoicesProvider>
       </div>
       <Toaster richColors position="top-right" />
     </div>
