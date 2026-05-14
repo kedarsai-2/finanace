@@ -14,9 +14,14 @@ export function paymentExcludedFromLedger(
     .includes("excel import");
 }
 
-/** True when this expense must not change bank/cash ledger (bulk import flag). */
-export function expenseExcludedFromLedger(e: Pick<Expense, "excludeFromLedger">): boolean {
-  return Boolean(e.excludeFromLedger);
+/** True when this expense must not change bank/cash ledger (bulk import flag or legacy marker). */
+export function expenseExcludedFromLedger(
+  e: Pick<Expense, "excludeFromLedger" | "notes">,
+): boolean {
+  if (e.excludeFromLedger) return true;
+  return String(e.notes ?? "")
+    .toLowerCase()
+    .includes("excel import");
 }
 
 /** Ledger balance delta from this payment. Bulk-import rows do not move bank/cash. */

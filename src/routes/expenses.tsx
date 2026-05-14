@@ -337,6 +337,7 @@ function ExpensesPage() {
           createdItems += 1;
         }
 
+        const baseNotes = (mapped.notes ?? "").trim();
         await add({
           id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
           businessId: activeId,
@@ -348,7 +349,7 @@ function ExpensesPage() {
           partyId: party?.id,
           mode: payMode,
           reference: mapped.reference,
-          notes: mapped.notes,
+          notes: baseNotes ? `${baseNotes} · Excel import` : "Excel import",
           receivedPaidAmount: mapped.receivedPaidAmount,
           balanceDue: mapped.balanceDue,
           orderNo: itemMapped.orderNo,
