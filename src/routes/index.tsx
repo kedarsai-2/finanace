@@ -59,6 +59,8 @@ import {
   paymentExcludedFromLedger,
 } from "@/lib/accountLedger";
 import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
+import type { Expense } from "@/types/expense";
+import type { Purchase } from "@/types/purchase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -77,6 +79,21 @@ const RANGE_LABEL: Record<Range, string> = {
   "6m": "6 months",
   "1y": "1 year",
 };
+
+/** Align with expense DTO mapping: unset mode + bank account ⇒ bank. */
+function expenseAmountToCashBank(e: Expense): "cash" | "bank" {
+  if (e.mode === "bank" || e.mode === "cheque") return "bank";
+  if (e.mode === "cash") return "cash";
+  if (e.accountId) return "bank";
+  return "cash";
+}
+
+/** Paid amount if any; else bill total (credit bills still show a mode split on the dashboard). */
+function purchaseAmountForModeSplit(p: Purchase): number {
+  const paid = Math.max(0, Number(p.paidAmount ?? 0));
+  const total = Math.max(0, Number(p.total ?? 0));
+  return paid > 0.005 ? paid : total;
+}
 
 /** Parse stored ISO / calendar dates without UTC shifting `yyyy-mm-dd` across month boundaries. */
 function parseDashDate(raw: string): Date | null {
@@ -218,45 +235,32 @@ function DashboardPage() {
     return { bankLike, cashLike };
   }, [monthInvoices]);
 
-  /** Supplier payments on purchases dated this month (paid amount × purchase payment mode). */
+  /** Supplier bills dated this month: split by payment mode; uses paid amount or full total if unpaid. */
   const purchasesPaidByChannel = useMemo(() => {
     let bankLike = 0;
     let cashLike = 0;
     for (const p of monthPurchases) {
-      const paid = Math.max(0, Number(p.paidAmount ?? 0));
-      if (paid <= 0.005) continue;
-      const mode = p.purchasePaymentMode ?? "cash";
-      if (mode === "bank" || mode === "cheque") bankLike += paid;
-      else cashLike += paid;
+      const basis = purchaseAmountForModeSplit(p);
+      if (basis <= 0.005) continue;
+      const raw = p.purchasePaymentMode ?? "cash";
+      if (raw === "bank" || raw === "cheque") bankLike += basis;
+      else cashLike += basis;
     }
     return { bankLike, cashLike };
   }, [monthPurchases]);
 
-  /** Expenses dated this month split by payment mode (defaults to cash when unset). */
+  /** Expenses dated this month split by payment mode / account (matches list semantics). */
   const expensesByChannel = useMemo(() => {
     let bankLike = 0;
     let cashLike = 0;
     for (const e of monthExpenses) {
       const amt = Math.max(0, Number(e.amount ?? 0));
       if (amt <= 0.005) continue;
-      const m = e.mode ?? "cash";
-      if (m === "bank" || m === "cheque") bankLike += amt;
+      if (expenseAmountToCashBank(e) === "bank") bankLike += amt;
       else cashLike += amt;
     }
     return { bankLike, cashLike };
   }, [monthExpenses]);
-
-  /** Exactly one of sales / purchases / expenses has a non-zero month total — show document-level cash vs bank split. */
-  const singleDocKind = useMemo(() => {
-    const hasS = totalSales > 0.005;
-    const hasP = totalPurchases > 0.005;
-    const hasE = totalExpenses > 0.005;
-    const n = [hasS, hasP, hasE].filter(Boolean).length;
-    if (n !== 1) return null;
-    if (hasS) return "sales" as const;
-    if (hasP) return "purchases" as const;
-    return "expenses" as const;
-  }, [totalSales, totalPurchases, totalExpenses]);
 
   const netProfit =
     totalSales +
@@ -351,44 +355,45 @@ function DashboardPage() {
   ]);
 
   const cashCardFooter = useMemo(() => {
-    const single =
-      singleDocKind != null ? (
-        <SingleMetricChannelFooter
-          kind={singleDocKind}
-          channel="cash"
-          currency={currency}
-          monthLabel={format(monthStart, "MMMM yyyy")}
-          salesPaid={salesPaidByChannel}
-          purchasesPaid={purchasesPaidByChannel}
-          expensesCh={expensesByChannel}
-        />
-      ) : null;
+    const showDocModeCash =
+      salesPaidByChannel.cashLike > 0.005 ||
+      purchasesPaidByChannel.cashLike > 0.005 ||
+      expensesByChannel.cashLike > 0.005;
+    const docBlock = showDocModeCash ? (
+      <DocumentModeByChannelFooter
+        channel="cash"
+        currency={currency}
+        monthLabel={format(monthStart, "MMMM yyyy")}
+        salesPaid={salesPaidByChannel}
+        purchasesPaid={purchasesPaidByChannel}
+        expensesCh={expensesByChannel}
+      />
+    ) : null;
 
     const ledgerBlock =
       accountBalances.cashRows.length > 0 ? (
         <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />
-      ) : salesPaidByChannel.cashLike > 0.005 ? (
+      ) : !showDocModeCash && salesPaidByChannel.cashLike > 0.005 ? (
         <InvoicePaidChannelHint
           title="Cash / petty (from invoices paid this month)"
           amount={salesPaidByChannel.cashLike}
           currency={currency}
         />
-      ) : totalSales > 0.005 ? (
+      ) : !showDocModeCash && totalSales > 0.005 ? (
         <p className="text-xs text-muted-foreground">
           No cash ledger movement for {format(monthStart, "MMMM")} yet — usually credit sales,
           history-only imports, or payments dated in another month.
         </p>
       ) : null;
 
-    if (!single && !ledgerBlock) return null;
+    if (!docBlock && !ledgerBlock) return null;
     return (
       <div className="space-y-2">
-        {single}
+        {docBlock}
         {ledgerBlock}
       </div>
     );
   }, [
-    singleDocKind,
     accountBalances.cashRows,
     salesPaidByChannel,
     purchasesPaidByChannel,
@@ -399,29 +404,31 @@ function DashboardPage() {
   ]);
 
   const bankCardFooter = useMemo(() => {
-    const single =
-      singleDocKind != null ? (
-        <SingleMetricChannelFooter
-          kind={singleDocKind}
-          channel="bank"
-          currency={currency}
-          monthLabel={format(monthStart, "MMMM yyyy")}
-          salesPaid={salesPaidByChannel}
-          purchasesPaid={purchasesPaidByChannel}
-          expensesCh={expensesByChannel}
-        />
-      ) : null;
+    const showDocModeBank =
+      salesPaidByChannel.bankLike > 0.005 ||
+      purchasesPaidByChannel.bankLike > 0.005 ||
+      expensesByChannel.bankLike > 0.005;
+    const docBlock = showDocModeBank ? (
+      <DocumentModeByChannelFooter
+        channel="bank"
+        currency={currency}
+        monthLabel={format(monthStart, "MMMM yyyy")}
+        salesPaid={salesPaidByChannel}
+        purchasesPaid={purchasesPaidByChannel}
+        expensesCh={expensesByChannel}
+      />
+    ) : null;
 
     const ledgerBlock =
       accountBalances.bankRows.length > 0 ? (
         <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />
-      ) : salesPaidByChannel.bankLike > 0.005 ? (
+      ) : !showDocModeBank && salesPaidByChannel.bankLike > 0.005 ? (
         <InvoicePaidChannelHint
           title="Bank / UPI / cheque (from invoices paid this month)"
           amount={salesPaidByChannel.bankLike}
           currency={currency}
         />
-      ) : totalSales > 0.005 ? (
+      ) : !showDocModeBank && totalSales > 0.005 ? (
         <p className="text-xs text-muted-foreground">
           No bank ledger movement for {format(monthStart, "MMMM")} yet — often unpaid invoices or
           history-only imports. Saving a bank or UPI payment can create a default Bank account when
@@ -429,15 +436,14 @@ function DashboardPage() {
         </p>
       ) : null;
 
-    if (!single && !ledgerBlock) return null;
+    if (!docBlock && !ledgerBlock) return null;
     return (
       <div className="space-y-2">
-        {single}
+        {docBlock}
         {ledgerBlock}
       </div>
     );
   }, [
-    singleDocKind,
     accountBalances.bankRows,
     salesPaidByChannel,
     purchasesPaidByChannel,
@@ -898,8 +904,7 @@ function formatSignedCurrency(amount: number, currency: string) {
   return core;
 }
 
-function SingleMetricChannelFooter({
-  kind,
+function DocumentModeByChannelFooter({
   channel,
   currency,
   monthLabel,
@@ -907,7 +912,6 @@ function SingleMetricChannelFooter({
   purchasesPaid,
   expensesCh,
 }: {
-  kind: "sales" | "purchases" | "expenses";
   channel: "cash" | "bank";
   currency: string;
   monthLabel: string;
@@ -915,61 +919,42 @@ function SingleMetricChannelFooter({
   purchasesPaid: { cashLike: number; bankLike: number };
   expensesCh: { cashLike: number; bankLike: number };
 }) {
-  const flow: "in" | "out" = kind === "sales" ? "in" : "out";
-  const raw =
-    kind === "sales"
-      ? channel === "cash"
-        ? salesPaid.cashLike
-        : salesPaid.bankLike
-      : kind === "purchases"
-        ? channel === "cash"
-          ? purchasesPaid.cashLike
-          : purchasesPaid.bankLike
-        : channel === "cash"
-          ? expensesCh.cashLike
-          : expensesCh.bankLike;
-
-  const label =
-    kind === "sales"
-      ? channel === "cash"
-        ? "Sales — paid (cash / petty)"
-        : "Sales — paid (bank / UPI / cheque)"
-      : kind === "purchases"
-        ? channel === "cash"
-          ? "Purchases — paid (cash)"
-          : "Purchases — paid (bank / cheque)"
-        : channel === "cash"
-          ? "Expenses (cash)"
-          : "Expenses (bank / UPI / cheque)";
-
-  const signed = flow === "in" ? raw : -raw;
-  const hasAmount = raw > 0.005;
-  const toneCls = !hasAmount
-    ? "text-muted-foreground"
-    : signed > 0.005
-      ? "text-success"
-      : signed < -0.005
-        ? "text-destructive"
-        : "text-muted-foreground";
-
+  const sc = channel === "cash" ? salesPaid.cashLike : salesPaid.bankLike;
+  const pc = channel === "cash" ? purchasesPaid.cashLike : purchasesPaid.bankLike;
+  const ec = channel === "cash" ? expensesCh.cashLike : expensesCh.bankLike;
+  const lines: { key: string; label: string; signed: number }[] = [];
+  if (sc > 0.005) lines.push({ key: "s", label: "Sales (paid)", signed: sc });
+  if (pc > 0.005) lines.push({ key: "p", label: "Purchases", signed: -pc });
+  if (ec > 0.005) lines.push({ key: "e", label: "Expenses", signed: -ec });
+  if (lines.length === 0) return null;
   return (
     <div className="rounded-lg border border-border/80 bg-muted/20 px-2.5 py-2 text-xs">
       <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        {monthLabel} · By payment mode
+        {monthLabel} · By payment mode ({channel === "cash" ? "cash / petty" : "bank / UPI / cheque"})
       </p>
-      <p className="mt-0.5 text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 text-base font-semibold tabular-nums", toneCls)}>
-        {!hasAmount ? "—" : formatSignedCurrency(signed, currency)}
+      <ul className="mt-1.5 space-y-1">
+        {lines.map((r) => (
+          <li key={r.key} className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{r.label}</span>
+            <span
+              className={cn(
+                "shrink-0 font-semibold tabular-nums",
+                r.signed > 0.005
+                  ? "text-success"
+                  : r.signed < -0.005
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+              )}
+            >
+              {formatSignedCurrency(r.signed, currency)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
+        Document dates in this month. Expenses use payment mode or linked bank account; purchases use
+        paid amount, or full bill when unpaid, by stored payment mode.
       </p>
-      {!hasAmount ? (
-        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
-          {kind === "sales"
-            ? "Nothing on this channel (e.g. all credit, or paid amounts tagged to the other channel)."
-            : kind === "purchases"
-              ? "No supplier payments on this channel for bills dated this month."
-              : "No expenses on this channel dated this month."}
-        </p>
-      ) : null}
     </div>
   );
 }

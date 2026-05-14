@@ -75,6 +75,7 @@ import {
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
+import { composeNotesWithMeta } from "@/lib/documentMeta";
 
 function sheetToMatrix(sheet: XLSX.WorkSheet): unknown[][] {
   return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }) as unknown[][];
@@ -532,7 +533,7 @@ function PurchasesPage() {
           paidAmount,
           status: "final",
           finalizedAt,
-          notes: mapped.notes,
+          notes: composeNotesWithMeta(mapped.notes, { purchasePaymentMode }),
           purchaseCategory: "short-term",
           purchasePaymentMode,
           proofDataUrl: importProof.proofDataUrl,
