@@ -84,6 +84,7 @@ import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 import { toStrId } from "@/lib/dto";
 import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
+import { USE_BACKEND } from "@/lib/flags";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -184,7 +185,7 @@ function InvoicesPage() {
   const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
   const { items, upsert: upsertItem } = useItems(scopedBusinessId);
   const { payments } = usePayments(scopedBusinessId);
-  const { create: createImportPayment } = usePayments(activeId);
+  const { create: createImportPayment, refresh: refreshPaymentsAfterBulk } = usePayments(activeId);
   const { accounts: accountsForImport } = useAccounts(activeId, []);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -604,7 +605,7 @@ function InvoicesPage() {
         return number;
       });
 
-      await asyncPool(
+      const upsertResults = await asyncPool(
         BULK_IO_CONCURRENCY,
         preparedSales.map((p, i) => ({ ...p, number: invoiceNumbers[i] })),
         async ({ number, row, mapped, party, importedDate, lines, total, paidAmount, computed }, idx) => {
@@ -646,44 +647,61 @@ function InvoicesPage() {
             notes: mapped.notes,
             createdAt: new Date().toISOString(),
           });
-          const payAmt = Math.min(Math.max(0, paidAmount), total);
-          if (payAmt > 0.001) {
-            try {
-              const mode = parseSpreadsheetPaymentMode(mapped.paymentType ?? row["Payment Type"]);
-              const proof = IMPORT_PLACEHOLDER_PROOF[mode];
-              const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
-              const accountId = resolveImportBankAccountId(
-                mode,
-                bizAccounts,
-                String(row["Payment Type"] ?? ""),
-                null,
-              );
-              const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
-              await createImportPayment({
+          return { savedInv, row, mapped, importedDate, paidAmount, total };
+        },
+      );
+
+      const payJobs = upsertResults
+        .map((r) => {
+          const payAmt = Math.min(Math.max(0, r.paidAmount), r.total);
+          if (payAmt <= 0.001) return null;
+          return { ...r, payAmt };
+        })
+        .filter((x): x is NonNullable<typeof x> => x != null);
+
+      if (payJobs.length > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, payJobs, async (job) => {
+          try {
+            const mode = parseSpreadsheetPaymentMode(job.mapped.paymentType ?? job.row["Payment Type"]);
+            const proof = IMPORT_PLACEHOLDER_PROOF[mode];
+            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+            const accountId = resolveImportBankAccountId(
+              mode,
+              bizAccounts,
+              String(job.row["Payment Type"] ?? ""),
+              null,
+            );
+            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+            await createImportPayment(
+              {
                 businessId: activeId,
-                partyId: savedInv.partyId || "_advance",
+                partyId: job.savedInv.partyId || "_advance",
                 direction: "in",
-                date: importedDate,
-                amount: payAmt,
+                date: job.importedDate,
+                amount: job.payAmt,
                 mode,
                 accountId,
                 account: acc?.name,
-                reference: savedInv.number,
-                notes: `Excel import receipt for ${savedInv.number}`,
+                reference: job.savedInv.number,
+                notes: `Excel import receipt for ${job.savedInv.number}`,
                 proofDataUrl: proof.proofDataUrl,
                 proofName: proof.proofName,
-                allocations: [{ docId: savedInv.id, docNumber: savedInv.number, amount: payAmt }],
+                allocations: [
+                  { docId: job.savedInv.id, docNumber: job.savedInv.number, amount: job.payAmt },
+                ],
                 excludeFromLedger: true,
-              });
-            } catch (payErr) {
-              console.error(payErr);
-              toast.warning(
-                `${savedInv.number}: marked final but receipt was not posted to cash/bank. Record payment from the sale if needed.`,
-              );
-            }
+              },
+              USE_BACKEND ? { skipRefresh: true } : undefined,
+            );
+          } catch (payErr) {
+            console.error(payErr);
+            toast.warning(
+              `${job.savedInv.number}: marked final but receipt was not posted to cash/bank. Record payment from the sale if needed.`,
+            );
           }
-        },
-      );
+        });
+        if (USE_BACKEND) await refreshPaymentsAfterBulk();
+      }
 
       created = preparedSales.length;
 

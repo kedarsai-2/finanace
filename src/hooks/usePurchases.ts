@@ -499,14 +499,15 @@ export function usePurchases(businessId?: string | null) {
           apiFetch<void>(`/api/purchase-lines/${l.id}`, { method: "DELETE" }),
         ),
       );
-      for (let i = 0; i < p.lines.length; i++) {
-        const line = p.lines[i];
-        const lineDto = lineToDto(savedId, line, i);
-        await apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
-          method: "POST",
-          body: JSON.stringify({ ...lineDto, id: undefined }),
-        });
-      }
+      await Promise.all(
+        p.lines.map((line, i) => {
+          const lineDto = lineToDto(savedId, line, i);
+          return apiFetch<PurchaseLineDTO>(`/api/purchase-lines`, {
+            method: "POST",
+            body: JSON.stringify({ ...lineDto, id: undefined }),
+          });
+        }),
+      );
 
       const after: Purchase = { ...dtoToPurchase(saved), lines: p.lines };
       setPurchases((prev) => {

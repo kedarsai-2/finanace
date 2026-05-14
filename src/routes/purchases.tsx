@@ -76,6 +76,7 @@ import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 import { composeNotesWithMeta } from "@/lib/documentMeta";
+import { USE_BACKEND } from "@/lib/flags";
 
 function sheetToMatrix(sheet: XLSX.WorkSheet): unknown[][] {
   return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }) as unknown[][];
@@ -213,7 +214,7 @@ function PurchasesPage() {
   const { purchases, hydrated, upsert, remove, cancel } = usePurchases(scopedBusinessId);
   const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
   const { items, upsert: upsertItem } = useItems(scopedBusinessId);
-  const { create: createImportPayment } = usePayments(activeId);
+  const { create: createImportPayment, refresh: refreshPaymentsAfterBulk } = usePayments(activeId);
   const { accounts: accountsForImport } = useAccounts(activeId, []);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -564,7 +565,7 @@ function PurchasesPage() {
         return number;
       });
 
-      await asyncPool(
+      const upsertResults = await asyncPool(
         BULK_IO_CONCURRENCY,
         preparedPurchases.map((p, i) => ({ ...p, number: purchaseNumbers[i] })),
         async (
@@ -617,43 +618,69 @@ function PurchasesPage() {
             proofName: importProof.proofName,
             createdAt: new Date().toISOString(),
           });
-          const payOut = Math.min(Math.max(0, paidAmount), total);
-          if (savedPur && payOut > 0.001) {
-            try {
-              const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
-              const accountId = resolveImportBankAccountId(
-                purchasePaymentMode,
-                bizAccounts,
-                String(row["Payment Type"] ?? ""),
-                null,
-              );
-              const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
-              const proof = IMPORT_PLACEHOLDER_PROOF[purchasePaymentMode];
-              await createImportPayment({
-                businessId: activeId,
-                partyId: savedPur.partyId || "_advance",
-                direction: "out",
-                date: importedDate,
-                amount: payOut,
-                mode: purchasePaymentMode,
-                accountId,
-                account: acc?.name,
-                reference: savedPur.number,
-                notes: `Excel import payment for ${savedPur.number}`,
-                proofDataUrl: proof.proofDataUrl,
-                proofName: proof.proofName,
-                allocations: [{ docId: savedPur.id, docNumber: savedPur.number, amount: payOut }],
-                excludeFromLedger: true,
-              });
-            } catch (payErr) {
-              console.error(payErr);
-              toast.warning(
-                `${savedPur.number}: marked final but payment was not posted to cash/bank. Record payment from the purchase if needed.`,
-              );
-            }
-          }
+          return {
+            savedPur,
+            row,
+            mapped,
+            importedDate,
+            paidAmount,
+            total,
+            purchasePaymentMode,
+          };
         },
       );
+
+      const purchasePayJobs = upsertResults
+        .map((r) => {
+          if (!r.savedPur) return null;
+          const payOut = Math.min(Math.max(0, r.paidAmount), r.total);
+          if (payOut <= 0.001) return null;
+          return { ...r, payOut };
+        })
+        .filter((x): x is NonNullable<typeof x> => x != null);
+
+      if (purchasePayJobs.length > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, purchasePayJobs, async (job) => {
+          try {
+            const bizAccounts = accountsForImport.filter((a) => a.businessId === activeId);
+            const accountId = resolveImportBankAccountId(
+              job.purchasePaymentMode,
+              bizAccounts,
+              String(job.row["Payment Type"] ?? ""),
+              null,
+            );
+            const acc = accountId ? bizAccounts.find((a) => a.id === accountId) : undefined;
+            const proof = IMPORT_PLACEHOLDER_PROOF[job.purchasePaymentMode];
+            await createImportPayment(
+              {
+                businessId: activeId,
+                partyId: job.savedPur.partyId || "_advance",
+                direction: "out",
+                date: job.importedDate,
+                amount: job.payOut,
+                mode: job.purchasePaymentMode,
+                accountId,
+                account: acc?.name,
+                reference: job.savedPur.number,
+                notes: `Excel import payment for ${job.savedPur.number}`,
+                proofDataUrl: proof.proofDataUrl,
+                proofName: proof.proofName,
+                allocations: [
+                  { docId: job.savedPur.id, docNumber: job.savedPur.number, amount: job.payOut },
+                ],
+                excludeFromLedger: true,
+              },
+              USE_BACKEND ? { skipRefresh: true } : undefined,
+            );
+          } catch (payErr) {
+            console.error(payErr);
+            toast.warning(
+              `${job.savedPur.number}: marked final but payment was not posted to cash/bank. Record payment from the purchase if needed.`,
+            );
+          }
+        });
+        if (USE_BACKEND) await refreshPaymentsAfterBulk();
+      }
 
       created = preparedPurchases.length;
 

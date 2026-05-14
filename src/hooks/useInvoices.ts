@@ -564,14 +564,15 @@ export function useInvoices(businessId?: string | null) {
           apiFetch<void>(`/api/invoice-lines/${l.id}`, { method: "DELETE" }),
         ),
       );
-      for (let i = 0; i < inv.lines.length; i++) {
-        const line = inv.lines[i];
-        const lineDto = lineToDto(savedId, line, i);
-        await apiFetch<InvoiceLineDTO>(`/api/invoice-lines`, {
-          method: "POST",
-          body: JSON.stringify({ ...lineDto, id: undefined }),
-        });
-      }
+      await Promise.all(
+        inv.lines.map((line, i) => {
+          const lineDto = lineToDto(savedId, line, i);
+          return apiFetch<InvoiceLineDTO>(`/api/invoice-lines`, {
+            method: "POST",
+            body: JSON.stringify({ ...lineDto, id: undefined }),
+          });
+        }),
+      );
 
       const after: Invoice = {
         ...dtoToInvoice(saved),

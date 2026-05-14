@@ -120,6 +120,14 @@ function newPaymentId() {
   return `pay_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+export type CreatePaymentOptions = {
+  /**
+   * When true, do not refetch all payments after create (avoids O(n²) work during bulk import).
+   * Caller should call `refresh()` once when the batch is done.
+   */
+  skipRefresh?: boolean;
+};
+
 function read(): Payment[] {
   if (typeof window === "undefined") return [];
   try {
@@ -189,7 +197,7 @@ export function usePayments(businessId?: string | null) {
   }, [refresh]);
 
   const create = useCallback(
-    async (p: Omit<Payment, "id">) => {
+    async (p: Omit<Payment, "id">, opts?: CreatePaymentOptions) => {
       if (USE_BACKEND) {
         if (!businessId) throw new Error("Missing businessId");
         const paymentDto = paymentToDto(p, businessId);
@@ -199,21 +207,29 @@ export function usePayments(businessId?: string | null) {
         });
         const savedId = toStrId(saved.id);
 
-        for (const a of p.allocations ?? []) {
-          const allocDto: PaymentAllocationDTO = {
-            docId: a.docId,
-            docNumber: a.docNumber,
-            amount: a.amount,
-            payment: { id: toNumId(savedId)! },
-          };
-          await apiFetch<PaymentAllocationDTO>(`/api/payment-allocations`, {
-            method: "POST",
-            body: JSON.stringify({ ...allocDto, id: undefined }),
-          });
+        await Promise.all(
+          (p.allocations ?? []).map((a) => {
+            const allocDto: PaymentAllocationDTO = {
+              docId: a.docId,
+              docNumber: a.docNumber,
+              amount: a.amount,
+              payment: { id: toNumId(savedId)! },
+            };
+            return apiFetch<PaymentAllocationDTO>(`/api/payment-allocations`, {
+              method: "POST",
+              body: JSON.stringify({ ...allocDto, id: undefined }),
+            });
+          }),
+        );
+
+        const merged = dtoToPayment(saved, p.allocations ?? []);
+        if (opts?.skipRefresh) {
+          setPayments((prev) => [merged, ...prev]);
+          return merged;
         }
 
         await refresh();
-        return payments.find((x) => x.id === savedId) ?? dtoToPayment(saved, p.allocations);
+        return merged;
       }
 
       const id = newPaymentId();
@@ -232,7 +248,7 @@ export function usePayments(businessId?: string | null) {
 
       return created;
     },
-    [businessId, payments, refresh],
+    [businessId, refresh],
   );
 
   const update = useCallback(
