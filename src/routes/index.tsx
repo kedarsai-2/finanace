@@ -54,7 +54,6 @@ import { formatCurrency } from "@/hooks/useParties";
 import {
   accountAllocatedOutsidePaymentMonth,
   accountDisplayFlowNetInMonth,
-  accountHistoryOnlyDisplayFlowNetInMonth,
   accountNetChangeInMonth,
   buildAccountTxns,
   expenseExcludedFromLedger,
@@ -260,11 +259,6 @@ function DashboardPage() {
     return "expenses" as const;
   }, [totalSales, totalPurchases, totalExpenses]);
 
-  const netCashBankNote = useMemo(() => {
-    const m = format(monthStart, "MMMM yyyy");
-    return `Net for ${m}: lines dated in ${m} (payments, transfers, expenses), plus money dated in other months but allocated to invoices or purchases dated in ${m}. Bulk-import payments and expenses marked history-only do not change bank or cash. Credit sales with no payment stay ₹0 here until you record one.`;
-  }, [monthStart]);
-
   const netProfit =
     totalSales +
     totalPaymentsReceived -
@@ -299,14 +293,12 @@ function DashboardPage() {
       name: string;
       ledgerNet: number;
       activityNet: number;
-      historyOnlyInMonth: number;
     }[] = [];
     const bankRows: {
       id: string;
       name: string;
       ledgerNet: number;
       activityNet: number;
-      historyOnlyInMonth: number;
     }[] = [];
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
@@ -335,8 +327,7 @@ function DashboardPage() {
       );
       const ledgerNet = inMonth + liftSales + liftPurchases;
       const activityNet = accountDisplayFlowNetInMonth(txns, monthStart);
-      const historyOnlyInMonth = accountHistoryOnlyDisplayFlowNetInMonth(txns, monthStart);
-      const row = { id: a.id, name: a.name, ledgerNet, activityNet, historyOnlyInMonth };
+      const row = { id: a.id, name: a.name, ledgerNet, activityNet };
       if (a.type === "cash") {
         cash += ledgerNet;
         cashActivity += activityNet;
@@ -718,7 +709,6 @@ function DashboardPage() {
           to="/cash"
           label="Cash Accounts"
           sublabel={`${accountBalances.cashCount} accounts · net ${format(monthStart, "MMM yyyy")}`}
-          note={netCashBankNote}
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
@@ -730,7 +720,6 @@ function DashboardPage() {
           to="/accounts"
           label="Bank Accounts"
           sublabel={`${accountBalances.bankCount} accounts · net ${format(monthStart, "MMM yyyy")}`}
-          note={netCashBankNote}
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"
@@ -908,11 +897,6 @@ function InvoicePaidChannelHint({
     <div className="text-xs text-muted-foreground">
       <p className="mb-1 font-medium text-foreground/90">{title}</p>
       <p className="font-semibold tabular-nums text-success">{formatCurrency(amount, currency)}</p>
-      <p className="mt-1 text-[10px] leading-snug">
-        Split from each invoice&apos;s paid amount and payment mode. Card totals above follow the
-        cash/bank ledger (payments, transfers, expenses), so they can differ until those are
-        recorded.
-      </p>
     </div>
   );
 }
@@ -996,10 +980,6 @@ function SingleMetricChannelFooter({
               : "No expenses on this channel dated this month."}
         </p>
       ) : null}
-      <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
-        Uses document dates in {monthLabel} and each line&apos;s mode. Headline amounts on this card
-        are still ledger net (payments, transfers, exclusions).
-      </p>
     </div>
   );
 }
@@ -1013,7 +993,6 @@ function AccountMonthBreakdown({
     name: string;
     ledgerNet: number;
     activityNet: number;
-    historyOnlyInMonth: number;
   }[];
   currency: string;
 }) {
@@ -1024,34 +1003,16 @@ function AccountMonthBreakdown({
       <ul className="space-y-1">
         {rows.map((r) => {
           const diff = Math.abs(r.activityNet - r.ledgerNet) > 0.005;
-          const historyOnlyExplains =
-            diff &&
-            Math.abs(r.ledgerNet) < 0.005 &&
-            Math.abs(r.activityNet - r.historyOnlyInMonth) < 0.05;
           return (
             <li key={r.id} className="flex justify-between gap-2 tabular-nums">
               <span className="min-w-0 truncate">{r.name}</span>
               <span className="shrink-0 text-right">
-                <span title="Ledger net for this month (balance impact, incl. money dated elsewhere but tied to this month's invoices/purchases)">
-                  {formatCurrency(r.ledgerNet, currency)}
-                </span>
+                <span title="Ledger net (balance impact)">{formatCurrency(r.ledgerNet, currency)}</span>
                 {diff ? (
                   <>
                     <span className="text-muted-foreground"> · </span>
-                    <span
-                      title={
-                        historyOnlyExplains
-                          ? "All of this is from lines dated in this month shown for reference; bulk-import history-only rows do not change balance"
-                          : "Signed flow for every line dated in this month (register view). Includes history-only imports that do not change the first amount."
-                      }
-                    >
+                    <span title="Same month, register view (may include history-only import lines)">
                       {formatCurrency(r.activityNet, currency)}
-                      {historyOnlyExplains ? (
-                        <span className="text-[10px] font-normal text-muted-foreground">
-                          {" "}
-                          (history-only imports dated this month)
-                        </span>
-                      ) : null}
                     </span>
                   </>
                 ) : null}
@@ -1060,13 +1021,6 @@ function AccountMonthBreakdown({
           );
         })}
       </ul>
-      <p className="mt-1.5 text-[10px] leading-snug">
-        First amount: ledger impact for the dashboard month. Second amount (when shown): same
-        calendar month using every dated line, including imported &quot;history only&quot; payments
-        and expenses — those appear here for traceability but do not move cash/bank balances.
-        Sales and receivables use invoice dates, so May can show ₹0 sales while May-dated import
-        rows still appear here.
-      </p>
     </div>
   );
 }
