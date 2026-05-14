@@ -54,6 +54,7 @@ import { formatCurrency } from "@/hooks/useParties";
 import {
   accountAllocatedOutsidePaymentMonth,
   accountDisplayFlowNetInMonth,
+  accountHistoryOnlyDisplayFlowNetInMonth,
   accountNetChangeInMonth,
   buildAccountTxns,
   expenseExcludedFromLedger,
@@ -219,6 +220,46 @@ function DashboardPage() {
     return { bankLike, cashLike };
   }, [monthInvoices]);
 
+  /** Supplier payments on purchases dated this month (paid amount × purchase payment mode). */
+  const purchasesPaidByChannel = useMemo(() => {
+    let bankLike = 0;
+    let cashLike = 0;
+    for (const p of monthPurchases) {
+      const paid = Math.max(0, Number(p.paidAmount ?? 0));
+      if (paid <= 0.005) continue;
+      const mode = p.purchasePaymentMode ?? "cash";
+      if (mode === "bank" || mode === "cheque") bankLike += paid;
+      else cashLike += paid;
+    }
+    return { bankLike, cashLike };
+  }, [monthPurchases]);
+
+  /** Expenses dated this month split by payment mode (defaults to cash when unset). */
+  const expensesByChannel = useMemo(() => {
+    let bankLike = 0;
+    let cashLike = 0;
+    for (const e of monthExpenses) {
+      const amt = Math.max(0, Number(e.amount ?? 0));
+      if (amt <= 0.005) continue;
+      const m = e.mode ?? "cash";
+      if (m === "bank" || m === "cheque") bankLike += amt;
+      else cashLike += amt;
+    }
+    return { bankLike, cashLike };
+  }, [monthExpenses]);
+
+  /** Exactly one of sales / purchases / expenses has a non-zero month total — show document-level cash vs bank split. */
+  const singleDocKind = useMemo(() => {
+    const hasS = totalSales > 0.005;
+    const hasP = totalPurchases > 0.005;
+    const hasE = totalExpenses > 0.005;
+    const n = [hasS, hasP, hasE].filter(Boolean).length;
+    if (n !== 1) return null;
+    if (hasS) return "sales" as const;
+    if (hasP) return "purchases" as const;
+    return "expenses" as const;
+  }, [totalSales, totalPurchases, totalExpenses]);
+
   const netCashBankNote = useMemo(() => {
     const m = format(monthStart, "MMMM yyyy");
     return `Net for ${m}: lines dated in ${m} (payments, transfers, expenses), plus money dated in other months but allocated to invoices or purchases dated in ${m}. Bulk-import payments and expenses marked history-only do not change bank or cash. Credit sales with no payment stay ₹0 here until you record one.`;
@@ -253,8 +294,20 @@ function DashboardPage() {
     let bankActivity = 0;
     let cashCount = 0;
     let bankCount = 0;
-    const cashRows: { id: string; name: string; ledgerNet: number; activityNet: number }[] = [];
-    const bankRows: { id: string; name: string; ledgerNet: number; activityNet: number }[] = [];
+    const cashRows: {
+      id: string;
+      name: string;
+      ledgerNet: number;
+      activityNet: number;
+      historyOnlyInMonth: number;
+    }[] = [];
+    const bankRows: {
+      id: string;
+      name: string;
+      ledgerNet: number;
+      activityNet: number;
+      historyOnlyInMonth: number;
+    }[] = [];
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
         account: a,
@@ -282,7 +335,8 @@ function DashboardPage() {
       );
       const ledgerNet = inMonth + liftSales + liftPurchases;
       const activityNet = accountDisplayFlowNetInMonth(txns, monthStart);
-      const row = { id: a.id, name: a.name, ledgerNet, activityNet };
+      const historyOnlyInMonth = accountHistoryOnlyDisplayFlowNetInMonth(txns, monthStart);
+      const row = { id: a.id, name: a.name, ledgerNet, activityNet, historyOnlyInMonth };
       if (a.type === "cash") {
         cash += ledgerNet;
         cashActivity += activityNet;
@@ -316,61 +370,97 @@ function DashboardPage() {
   ]);
 
   const cashCardFooter = useMemo(() => {
-    if (accountBalances.cashRows.length > 0) {
-      return <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />;
-    }
-    if (salesPaidByChannel.cashLike > 0.005) {
-      return (
+    const single =
+      singleDocKind != null ? (
+        <SingleMetricChannelFooter
+          kind={singleDocKind}
+          channel="cash"
+          currency={currency}
+          monthLabel={format(monthStart, "MMMM yyyy")}
+          salesPaid={salesPaidByChannel}
+          purchasesPaid={purchasesPaidByChannel}
+          expensesCh={expensesByChannel}
+        />
+      ) : null;
+
+    const ledgerBlock =
+      accountBalances.cashRows.length > 0 ? (
+        <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />
+      ) : salesPaidByChannel.cashLike > 0.005 ? (
         <InvoicePaidChannelHint
           title="Cash / petty (from invoices paid this month)"
           amount={salesPaidByChannel.cashLike}
           currency={currency}
         />
-      );
-    }
-    if (totalSales > 0.005) {
-      return (
+      ) : totalSales > 0.005 ? (
         <p className="text-xs text-muted-foreground">
           No cash ledger movement for {format(monthStart, "MMMM")} yet — usually credit sales,
           history-only imports, or payments dated in another month.
         </p>
-      );
-    }
-    return null;
+      ) : null;
+
+    if (!single && !ledgerBlock) return null;
+    return (
+      <div className="space-y-2">
+        {single}
+        {ledgerBlock}
+      </div>
+    );
   }, [
+    singleDocKind,
     accountBalances.cashRows,
-    salesPaidByChannel.cashLike,
+    salesPaidByChannel,
+    purchasesPaidByChannel,
+    expensesByChannel,
     totalSales,
     currency,
     monthStart,
   ]);
 
   const bankCardFooter = useMemo(() => {
-    if (accountBalances.bankRows.length > 0) {
-      return <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />;
-    }
-    if (salesPaidByChannel.bankLike > 0.005) {
-      return (
+    const single =
+      singleDocKind != null ? (
+        <SingleMetricChannelFooter
+          kind={singleDocKind}
+          channel="bank"
+          currency={currency}
+          monthLabel={format(monthStart, "MMMM yyyy")}
+          salesPaid={salesPaidByChannel}
+          purchasesPaid={purchasesPaidByChannel}
+          expensesCh={expensesByChannel}
+        />
+      ) : null;
+
+    const ledgerBlock =
+      accountBalances.bankRows.length > 0 ? (
+        <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />
+      ) : salesPaidByChannel.bankLike > 0.005 ? (
         <InvoicePaidChannelHint
           title="Bank / UPI / cheque (from invoices paid this month)"
           amount={salesPaidByChannel.bankLike}
           currency={currency}
         />
-      );
-    }
-    if (totalSales > 0.005) {
-      return (
+      ) : totalSales > 0.005 ? (
         <p className="text-xs text-muted-foreground">
           No bank ledger movement for {format(monthStart, "MMMM")} yet — often unpaid invoices or
           history-only imports. Saving a bank or UPI payment can create a default Bank account when
           none exists.
         </p>
-      );
-    }
-    return null;
+      ) : null;
+
+    if (!single && !ledgerBlock) return null;
+    return (
+      <div className="space-y-2">
+        {single}
+        {ledgerBlock}
+      </div>
+    );
   }, [
+    singleDocKind,
     accountBalances.bankRows,
-    salesPaidByChannel.bankLike,
+    salesPaidByChannel,
+    purchasesPaidByChannel,
+    expensesByChannel,
     totalSales,
     currency,
     monthStart,
@@ -817,7 +907,7 @@ function InvoicePaidChannelHint({
   return (
     <div className="text-xs text-muted-foreground">
       <p className="mb-1 font-medium text-foreground/90">{title}</p>
-      <p className="tabular-nums text-foreground">{formatCurrency(amount, currency)}</p>
+      <p className="font-semibold tabular-nums text-success">{formatCurrency(amount, currency)}</p>
       <p className="mt-1 text-[10px] leading-snug">
         Split from each invoice&apos;s paid amount and payment mode. Card totals above follow the
         cash/bank ledger (payments, transfers, expenses), so they can differ until those are
@@ -827,11 +917,104 @@ function InvoicePaidChannelHint({
   );
 }
 
+/** `formatCurrency` strips sign; this preserves minus for outflows. */
+function formatSignedCurrency(amount: number, currency: string) {
+  const core = formatCurrency(Math.abs(amount), currency);
+  if (amount < 0) return `-${core}`;
+  return core;
+}
+
+function SingleMetricChannelFooter({
+  kind,
+  channel,
+  currency,
+  monthLabel,
+  salesPaid,
+  purchasesPaid,
+  expensesCh,
+}: {
+  kind: "sales" | "purchases" | "expenses";
+  channel: "cash" | "bank";
+  currency: string;
+  monthLabel: string;
+  salesPaid: { cashLike: number; bankLike: number };
+  purchasesPaid: { cashLike: number; bankLike: number };
+  expensesCh: { cashLike: number; bankLike: number };
+}) {
+  const flow: "in" | "out" = kind === "sales" ? "in" : "out";
+  const raw =
+    kind === "sales"
+      ? channel === "cash"
+        ? salesPaid.cashLike
+        : salesPaid.bankLike
+      : kind === "purchases"
+        ? channel === "cash"
+          ? purchasesPaid.cashLike
+          : purchasesPaid.bankLike
+        : channel === "cash"
+          ? expensesCh.cashLike
+          : expensesCh.bankLike;
+
+  const label =
+    kind === "sales"
+      ? channel === "cash"
+        ? "Sales — paid (cash / petty)"
+        : "Sales — paid (bank / UPI / cheque)"
+      : kind === "purchases"
+        ? channel === "cash"
+          ? "Purchases — paid (cash)"
+          : "Purchases — paid (bank / cheque)"
+        : channel === "cash"
+          ? "Expenses (cash)"
+          : "Expenses (bank / UPI / cheque)";
+
+  const signed = flow === "in" ? raw : -raw;
+  const hasAmount = raw > 0.005;
+  const toneCls = !hasAmount
+    ? "text-muted-foreground"
+    : signed > 0.005
+      ? "text-success"
+      : signed < -0.005
+        ? "text-destructive"
+        : "text-muted-foreground";
+
+  return (
+    <div className="rounded-lg border border-border/80 bg-muted/20 px-2.5 py-2 text-xs">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {monthLabel} · By payment mode
+      </p>
+      <p className="mt-0.5 text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 text-base font-semibold tabular-nums", toneCls)}>
+        {!hasAmount ? "—" : formatSignedCurrency(signed, currency)}
+      </p>
+      {!hasAmount ? (
+        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+          {kind === "sales"
+            ? "Nothing on this channel (e.g. all credit, or paid amounts tagged to the other channel)."
+            : kind === "purchases"
+              ? "No supplier payments on this channel for bills dated this month."
+              : "No expenses on this channel dated this month."}
+        </p>
+      ) : null}
+      <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+        Uses document dates in {monthLabel} and each line&apos;s mode. Headline amounts on this card
+        are still ledger net (payments, transfers, exclusions).
+      </p>
+    </div>
+  );
+}
+
 function AccountMonthBreakdown({
   rows,
   currency,
 }: {
-  rows: { id: string; name: string; ledgerNet: number; activityNet: number }[];
+  rows: {
+    id: string;
+    name: string;
+    ledgerNet: number;
+    activityNet: number;
+    historyOnlyInMonth: number;
+  }[];
   currency: string;
 }) {
   if (rows.length === 0) return null;
@@ -841,18 +1024,34 @@ function AccountMonthBreakdown({
       <ul className="space-y-1">
         {rows.map((r) => {
           const diff = Math.abs(r.activityNet - r.ledgerNet) > 0.005;
+          const historyOnlyExplains =
+            diff &&
+            Math.abs(r.ledgerNet) < 0.005 &&
+            Math.abs(r.activityNet - r.historyOnlyInMonth) < 0.05;
           return (
             <li key={r.id} className="flex justify-between gap-2 tabular-nums">
               <span className="min-w-0 truncate">{r.name}</span>
               <span className="shrink-0 text-right">
-                <span title="Ledger net (opening, transfers, manual payments)">
+                <span title="Ledger net for this month (balance impact, incl. money dated elsewhere but tied to this month's invoices/purchases)">
                   {formatCurrency(r.ledgerNet, currency)}
                 </span>
                 {diff ? (
                   <>
                     <span className="text-muted-foreground"> · </span>
-                    <span title="Same calendar month signed flow incl. bulk-import lines (does not change balance)">
+                    <span
+                      title={
+                        historyOnlyExplains
+                          ? "All of this is from lines dated in this month shown for reference; bulk-import history-only rows do not change balance"
+                          : "Signed flow for every line dated in this month (register view). Includes history-only imports that do not change the first amount."
+                      }
+                    >
                       {formatCurrency(r.activityNet, currency)}
+                      {historyOnlyExplains ? (
+                        <span className="text-[10px] font-normal text-muted-foreground">
+                          {" "}
+                          (history-only imports dated this month)
+                        </span>
+                      ) : null}
                     </span>
                   </>
                 ) : null}
@@ -862,8 +1061,11 @@ function AccountMonthBreakdown({
         })}
       </ul>
       <p className="mt-1.5 text-[10px] leading-snug">
-        When two amounts appear: first is ledger net; second includes import receipts/payments
-        recorded this month (history only).
+        First amount: ledger impact for the dashboard month. Second amount (when shown): same
+        calendar month using every dated line, including imported &quot;history only&quot; payments
+        and expenses — those appear here for traceability but do not move cash/bank balances.
+        Sales and receivables use invoice dates, so May can show ₹0 sales while May-dated import
+        rows still appear here.
       </p>
     </div>
   );

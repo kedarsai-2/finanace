@@ -295,6 +295,31 @@ export function accountDisplayFlowNetInMonth(txns: AccountTxn[], monthStart: Dat
   return sum;
 }
 
+/**
+ * Net signed “register” flow for the month from rows marked {@link AccountTxn.ledgerMemo}
+ * (bulk-import / history-only payments and expenses). Same calendar rules as
+ * {@link accountDisplayFlowNetInMonth}; used to explain non-zero activity when ledger net is ₹0.
+ */
+export function accountHistoryOnlyDisplayFlowNetInMonth(
+  txns: AccountTxn[],
+  monthStart: Date,
+): number {
+  const start = startOfMonth(monthStart);
+  const end = endOfMonth(monthStart);
+  let sum = 0;
+  for (const t of txns) {
+    if (t.kind === "opening") continue;
+    if (t.ledgerMemo !== true) continue;
+    const day = parseTxnCalendarDay(String(t.date ?? ""));
+    if (!day) continue;
+    const d0 = startOfDay(day);
+    if (isBefore(d0, start)) continue;
+    if (isAfter(d0, end)) continue;
+    sum += accountTxnDisplayFlow(t);
+  }
+  return sum;
+}
+
 /** True if any non-opening ledger line falls in `monthStart`'s calendar month. */
 export function accountHasNonOpeningActivityInMonth(txns: AccountTxn[], monthStart: Date): boolean {
   const start = startOfMonth(monthStart);
