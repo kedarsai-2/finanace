@@ -1,17 +1,23 @@
 import { endOfMonth, isAfter, isBefore, startOfDay, startOfMonth } from "date-fns";
 
-import type { Account, AccountTxn, Transfer } from "@/types/account";
+import {
+  accountTxnDisplayFlow,
+  type Account,
+  type AccountTxn,
+  type Transfer,
+} from "@/types/account";
 import type { Payment } from "@/types/payment";
 import type { Expense } from "@/types/expense";
 
 /** True when this payment must not change bank/cash ledger (bulk import or legacy import marker). */
 export function paymentExcludedFromLedger(
-  p: Pick<Payment, "excludeFromLedger" | "notes">,
+  p: Pick<Payment, "excludeFromLedger" | "notes" | "proofName">,
 ): boolean {
   if (p.excludeFromLedger) return true;
-  return String(p.notes ?? "")
-    .toLowerCase()
-    .includes("excel import");
+  const n = String(p.notes ?? "").toLowerCase();
+  if (n.includes("excel import")) return true;
+  const proof = String(p.proofName ?? "").toLowerCase();
+  return proof.includes("import-") || proof.includes("import_");
 }
 
 /** True when this expense must not change bank/cash ledger (bulk import flag or legacy marker). */
@@ -265,6 +271,26 @@ export function accountNetChangeInMonth(txns: AccountTxn[], monthStart: Date): n
     if (isBefore(d0, start)) continue;
     if (isAfter(d0, end)) continue;
     sum += t.amount;
+  }
+  return sum;
+}
+
+/**
+ * Net signed flow for the month using {@link accountTxnDisplayFlow} (includes import “history” lines).
+ * Opening balance line is excluded so this reflects in-period payment/transfer/expense movement only.
+ */
+export function accountDisplayFlowNetInMonth(txns: AccountTxn[], monthStart: Date): number {
+  const start = startOfMonth(monthStart);
+  const end = endOfMonth(monthStart);
+  let sum = 0;
+  for (const t of txns) {
+    if (t.kind === "opening") continue;
+    const day = parseTxnCalendarDay(String(t.date ?? ""));
+    if (!day) continue;
+    const d0 = startOfDay(day);
+    if (isBefore(d0, start)) continue;
+    if (isAfter(d0, end)) continue;
+    sum += accountTxnDisplayFlow(t);
   }
   return sum;
 }

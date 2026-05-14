@@ -584,7 +584,7 @@ function InvoicesPage() {
               businessId: activeId,
               partyId: savedInv.partyId || "_advance",
               direction: "in",
-              date: savedInv.date,
+              date: importedDate,
               amount: payAmt,
               mode,
               accountId,

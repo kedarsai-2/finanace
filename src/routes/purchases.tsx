@@ -524,7 +524,7 @@ function PurchasesPage() {
               businessId: activeId,
               partyId: savedPur.partyId || "_advance",
               direction: "out",
-              date: savedPur.date,
+              date: importedDate,
               amount: payOut,
               mode: purchasePaymentMode,
               accountId,

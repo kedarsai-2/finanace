@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -52,6 +53,7 @@ import { useTransfers } from "@/hooks/useTransfers";
 import { formatCurrency } from "@/hooks/useParties";
 import {
   accountAllocatedOutsidePaymentMonth,
+  accountDisplayFlowNetInMonth,
   accountNetChangeInMonth,
   buildAccountTxns,
   expenseExcludedFromLedger,
@@ -232,8 +234,12 @@ function DashboardPage() {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
     let cash = 0;
     let bank = 0;
+    let cashActivity = 0;
+    let bankActivity = 0;
     let cashCount = 0;
     let bankCount = 0;
+    const cashRows: { id: string; name: string; ledgerNet: number; activityNet: number }[] = [];
+    const bankRows: { id: string; name: string; ledgerNet: number; activityNet: number }[] = [];
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
         account: a,
@@ -259,16 +265,31 @@ function DashboardPage() {
         "out",
         accountsById,
       );
-      const net = inMonth + liftSales + liftPurchases;
+      const ledgerNet = inMonth + liftSales + liftPurchases;
+      const activityNet = accountDisplayFlowNetInMonth(txns, monthStart);
+      const row = { id: a.id, name: a.name, ledgerNet, activityNet };
       if (a.type === "cash") {
-        cash += net;
+        cash += ledgerNet;
+        cashActivity += activityNet;
         cashCount += 1;
+        cashRows.push(row);
       } else {
-        bank += net;
+        bank += ledgerNet;
+        bankActivity += activityNet;
         bankCount += 1;
+        bankRows.push(row);
       }
     }
-    return { cash, bank, cashCount, bankCount };
+    return {
+      cash,
+      bank,
+      cashActivity,
+      bankActivity,
+      cashCount,
+      bankCount,
+      cashRows,
+      bankRows,
+    };
   }, [
     accountsForBalances,
     payments,
@@ -537,6 +558,11 @@ function DashboardPage() {
           tone="primary"
           amountToneFromSign
           icon={<Wallet className="h-4 w-4" />}
+          footer={
+            accountBalances.cashRows.length > 0 ? (
+              <AccountMonthBreakdown rows={accountBalances.cashRows} currency={currency} />
+            ) : null
+          }
         />
         <BalanceCard
           to="/accounts"
@@ -548,6 +574,11 @@ function DashboardPage() {
           tone="primary"
           amountToneFromSign
           icon={<CreditCard className="h-4 w-4" />}
+          footer={
+            accountBalances.bankRows.length > 0 ? (
+              <AccountMonthBreakdown rows={accountBalances.bankRows} currency={currency} />
+            ) : null
+          }
         />
       </section>
 
@@ -706,6 +737,48 @@ function SummaryCard({
   );
 }
 
+function AccountMonthBreakdown({
+  rows,
+  currency,
+}: {
+  rows: { id: string; name: string; ledgerNet: number; activityNet: number }[];
+  currency: string;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="text-xs text-muted-foreground">
+      <p className="mb-1.5 font-medium text-foreground/90">Per account</p>
+      <ul className="space-y-1">
+        {rows.map((r) => {
+          const diff = Math.abs(r.activityNet - r.ledgerNet) > 0.005;
+          return (
+            <li key={r.id} className="flex justify-between gap-2 tabular-nums">
+              <span className="min-w-0 truncate">{r.name}</span>
+              <span className="shrink-0 text-right">
+                <span title="Ledger net (opening, transfers, manual payments)">
+                  {formatCurrency(r.ledgerNet, currency)}
+                </span>
+                {diff ? (
+                  <>
+                    <span className="text-muted-foreground"> · </span>
+                    <span title="Same calendar month signed flow incl. bulk-import lines (does not change balance)">
+                      {formatCurrency(r.activityNet, currency)}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-1.5 text-[10px] leading-snug">
+        When two amounts appear: first is ledger net; second includes import receipts/payments
+        recorded this month (history only).
+      </p>
+    </div>
+  );
+}
+
 function BalanceCard({
   to,
   label,
@@ -716,6 +789,7 @@ function BalanceCard({
   tone,
   icon,
   amountToneFromSign,
+  footer,
 }: {
   to: string;
   label: string;
@@ -728,6 +802,7 @@ function BalanceCard({
   icon: React.ReactNode;
   /** When set, balance text is green when non-negative, red when negative. */
   amountToneFromSign?: boolean;
+  footer?: ReactNode;
 }) {
   const toneCls = {
     primary: "bg-primary/10 text-primary",
@@ -756,6 +831,7 @@ function BalanceCard({
       >
         {formatCurrency(amount, currency)}
       </p>
+      {footer ? <div className="mt-2">{footer}</div> : null}
       {note ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{note}</p> : null}
     </Link>
   );
