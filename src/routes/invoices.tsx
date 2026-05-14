@@ -83,6 +83,7 @@ import {
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
 import { toStrId } from "@/lib/dto";
+import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 
 const STATUS_FILTERS = ["all", "draft", "final", "cancelled"] as const;
 const PAY_FILTERS = ["all", "paid", "partial", "unpaid"] as const;
@@ -351,9 +352,7 @@ function InvoicesPage() {
     if (!ids.length) return;
     if (!verifyActionPassword()) return;
     try {
-      for (const id of ids) {
-        await remove(id);
-      }
+      await asyncPool(BULK_IO_CONCURRENCY, ids, (id) => remove(id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
         ids.forEach((id) => next.delete(id));
@@ -391,6 +390,21 @@ function InvoicesPage() {
       const linesByRef = new Map<string, Invoice["lines"]>();
       const itemNames = new Set(items.map((it) => it.name.trim().toLowerCase()).filter(Boolean));
       let createdItems = 0;
+      const newItemsByKey = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          sku: string | undefined;
+          type: "product";
+          sellingPrice: number;
+          purchasePrice: number;
+          taxPercent: number;
+          unit: string;
+          active: boolean;
+        }
+      >();
       for (const row of itemRows) {
         const ref = String(row["Invoice No./Txn No."] ?? row["Challan/Order No."] ?? "")
           .trim()
@@ -420,8 +434,8 @@ function InvoicesPage() {
         linesByRef.set(ref, list);
 
         const itemNameKey = mapped.name.trim().toLowerCase();
-        if (!itemNameKey || itemNames.has(itemNameKey)) continue;
-        await upsertItem({
+        if (!itemNameKey || itemNames.has(itemNameKey) || newItemsByKey.has(itemNameKey)) continue;
+        newItemsByKey.set(itemNameKey, {
           id: "",
           businessId: activeId,
           name: mapped.name,
@@ -433,8 +447,13 @@ function InvoicesPage() {
           unit: String(mapped.unit ?? "pcs"),
           active: true,
         });
-        itemNames.add(itemNameKey);
-        createdItems += 1;
+      }
+      if (newItemsByKey.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...newItemsByKey.values()], (payload) =>
+          upsertItem(payload),
+        );
+        for (const k of newItemsByKey.keys()) itemNames.add(k);
+        createdItems = newItemsByKey.size;
       }
 
       let created = 0;
@@ -460,6 +479,42 @@ function InvoicesPage() {
           .map((p) => [p.name.trim().toLowerCase(), p] as const),
       );
 
+      const pendingParties = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          mobile: string;
+          gstNumber?: string;
+          openingBalance: number;
+          balance: number;
+        }
+      >();
+      for (const row of rows) {
+        const partyName = String(row["Party Name"] ?? "").trim();
+        if (!partyName) continue;
+        const partyNameKey = partyName.toLowerCase();
+        if (partiesByName.has(partyNameKey) || pendingParties.has(partyNameKey)) continue;
+        const mappedRow = mapSalesReportRowToInvoiceFields(row);
+        pendingParties.set(partyNameKey, {
+          id: "",
+          businessId: activeId,
+          name: partyName,
+          mobile: normalizeMobile(mappedRow.partyPhoneNo) ?? "",
+          gstNumber: String(mappedRow.gstin ?? "").trim() || undefined,
+          openingBalance: 0,
+          balance: 0,
+        });
+      }
+      if (pendingParties.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...pendingParties.entries()], async ([k, payload]) => {
+          const saved = await upsertParty(payload);
+          partiesByName.set(k, saved);
+        });
+        createdParties = pendingParties.size;
+      }
+
       for (const row of rows) {
         const mapped = mapSalesReportRowToInvoiceFields(row);
         const partyName = String(row["Party Name"] ?? "").trim();
@@ -468,20 +523,10 @@ function InvoicesPage() {
           continue;
         }
         const partyNameKey = partyName.toLowerCase();
-        let party = partiesByName.get(partyNameKey);
+        const party = partiesByName.get(partyNameKey);
         if (!party) {
-          const saved = await upsertParty({
-            id: "",
-            businessId: activeId,
-            name: partyName,
-            mobile: normalizeMobile(mapped.partyPhoneNo) ?? "",
-            gstNumber: String(mapped.gstin ?? "").trim() || undefined,
-            openingBalance: 0,
-            balance: 0,
-          });
-          party = saved;
-          partiesByName.set(partyNameKey, saved);
-          createdParties += 1;
+          skipped += 1;
+          continue;
         }
 
         const importedDate = parseSpreadsheetDate(row["Date"]);

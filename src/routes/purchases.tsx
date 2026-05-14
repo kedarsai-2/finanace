@@ -74,6 +74,7 @@ import {
 } from "@/lib/spreadsheetImportLedger";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
 import { sheetToObjectsByHeaderMarker } from "@/lib/spreadsheetSheet";
+import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 
 function sheetToMatrix(sheet: XLSX.WorkSheet): unknown[][] {
   return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }) as unknown[][];
@@ -377,6 +378,48 @@ function PurchasesPage() {
           return `${dateKey}|${partyKey}|${orderKey}|${invoiceKey}|${Number(p.total).toFixed(2)}`;
         }),
       );
+
+      const pendingParties = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          mobile: string;
+          gstNumber?: string;
+          state?: string;
+          city?: string;
+          openingBalance: number;
+          balance: number;
+        }
+      >();
+      for (const row of rows) {
+        const partyName = String(
+          row["Party Name"] ?? row["Supplier Name"] ?? row["Supplier"] ?? "",
+        ).trim();
+        if (!partyName) continue;
+        const partyNameKey = partyName.toLowerCase();
+        if (partiesByName.has(partyNameKey) || pendingParties.has(partyNameKey)) continue;
+        pendingParties.set(partyNameKey, {
+          id: "",
+          businessId: activeId,
+          name: partyName,
+          mobile: normalizeMobile(row["Party Phone No."]) ?? "",
+          gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
+          state: String(row["State"] ?? "").trim() || undefined,
+          city: String(row["City"] ?? "").trim() || undefined,
+          openingBalance: 0,
+          balance: 0,
+        });
+      }
+      if (pendingParties.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...pendingParties.entries()], async ([k, payload]) => {
+          const savedParty = await upsertParty(payload);
+          partiesByName.set(k, savedParty);
+        });
+        createdParties = pendingParties.size;
+      }
+
       for (const row of rows) {
         const partyName = String(
           row["Party Name"] ?? row["Supplier Name"] ?? row["Supplier"] ?? "",
@@ -386,22 +429,10 @@ function PurchasesPage() {
           continue;
         }
         const partyNameKey = partyName.toLowerCase();
-        let party = partiesByName.get(partyNameKey);
+        const party = partiesByName.get(partyNameKey);
         if (!party) {
-          const savedParty = await upsertParty({
-            id: "",
-            businessId: activeId,
-            name: partyName,
-            mobile: normalizeMobile(row["Party Phone No."]) ?? "",
-            gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
-            state: String(row["State"] ?? "").trim() || undefined,
-            city: String(row["City"] ?? "").trim() || undefined,
-            openingBalance: 0,
-            balance: 0,
-          });
-          party = savedParty;
-          partiesByName.set(partyNameKey, savedParty);
-          createdParties += 1;
+          skipped += 1;
+          continue;
         }
 
         const mapped = mapPurchaseReportRowToPurchaseFields(row);
@@ -581,9 +612,7 @@ function PurchasesPage() {
     if (!ids.length) return;
     if (!verifyActionPassword()) return;
     try {
-      for (const id of ids) {
-        await remove(id);
-      }
+      await asyncPool(BULK_IO_CONCURRENCY, ids, (id) => remove(id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
         ids.forEach((id) => next.delete(id));

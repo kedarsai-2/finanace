@@ -51,7 +51,7 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useItems } from "@/hooks/useItems";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
-import { DEFAULT_EXPENSE_TYPES, type Expense } from "@/types/expense";
+import { DEFAULT_EXPENSE_TYPES, type Expense, type ExpenseCategoryRecord } from "@/types/expense";
 import {
   EXPENSE_ITEM_HEADERS,
   EXPENSE_REPORT_HEADERS,
@@ -63,6 +63,8 @@ import {
   resolveImportBankAccountId,
 } from "@/lib/spreadsheetImportLedger";
 import { parseSpreadsheetDate } from "@/lib/spreadsheetDates";
+import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
+import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
@@ -235,6 +237,126 @@ function ExpensesPage() {
           return keys;
         }),
       );
+
+      const newPartiesByKey = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          mobile: string;
+          gstNumber?: string;
+          state?: string;
+          city?: string;
+          openingBalance: number;
+          balance: number;
+        }
+      >();
+      const newCategoriesByKey = new Map<string, ExpenseCategoryRecord>();
+      const newItemsByKey = new Map<
+        string,
+        {
+          id: string;
+          businessId: string;
+          name: string;
+          type: "product";
+          sku?: string;
+          sellingPrice: number;
+          purchasePrice: number;
+          taxPercent: number;
+          unit: string;
+          description?: string;
+          active: boolean;
+        }
+      >();
+
+      for (const row of rows) {
+        const mapped = mapExpenseReportRowToExpenseFields(row);
+        const amount = Number(mapped.amount ?? 0);
+        if (!(amount > 0)) continue;
+        const importedDate = parseSpreadsheetDate(row["Date"]);
+        const importedDateKey = format(new Date(importedDate), "yyyy-MM-dd");
+        const partyK = String(row["Party Name"] ?? "")
+          .trim()
+          .toLowerCase();
+        const invoiceK = String(row["Invoice No"] ?? row["Invoice No."] ?? "")
+          .trim()
+          .toLowerCase();
+        const orderK = String(row["Order No"] ?? row["Order No."] ?? "")
+          .trim()
+          .toLowerCase();
+        const itemMeta =
+          (invoiceK && itemMetaByKey.get(`${importedDateKey}|${invoiceK}|${partyK}`)) ||
+          (orderK && itemMetaByKey.get(`${importedDateKey}|${orderK}|${partyK}`)) ||
+          undefined;
+        const itemMapped = itemMeta ? mapExpenseItemRowToExpenseFields(itemMeta) : {};
+        const partyNameRaw = String(row["Party Name"] ?? "").trim();
+        const partyNameKey = partyNameRaw.toLowerCase();
+        if (partyNameRaw && !partiesByName.has(partyNameKey) && !newPartiesByKey.has(partyNameKey)) {
+          newPartiesByKey.set(partyNameKey, {
+            id: "",
+            businessId: activeId,
+            name: partyNameRaw,
+            mobile: normalizeMobile(row["Party Phone No."] ?? row["Phone"]) ?? "",
+            gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
+            state: String(row["State"] ?? "").trim() || undefined,
+            city: String(row["City"] ?? "").trim() || undefined,
+            openingBalance: 0,
+            balance: 0,
+          });
+        }
+        const category =
+          (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
+        const categoryKey = category.toLowerCase();
+        if (category && !categoriesByName.has(categoryKey) && !newCategoriesByKey.has(categoryKey)) {
+          newCategoriesByKey.set(categoryKey, {
+            id: "",
+            businessId: activeId,
+            name: category,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        const itemName = (itemMapped.itemName ?? "").trim();
+        const itemNameKey = itemName.toLowerCase();
+        if (itemName && !itemNames.has(itemNameKey) && !newItemsByKey.has(itemNameKey)) {
+          newItemsByKey.set(itemNameKey, {
+            id: "",
+            businessId: activeId,
+            name: itemName,
+            type: "product",
+            sku: String(itemMeta?.["Item Code"] ?? "").trim() || undefined,
+            sellingPrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
+            purchasePrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
+            taxPercent: Number(itemMapped.taxPercent ?? 0),
+            unit: String(itemMeta?.["Unit"] ?? "pcs").trim() || "pcs",
+            description: itemMapped.itemDescription,
+            active: true,
+          });
+        }
+      }
+
+      if (newPartiesByKey.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...newPartiesByKey.entries()], async ([k, payload]) => {
+          const saved = await upsertParty(payload);
+          partiesByName.set(k, saved);
+        });
+        createdParties = newPartiesByKey.size;
+      }
+      if (newCategoriesByKey.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...newCategoriesByKey.entries()], async ([k, c]) => {
+          const saved = await upsertCategory(c);
+          categoriesByName.set(k, saved);
+        });
+        createdCategories = newCategoriesByKey.size;
+      }
+      if (newItemsByKey.size > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, [...newItemsByKey.values()], (payload) =>
+          upsertItem(payload),
+        );
+        for (const k of newItemsByKey.keys()) itemNames.add(k);
+        createdItems = newItemsByKey.size;
+      }
+
       for (const row of rows) {
         const mapped = mapExpenseReportRowToExpenseFields(row);
         const amount = Number(mapped.amount ?? 0);
@@ -261,22 +383,10 @@ function ExpensesPage() {
 
         const partyNameRaw = String(row["Party Name"] ?? "").trim();
         const partyNameKey = partyNameRaw.toLowerCase();
-        let party = partyNameKey ? partiesByName.get(partyNameKey) : undefined;
-        if (!party && partyNameRaw) {
-          const savedParty = await upsertParty({
-            id: "",
-            businessId: activeId,
-            name: partyNameRaw,
-            mobile: normalizeMobile(row["Party Phone No."] ?? row["Phone"]) ?? "",
-            gstNumber: String(row["GSTIN"] ?? "").trim() || undefined,
-            state: String(row["State"] ?? "").trim() || undefined,
-            city: String(row["City"] ?? "").trim() || undefined,
-            openingBalance: 0,
-            balance: 0,
-          });
-          party = savedParty;
-          partiesByName.set(partyNameKey, savedParty);
-          createdParties += 1;
+        const party = partyNameKey ? partiesByName.get(partyNameKey) : undefined;
+        if (partyNameRaw && !party) {
+          skipped += 1;
+          continue;
         }
         const category =
           (mapped.category ?? "").trim() || (itemMapped.category ?? "").trim() || "Imported";
@@ -308,33 +418,8 @@ function ExpensesPage() {
 
         const categoryKey = category.toLowerCase();
         if (category && !categoriesByName.has(categoryKey)) {
-          const savedCategory = await upsertCategory({
-            id: "",
-            businessId: activeId,
-            name: category,
-            createdAt: new Date().toISOString(),
-          });
-          categoriesByName.set(categoryKey, savedCategory);
-          createdCategories += 1;
-        }
-        const itemName = (itemMapped.itemName ?? "").trim();
-        const itemNameKey = itemName.toLowerCase();
-        if (itemName && !itemNames.has(itemNameKey)) {
-          await upsertItem({
-            id: "",
-            businessId: activeId,
-            name: itemName,
-            type: "product",
-            sku: String(itemMeta?.["Item Code"] ?? "").trim() || undefined,
-            sellingPrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
-            purchasePrice: Number(itemMapped.unitPrice ?? itemMapped.lineAmount ?? amount ?? 0),
-            taxPercent: Number(itemMapped.taxPercent ?? 0),
-            unit: String(itemMeta?.["Unit"] ?? "pcs").trim() || "pcs",
-            description: itemMapped.itemDescription,
-            active: true,
-          });
-          itemNames.add(itemNameKey);
-          createdItems += 1;
+          skipped += 1;
+          continue;
         }
 
         const baseNotes = (mapped.notes ?? "").trim();
@@ -453,9 +538,7 @@ function ExpensesPage() {
     if (!ids.length) return;
     if (!verifyActionPassword()) return;
     try {
-      for (const id of ids) {
-        await remove(id);
-      }
+      await asyncPool(BULK_IO_CONCURRENCY, ids, (id) => remove(id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
         ids.forEach((id) => next.delete(id));

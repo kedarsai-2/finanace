@@ -31,6 +31,7 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useItems } from "@/hooks/useItems";
 import type { Item } from "@/types/item";
 import { formatCurrency } from "@/hooks/useParties";
+import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 
 const AUTO_ASSET_SOURCE_TAG = "[AUTO_ASSET_SOURCE:";
 function unitShortLabel(unit?: string) {
@@ -129,7 +130,14 @@ function AssetsPage() {
           .map((it) => it.name.trim().toLowerCase()),
       );
 
-      let created = 0;
+      type AssetImportRow = {
+        name: string;
+        sku: string;
+        unit: string;
+        price: number;
+      };
+      const toCreate: AssetImportRow[] = [];
+
       let skipped = 0;
       for (const row of rows) {
         const name = normalize(row.name || row.Name || row.asset || row.Asset);
@@ -150,21 +158,28 @@ function AssetsPage() {
         }
         const allowedUnits = new Set(["number", "pcs", "kg", "litre", "hour"]);
         const unit = allowedUnits.has(unitRaw) ? unitRaw : "pcs";
-        await upsert({
-          id: "",
-          businessId: activeId,
-          name,
-          type: "product",
-          sku: sku || undefined,
-          sellingPrice: price,
-          purchasePrice: price,
-          taxPercent: 18,
-          unit,
-          openingStock: 1,
-          active: true,
-        });
         existingNames.add(dedupeKey);
-        created += 1;
+        toCreate.push({ name, sku, unit, price });
+      }
+
+      let created = 0;
+      if (toCreate.length > 0) {
+        await asyncPool(BULK_IO_CONCURRENCY, toCreate, (r) =>
+          upsert({
+            id: "",
+            businessId: activeId,
+            name: r.name,
+            type: "product",
+            sku: r.sku || undefined,
+            sellingPrice: r.price,
+            purchasePrice: r.price,
+            taxPercent: 18,
+            unit: r.unit,
+            openingStock: 1,
+            active: true,
+          }),
+        );
+        created = toCreate.length;
       }
 
       if (created === 0) {
