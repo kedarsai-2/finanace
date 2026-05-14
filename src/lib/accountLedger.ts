@@ -14,13 +14,26 @@ function stablePrimaryAccount<T extends { id: string }>(accounts: T[]): T | unde
   return [...accounts].sort((a, b) => String(a.id).localeCompare(String(b.id)))[0];
 }
 
+/** Business id on payment DTOs is sometimes omitted; infer from the linked account when needed. */
+function effectivePaymentBusinessId(
+  p: Payment,
+  accountsById: Record<string, Account>,
+): string | undefined {
+  const raw = p.businessId != null ? String(p.businessId).trim() : "";
+  if (raw !== "") return raw;
+  const fromAccount = p.accountId ? accountsById[p.accountId]?.businessId : undefined;
+  if (fromAccount != null && String(fromAccount).trim() !== "") return String(fromAccount).trim();
+  return undefined;
+}
+
 /** Same routing rules as {@link buildAccountTxns} for whether a payment hits an account. */
 export function paymentBelongsToAccount(
   p: Payment,
   account: Account,
   accountsById: Record<string, Account>,
 ): boolean {
-  if (p.businessId !== account.businessId) return false;
+  const paymentBiz = effectivePaymentBusinessId(p, accountsById);
+  if (paymentBiz && paymentBiz !== account.businessId) return false;
   const allAccounts = Object.values(accountsById);
   const cashAccounts = allAccounts.filter(
     (a) => a.type === "cash" && a.businessId === account.businessId,

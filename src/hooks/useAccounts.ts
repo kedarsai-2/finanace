@@ -251,7 +251,13 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
     return;
   }, []);
 
-  const scoped = useMemo(() => accounts.filter((a) => !a.deleted), [accounts]);
+  const scoped = useMemo(() => {
+    let list = accounts.filter((a) => !a.deleted);
+    if (businessId) {
+      list = list.filter((a) => a.businessId === businessId);
+    }
+    return list;
+  }, [accounts, businessId]);
 
   return { accounts: scoped, allAccounts: accounts, hydrated, upsert, remove };
 }
