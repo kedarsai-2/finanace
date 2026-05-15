@@ -97,7 +97,18 @@ export function formatAccountTriggerLabel(
   showBusiness = false,
 ): string {
   if (!showBusiness || !businessName) return account.name;
-  return `${account.name} · ${businessName}`;
+  const shortBiz =
+    businessName.length > 28 ? `${businessName.slice(0, 26).trimEnd()}…` : businessName;
+  return `${account.name} · ${shortBiz}`;
+}
+
+/** Radix Select `textValue` — short label in trigger, long label in dropdown item body. */
+export function accountSelectTextValue(
+  account: Account,
+  businessName?: string,
+  showBusiness = false,
+): string {
+  return formatAccountTriggerLabel(account, businessName, showBusiness);
 }
 
 /** Human-readable payment type from invoice/purchase import field. */

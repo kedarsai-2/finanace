@@ -76,7 +76,7 @@ import {
   defaultSettlementAccountId,
   documentPaymentTypeLabel,
   formatAccountOptionLabel,
-  formatAccountTriggerLabel,
+  accountSelectTextValue,
 } from "@/lib/paymentAccounts";
 
 export const Route = createFileRoute("/invoices/$id/")({
@@ -131,12 +131,6 @@ function InvoiceDetailsPage() {
   const cnAccountOptions = useMemo(
     () => accountOptionsForMode(paymentPickerAccounts, cnPaymentMode),
     [paymentPickerAccounts, cnPaymentMode],
-  );
-  const selectedCnAccount = useMemo(
-    () =>
-      cnAccountOptions.find((a) => a.id === cnAccountId) ??
-      paymentPickerAccounts.find((a) => a.id === cnAccountId),
-    [cnAccountOptions, cnAccountId, paymentPickerAccounts],
   );
   const salePaymentTypeLabel = invoice
     ? documentPaymentTypeLabel(invoice.paymentType)
@@ -369,7 +363,7 @@ function InvoiceDetailsPage() {
                     <span className="hidden sm:inline">Credit Note</span>
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-md gap-4 overflow-x-hidden sm:max-w-lg">
+                <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Create credit note</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -377,7 +371,8 @@ function InvoiceDetailsPage() {
                       <span className="font-mono">{invoice.number}</span>.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <div className="min-w-0 space-y-3">
+                  <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
+                    <div className="min-w-0">
                     <label className="text-sm font-medium">Credit amount</label>
                     <Input
                       type="number"
@@ -386,8 +381,9 @@ function InvoiceDetailsPage() {
                       step="0.01"
                       value={cnAmount}
                       onChange={(e) => setCnAmount(Number(e.target.value))}
-                      className="w-full max-w-full tabular-nums"
+                      className="min-w-0 w-full tabular-nums"
                     />
+                    </div>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>Already credited: {formatCurrency(alreadyCredited, currency)}</p>
                       <p>Remaining max: {formatCurrency(remainingCredit, currency)}</p>
@@ -410,7 +406,7 @@ function InvoiceDetailsPage() {
                           if (!keepCurrent) setCnAccountId(opts[0]?.id ?? "");
                         }}
                       >
-                        <SelectTrigger className="mt-1 w-full min-w-0 max-w-full">
+                        <SelectTrigger className="mt-1 w-full min-w-0">
                           <SelectValue placeholder="Select payment type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -422,22 +418,19 @@ function InvoiceDetailsPage() {
                     <div className="min-w-0 space-y-1 pt-1">
                       <label className="text-sm font-medium">Account *</label>
                       <Select value={cnAccountId} onValueChange={setCnAccountId}>
-                        <SelectTrigger className="mt-1 w-full min-w-0 max-w-full">
-                          <span className="truncate text-left text-sm">
-                            {selectedCnAccount
-                              ? formatAccountTriggerLabel(
-                                  selectedCnAccount,
-                                  businessById[selectedCnAccount.businessId],
-                                  showAccountBusiness,
-                                )
-                              : `Select ${cnPaymentMode} account`}
-                          </span>
+                        <SelectTrigger className="mt-1 w-full min-w-0">
+                          <SelectValue placeholder={`Select ${cnPaymentMode} account`} />
                         </SelectTrigger>
                         <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                           {cnAccountOptions.map((a) => (
                             <SelectItem
                               key={a.id}
                               value={a.id}
+                              textValue={accountSelectTextValue(
+                                a,
+                                businessById[a.businessId],
+                                showAccountBusiness,
+                              )}
                               className="whitespace-normal"
                               title={formatAccountOptionLabel(
                                 a,
@@ -461,7 +454,7 @@ function InvoiceDetailsPage() {
                         type="date"
                         value={cnReturnDate}
                         onChange={(e) => setCnReturnDate(e.target.value)}
-                        className="mt-1 w-full max-w-full"
+                        className="mt-1 min-w-0 w-full"
                       />
                     </div>
                   </div>

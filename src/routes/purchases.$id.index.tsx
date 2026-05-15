@@ -54,8 +54,8 @@ import {
   accountsForPaymentPicker,
   defaultSettlementAccountId,
   documentPaymentTypeLabel,
+  accountSelectTextValue,
   formatAccountOptionLabel,
-  formatAccountTriggerLabel,
 } from "@/lib/paymentAccounts";
 import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
 
@@ -119,12 +119,6 @@ function PurchaseDetailsPage() {
   const returnAccountOptions = useMemo(
     () => accountOptionsForMode(paymentPickerAccounts, returnPaymentMode),
     [paymentPickerAccounts, returnPaymentMode],
-  );
-  const selectedReturnAccount = useMemo(
-    () =>
-      returnAccountOptions.find((a) => a.id === returnAccountId) ??
-      paymentPickerAccounts.find((a) => a.id === returnAccountId),
-    [returnAccountOptions, returnAccountId, paymentPickerAccounts],
   );
   const purchasePaymentTypeLabel = purchase
     ? documentPaymentTypeLabel(purchase.purchasePaymentMode)
@@ -285,7 +279,7 @@ function PurchaseDetailsPage() {
                     <span className="hidden sm:inline">Return</span>
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-md gap-4 overflow-x-hidden sm:max-w-lg">
+                <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Create purchase return</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -343,24 +337,25 @@ function PurchaseDetailsPage() {
                     <div className="min-w-0 space-y-1 pt-1">
                       <label className="text-sm font-medium">Account *</label>
                       <Select value={returnAccountId} onValueChange={setReturnAccountId}>
-                        <SelectTrigger className="mt-1 w-full min-w-0 max-w-full">
-                          <span className="truncate text-left text-sm">
-                            {selectedReturnAccount
-                              ? formatAccountTriggerLabel(
-                                  selectedReturnAccount,
-                                  businessById[selectedReturnAccount.businessId],
-                                  showAccountBusiness,
-                                )
-                              : returnPaymentMode === "cash"
+                        <SelectTrigger className="mt-1 w-full min-w-0">
+                          <SelectValue
+                            placeholder={
+                              returnPaymentMode === "cash"
                                 ? "Select cash account"
-                                : "Select bank account"}
-                          </span>
+                                : "Select bank account"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                           {returnAccountOptions.map((a) => (
                             <SelectItem
                               key={a.id}
                               value={a.id}
+                              textValue={accountSelectTextValue(
+                                a,
+                                businessById[a.businessId],
+                                showAccountBusiness,
+                              )}
                               className="whitespace-normal"
                               title={formatAccountOptionLabel(
                                 a,
