@@ -56,9 +56,9 @@ function TransferPage() {
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
   const { accounts, hydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const { payments } = usePayments(effectiveBusinessId);
-  const { transfers, add } = useTransfers(effectiveBusinessId);
-  const { expenses } = useExpenses(effectiveBusinessId);
+  const { payments } = usePayments(null);
+  const { transfers, add } = useTransfers(null);
+  const { expenses } = useExpenses(null);
 
   const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
   const currency = business?.currency ?? "INR";

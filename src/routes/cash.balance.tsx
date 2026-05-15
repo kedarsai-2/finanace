@@ -74,9 +74,9 @@ function CashBalancePage() {
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const { accounts, hydrated: accountsHydrated } = useAccounts(effectiveBusinessId, businessIds);
-  const { payments } = usePayments(effectiveBusinessId);
-  const { transfers } = useTransfers(effectiveBusinessId);
-  const { expenses } = useExpenses(effectiveBusinessId);
+  const { payments } = usePayments(null);
+  const { transfers } = useTransfers(null);
+  const { expenses } = useExpenses(null);
 
   const [opening, setOpening] = useState<number>(0);
   const [current, setCurrent] = useState<number | null>(null);

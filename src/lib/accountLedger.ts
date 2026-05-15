@@ -64,6 +64,9 @@ export function paymentBelongsToAccount(
   account: Account,
   accountsById: Record<string, Account>,
 ): boolean {
+  // Explicit accountId match always wins, even if the payment belongs to a different business.
+  if (p.accountId === account.id) return true;
+  // For implicit routing (no accountId), stay within the same business to avoid false matches.
   const paymentBiz = effectivePaymentBusinessId(p, accountsById);
   if (paymentBiz && paymentBiz !== account.businessId) return false;
   const allAccounts = Object.values(accountsById);
@@ -161,7 +164,9 @@ export function buildAccountTxns(args: {
   }
 
   for (const t of transfers) {
-    if (t.businessId !== account.businessId) continue;
+    // Allow cross-business transfers when this account is explicitly referenced.
+    const accountInvolved = t.fromAccountId === account.id || t.toAccountId === account.id;
+    if (!accountInvolved && t.businessId !== account.businessId) continue;
     const isAdjustment = t.kind === "adjustment";
     if (isAdjustment && t.fromAccountId === account.id) {
       const delta = t.adjustmentDirection === "decrement" ? -t.amount : t.amount;
@@ -203,20 +208,24 @@ export function buildAccountTxns(args: {
   }
 
   for (const e of expenses) {
-    if (e.businessId !== account.businessId) continue;
     if (e.deleted) continue;
     const amt = Math.max(0, Number(e.amount ?? 0));
     if (!(amt > 0)) continue;
+    // Explicit accountId match wins across business boundaries.
+    const explicitMatch = e.accountId === account.id;
+    // Implicit routing (no accountId) stays within the same business.
     const inferredByExpenseMode =
-      (!e.accountId &&
+      !e.accountId &&
+      e.businessId === account.businessId &&
+      ((!e.accountId &&
         e.mode === "cash" &&
         account.type === "cash" &&
         primaryCash?.id === account.id) ||
-      (!e.accountId &&
-        (e.mode === "bank" || e.mode === "cheque") &&
-        account.type === "bank" &&
-        primaryBank?.id === account.id);
-    const belongsToExpenseAccount = e.accountId === account.id || inferredByExpenseMode;
+        (!e.accountId &&
+          (e.mode === "bank" || e.mode === "cheque") &&
+          account.type === "bank" &&
+          primaryBank?.id === account.id));
+    const belongsToExpenseAccount = explicitMatch || inferredByExpenseMode;
     if (!belongsToExpenseAccount) continue;
     const memo = expenseExcludedFromLedger(e);
     const ledgerAmt = memo ? 0 : -amt;

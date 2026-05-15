@@ -56,16 +56,14 @@ function txnTypeLabel(r: {
 
 function AccountReport() {
   const { activeId, businesses } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
-  const { accounts } = useAccounts(
-    activeId,
-    businesses.map((b) => b.id),
-  );
+  const { accounts } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const { payments } = usePayments(activeId);
-  const { transfers } = useTransfers(activeId);
-  const { expenses } = useExpenses(activeId);
+  const { payments } = usePayments(null);
+  const { transfers } = useTransfers(null);
+  const { expenses } = useExpenses(null);
 
   const [accountId, setAccountId] = useState<string>("");
   const [from, setFrom] = useState("");
