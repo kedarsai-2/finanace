@@ -102,13 +102,9 @@ export function formatAccountTriggerLabel(
   return `${account.name} · ${shortBiz}`;
 }
 
-/** Radix Select `textValue` — short label in trigger, long label in dropdown item body. */
-export function accountSelectTextValue(
-  account: Account,
-  businessName?: string,
-  showBusiness = false,
-): string {
-  return formatAccountTriggerLabel(account, businessName, showBusiness);
+/** Radix Select `textValue` — account name only in closed trigger. */
+export function accountSelectTextValue(account: Account): string {
+  return account.name.trim() || "Account";
 }
 
 /** Human-readable payment type from invoice/purchase import field. */

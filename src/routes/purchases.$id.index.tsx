@@ -120,6 +120,11 @@ function PurchaseDetailsPage() {
     () => accountOptionsForMode(paymentPickerAccounts, returnPaymentMode),
     [paymentPickerAccounts, returnPaymentMode],
   );
+  const returnAccountTriggerLabel = useMemo(() => {
+    if (!returnAccountId) return undefined;
+    const a = paymentPickerAccounts.find((x) => x.id === returnAccountId);
+    return a ? accountSelectTextValue(a) : undefined;
+  }, [returnAccountId, paymentPickerAccounts]);
   const purchasePaymentTypeLabel = purchase
     ? documentPaymentTypeLabel(purchase.purchasePaymentMode)
     : "";
@@ -344,18 +349,16 @@ function PurchaseDetailsPage() {
                                 ? "Select cash account"
                                 : "Select bank account"
                             }
-                          />
+                          >
+                            {returnAccountTriggerLabel}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                           {returnAccountOptions.map((a) => (
                             <SelectItem
                               key={a.id}
                               value={a.id}
-                              textValue={accountSelectTextValue(
-                                a,
-                                businessById[a.businessId],
-                                showAccountBusiness,
-                              )}
+                              textValue={accountSelectTextValue(a)}
                               className="whitespace-normal"
                               title={formatAccountOptionLabel(
                                 a,

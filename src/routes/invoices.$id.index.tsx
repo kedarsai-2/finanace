@@ -132,6 +132,11 @@ function InvoiceDetailsPage() {
     () => accountOptionsForMode(paymentPickerAccounts, cnPaymentMode),
     [paymentPickerAccounts, cnPaymentMode],
   );
+  const cnAccountTriggerLabel = useMemo(() => {
+    if (!cnAccountId) return undefined;
+    const a = paymentPickerAccounts.find((x) => x.id === cnAccountId);
+    return a ? accountSelectTextValue(a) : undefined;
+  }, [cnAccountId, paymentPickerAccounts]);
   const salePaymentTypeLabel = invoice
     ? documentPaymentTypeLabel(invoice.paymentType)
     : "";
@@ -419,18 +424,16 @@ function InvoiceDetailsPage() {
                       <label className="text-sm font-medium">Account *</label>
                       <Select value={cnAccountId} onValueChange={setCnAccountId}>
                         <SelectTrigger className="mt-1 w-full min-w-0">
-                          <SelectValue placeholder={`Select ${cnPaymentMode} account`} />
+                          <SelectValue placeholder={`Select ${cnPaymentMode} account`}>
+                            {cnAccountTriggerLabel}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                           {cnAccountOptions.map((a) => (
                             <SelectItem
                               key={a.id}
                               value={a.id}
-                              textValue={accountSelectTextValue(
-                                a,
-                                businessById[a.businessId],
-                                showAccountBusiness,
-                              )}
+                              textValue={accountSelectTextValue(a)}
                               className="whitespace-normal"
                               title={formatAccountOptionLabel(
                                 a,
