@@ -1,23 +1,30 @@
 import type { Account } from "@/types/account";
+import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import type { PaymentMode } from "@/types/payment";
 
-/** Accounts available in payment pickers: same business + any already selected on this document. */
-export function accountsForPaymentPicker(
-  accounts: Account[],
-  businessId: string | null | undefined,
-  selectedAccountIds: Array<string | undefined | null> = [],
-): Account[] {
-  const selected = new Set(selectedAccountIds.filter((id): id is string => !!id));
-  if (!businessId) {
-    return accounts.filter((a) => selected.has(a.id));
-  }
-  return accounts.filter((a) => a.businessId === businessId || selected.has(a.id));
+/** All usable accounts for payment pickers (cross-business). */
+export function accountsForPaymentPicker(accounts: Account[]): Account[] {
+  return accounts.filter((a) => !!a.id && !a.deleted);
 }
 
 export function accountOptionsForMode(accounts: Account[], mode: PaymentMode): Account[] {
   if (mode === "cash") return accounts.filter((a) => a.type === "cash");
   if (mode === "bank" || mode === "cheque") return accounts.filter((a) => a.type === "bank");
   return accounts;
+}
+
+export function formatAccountOptionLabel(
+  account: Account,
+  businessName?: string,
+  showBusiness = false,
+): string {
+  const parts = [account.name, ACCOUNT_TYPE_LABEL[account.type]];
+  if (showBusiness && businessName) parts.push(businessName);
+  if (account.accountNumber) {
+    const masked = account.accountNumber.slice(-4).padStart(account.accountNumber.length, "•");
+    parts.push(masked);
+  }
+  return parts.join(" • ");
 }
 
 /** Excel/bulk-import receipts — tracked on the invoice but not edited as payment rows. */

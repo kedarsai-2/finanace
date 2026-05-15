@@ -75,7 +75,8 @@ function PaymentsPage() {
 
   const { activeId, businesses } = useBusinesses();
   const { payments, remove: removePayment } = usePayments(activeId);
-  const { accounts } = useAccounts(activeId, []);
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
+  const { accounts } = useAccounts(null, businessIds);
   const { parties } = useParties(activeId);
 
   const [deleting, setDeleting] = useState<Payment | null>(null);

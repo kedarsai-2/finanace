@@ -30,7 +30,11 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
-import { accountsForPaymentPicker, accountOptionsForMode } from "@/lib/paymentAccounts";
+import {
+  accountsForPaymentPicker,
+  accountOptionsForMode,
+  formatAccountOptionLabel,
+} from "@/lib/paymentAccounts";
 import {
   PAYMENT_MODE_LABEL,
   type Payment,
@@ -72,9 +76,11 @@ export function PaymentForm({ initial }: PaymentFormProps) {
   const [proofName, setProofName] = useState<string | undefined>(initial?.proofName);
   const [submitting, setSubmitting] = useState(false);
 
-  const paymentPickerAccounts = useMemo(
-    () => accountsForPaymentPicker(accounts, effectiveBusinessId, [accountId]),
-    [accounts, effectiveBusinessId, accountId],
+  const paymentPickerAccounts = useMemo(() => accountsForPaymentPicker(accounts), [accounts]);
+  const showAccountBusiness = businesses.length > 1;
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b.name])),
+    [businesses],
   );
   const accountOptions = useMemo(
     () => accountOptionsForMode(paymentPickerAccounts, mode),
@@ -271,7 +277,11 @@ export function PaymentForm({ initial }: PaymentFormProps) {
                 <SelectContent>
                   {accountOptions.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
-                      {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                      {formatAccountOptionLabel(
+                        a,
+                        businessById[a.businessId],
+                        showAccountBusiness,
+                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -75,6 +75,7 @@ import {
   accountsForPaymentPicker,
   accountOptionsForMode,
   allocationMatchesDocument,
+  formatAccountOptionLabel,
   isImportLedgerPayment,
 } from "@/lib/paymentAccounts";
 
@@ -130,8 +131,6 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     () => (invoiceId ? allInvoices.find((i) => i.id === invoiceId) : undefined),
     [invoiceId, allInvoices],
   );
-
-  const documentBusinessId = existing?.businessId ?? activeId ?? null;
 
   // -------- Form state ----------------------------------------------------
   const [partyId, setPartyId] = useState("");
@@ -285,14 +284,11 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     [totals.taxableValue, totals.overallDiscountAmount],
   );
 
-  const paymentPickerAccounts = useMemo(
-    () =>
-      accountsForPaymentPicker(
-        accounts,
-        documentBusinessId,
-        payments.map((p) => p.accountId),
-      ),
-    [accounts, documentBusinessId, payments],
+  const paymentPickerAccounts = useMemo(() => accountsForPaymentPicker(accounts), [accounts]);
+  const showAccountBusiness = businesses.length > 1;
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b.name])),
+    [businesses],
   );
 
   const importReceiptTotal = useMemo(() => {
@@ -945,6 +941,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           <PaymentSplitsEditor
             splits={payments}
             accounts={paymentPickerAccounts}
+            businessById={businessById}
+            showAccountBusiness={showAccountBusiness}
             currency={currency}
             invoiceTotal={totals.total}
             alreadyPaidAmount={existing?.paidAmount ?? 0}
@@ -1166,6 +1164,8 @@ const MAX_PROOF_BYTES = 2 * 1024 * 1024; // 2 MB
 function PaymentSplitsEditor({
   splits,
   accounts,
+  businessById = {},
+  showAccountBusiness = false,
   currency,
   invoiceTotal,
   alreadyPaidAmount,
@@ -1176,6 +1176,8 @@ function PaymentSplitsEditor({
 }: {
   splits: PaymentSplit[];
   accounts: Account[];
+  businessById?: Record<string, string>;
+  showAccountBusiness?: boolean;
   currency: string;
   invoiceTotal: number;
   alreadyPaidAmount: number;
@@ -1410,10 +1412,11 @@ function PaymentSplitsEditor({
                   <SelectContent>
                     {accountOptions.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                        {a.accountNumber
-                          ? ` · ${a.accountNumber.slice(-4).padStart(a.accountNumber.length, "•")}`
-                          : ""}
+                        {formatAccountOptionLabel(
+                          a,
+                          businessById[a.businessId],
+                          showAccountBusiness,
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>

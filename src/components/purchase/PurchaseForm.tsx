@@ -63,6 +63,7 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import {
   accountsForPaymentPicker,
   allocationMatchesDocument,
+  formatAccountOptionLabel,
   isImportLedgerPayment,
 } from "@/lib/paymentAccounts";
 
@@ -121,8 +122,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     [purchaseId, allPurchases],
   );
 
-  const documentBusinessId = existing?.businessId ?? activeId ?? null;
-
   // -------- Form state ----------------------------------------------------
   const [partyId, setPartyId] = useState("");
   const [number, setNumber] = useState("");
@@ -148,28 +147,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [paymentSplits, setPaymentSplits] = useState<PurchasePaymentSplit[]>([]);
   const seededPaymentsForPurchaseRef = useRef<string | null>(null);
   const initialSourceSplitsRef = useRef<Record<string, PurchasePaymentSplit>>({});
-  const linkedPaymentAccountIds = useMemo(() => {
-    if (!existing) return [];
-    const matchesDoc = (alloc: { docId: string; docNumber: string }) =>
-      allocationMatchesDocument(alloc, existing.id, existing.number);
-    return paymentRecords
-      .filter(
-        (p) =>
-          p.direction === "out" &&
-          !isImportLedgerPayment(p) &&
-          p.allocations.some(matchesDoc) &&
-          p.accountId,
-      )
-      .map((p) => p.accountId!);
-  }, [existing, paymentRecords]);
-
-  const paymentPickerAccounts = useMemo(
-    () =>
-      accountsForPaymentPicker(accounts, documentBusinessId, [
-        purchaseAccountId,
-        ...linkedPaymentAccountIds,
-      ]),
-    [accounts, documentBusinessId, purchaseAccountId, linkedPaymentAccountIds],
+  const paymentPickerAccounts = useMemo(() => accountsForPaymentPicker(accounts), [accounts]);
+  const showAccountBusiness = businesses.length > 1;
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b.name])),
+    [businesses],
   );
   const paymentAccounts = useMemo(
     () =>
@@ -750,7 +732,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   <SelectContent>
                     {paymentAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                        {formatAccountOptionLabel(
+                          a,
+                          businessById[a.businessId],
+                          showAccountBusiness,
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
