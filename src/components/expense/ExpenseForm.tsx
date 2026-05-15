@@ -42,8 +42,9 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: ExpenseFormProps) {
   const navigate = useNavigate();
-  const { activeId } = useBusinesses();
-  const { accounts } = useAccounts(activeId, []);
+  const { activeId, businesses } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
+  const { accounts } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);

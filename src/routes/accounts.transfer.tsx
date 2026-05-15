@@ -52,8 +52,9 @@ function TransferPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { activeId, scopedBusinessId, businesses } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
-  const { accounts, hydrated } = useAccounts(effectiveBusinessId, []);
+  const { accounts, hydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const { payments } = usePayments(effectiveBusinessId);
   const { transfers, add } = useTransfers(effectiveBusinessId);

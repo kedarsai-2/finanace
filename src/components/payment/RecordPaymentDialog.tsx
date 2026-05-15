@@ -30,6 +30,7 @@ import {
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePayments } from "@/hooks/usePayments";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useBusinesses } from "@/hooks/useBusinesses";
 import { formatCurrency } from "@/hooks/useParties";
 import { cn } from "@/lib/utils";
 import { paymentStatusOf, type Invoice } from "@/types/invoice";
@@ -73,9 +74,11 @@ export function RecordPaymentDialog({
   focusInvoiceId,
   onRecorded,
 }: Props) {
+  const { businesses } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const { invoices, upsert } = useInvoices(businessId);
   const { create: createPayment } = usePayments(businessId);
-  const { accounts, hydrated: accountsHydrated } = useAccounts(businessId);
+  const { accounts, hydrated: accountsHydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);

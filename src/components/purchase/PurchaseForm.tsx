@@ -94,6 +94,7 @@ const LIST_SEARCH = {
 export function PurchaseForm({ mode, purchaseId }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const { parties } = useParties(activeId);
   const { items, upsert: upsertItem, remove: removeItem } = useItems(activeId);
   const { allPurchases, upsert, hydrated, ensureLines } = usePurchases(activeId);
@@ -104,7 +105,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     update: updatePayment,
     remove: removePayment,
   } = usePayments(activeId);
-  const { accounts } = useAccounts(activeId);
+  const { accounts } = useAccounts(null, businessIds);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
   // Show all parties (party-type concept removed).

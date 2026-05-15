@@ -63,11 +63,12 @@ interface AllocRow {
 function NewPaymentPage() {
   const navigate = useNavigate();
   const { activeId, businesses } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
   const { parties } = useParties(activeId);
-  const { accounts, hydrated: accountsHydrated } = useAccounts(activeId, []);
+  const { accounts, hydrated: accountsHydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
   const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);

@@ -106,10 +106,11 @@ function emptyLine(): InvoiceLine {
 export function InvoiceForm({ mode, invoiceId }: Props) {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const { parties } = useParties(activeId);
   const { items } = useItems(activeId);
   const { allInvoices, upsert, hydrated, ensureLines } = useInvoices(activeId);
-  const { accounts } = useAccounts(activeId);
+  const { accounts } = useAccounts(null, businessIds);
   const {
     payments: paymentRecords,
     hydrated: paymentsHydrated,
