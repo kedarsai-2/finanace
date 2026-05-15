@@ -206,6 +206,8 @@ function PurchaseReturnsPage() {
             />
           </div>
         )}
+      </main>
+
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -229,8 +231,6 @@ function PurchaseReturnsPage() {
     </div>
   );
 }
-
-function SummaryCard
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
