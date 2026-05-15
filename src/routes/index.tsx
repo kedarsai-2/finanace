@@ -216,16 +216,11 @@ function DashboardPage() {
   const totalPaidSuppliers = monthPurchases.reduce((s, p) => s + p.paidAmount, 0);
   const totalPayable = monthPurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
   const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const totalPaymentsPaid = monthPaymentsForLedger.reduce(
-    (s, p) => (p.direction === "out" ? s + p.amount : s),
+  /** Paid portion on sales invoices dated this month (customer collections on sales only). */
+  const totalReceived = monthInvoices.reduce(
+    (s, i) => s + Math.max(0, Number(i.paidAmount ?? 0)),
     0,
   );
-  const totalPaymentsReceived = monthPaymentsForLedger.reduce(
-    (s, p) => (p.direction === "in" ? s + p.amount : s),
-    0,
-  );
-  /** Collections in the selected month (payment date), including invoice-linked receipts. */
-  const totalReceived = totalPaymentsReceived;
 
   const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
   const monthPurchaseIds = useMemo(
@@ -247,12 +242,13 @@ function DashboardPage() {
       (p.allocations ?? []).some(
         (a) =>
           monthInvoiceIds.has(a.docId) ||
-          monthCreditNoteIds.has(a.docId),
+          monthCreditNoteIds.has(a.docId) ||
+          monthPurchaseReturnIds.has(a.docId),
       );
     return monthPaymentsForLedger
       .filter((p) => p.direction === "in" && !allocToMonthDoc(p))
       .reduce((s, p) => s + p.amount, 0);
-  }, [monthPaymentsForLedger, monthInvoiceIds, monthCreditNoteIds]);
+  }, [monthPaymentsForLedger, monthInvoiceIds, monthCreditNoteIds, monthPurchaseReturnIds]);
 
   const standalonePaymentsOut = useMemo(() => {
     const allocToMonthDoc = (p: (typeof monthPaymentsForLedger)[0]) =>
@@ -695,6 +691,7 @@ function DashboardPage() {
           to="/reports/sales"
           label="Total Received"
           value={formatCurrency(totalReceived, currency)}
+          note="Paid on sales invoices this month (excludes purchase returns and other receipts)"
           icon={<ArrowDownRight className="h-4 w-4" />}
           tone="success"
         />
