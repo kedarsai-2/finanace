@@ -52,8 +52,12 @@ import { verifyActionPassword } from "@/lib/actionPassword";
 import {
   accountOptionsForMode,
   accountsForPaymentPicker,
+  defaultSettlementAccountId,
+  documentPaymentTypeLabel,
   formatAccountOptionLabel,
+  formatAccountTriggerLabel,
 } from "@/lib/paymentAccounts";
+import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
 
 export const Route = createFileRoute("/purchases/$id/")({
   head: () => ({
@@ -91,7 +95,7 @@ function PurchaseDetailsPage() {
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
   const { accounts } = useAccounts(null, businessIds);
-  const { create: createPayment } = usePayments(purchase?.businessId);
+  const { payments, create: createPayment } = usePayments(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
   const purchaseId = purchase?.id ?? "";
   const purchaseTotal = purchase?.total ?? 0;
@@ -116,6 +120,15 @@ function PurchaseDetailsPage() {
     () => accountOptionsForMode(paymentPickerAccounts, returnPaymentMode),
     [paymentPickerAccounts, returnPaymentMode],
   );
+  const selectedReturnAccount = useMemo(
+    () =>
+      returnAccountOptions.find((a) => a.id === returnAccountId) ??
+      paymentPickerAccounts.find((a) => a.id === returnAccountId),
+    [returnAccountOptions, returnAccountId, paymentPickerAccounts],
+  );
+  const purchasePaymentTypeLabel = purchase
+    ? documentPaymentTypeLabel(purchase.purchasePaymentMode)
+    : "";
 
   useEffect(() => {
     if (!purchase) return;
@@ -252,15 +265,27 @@ function PurchaseDetailsPage() {
                     variant="outline"
                     className="gap-2"
                     onClick={() => {
+                      if (!purchase) return;
+                      const mode = parseSpreadsheetPaymentMode(purchase.purchasePaymentMode);
+                      setReturnAmount(remainingReturn);
+                      setReturnPaymentMode(mode);
+                      setReturnAccountId(
+                        defaultSettlementAccountId({
+                          mode,
+                          accounts,
+                          payments,
+                          docId: purchase.id,
+                          direction: "out",
+                        }),
+                      );
                       setReturnDate(format(new Date(), "yyyy-MM-dd"));
-                      setReturnAccountId("");
                     }}
                   >
                     <Undo2 className="h-4 w-4" />
                     <span className="hidden sm:inline">Return</span>
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md gap-4 overflow-x-hidden sm:max-w-lg">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Create purchase return</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -268,7 +293,7 @@ function PurchaseDetailsPage() {
                       the original purchase total is exhausted.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-3">
                     <label className="text-sm font-medium">Return amount</label>
                     <Input
                       type="number"
@@ -277,14 +302,23 @@ function PurchaseDetailsPage() {
                       step="0.01"
                       value={returnAmount}
                       onChange={(e) => setReturnAmount(Number(e.target.value))}
-                      className="tabular-nums"
+                      className="w-full max-w-full tabular-nums"
                     />
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>Already returned: {formatCurrency(alreadyReturned, currency)}</p>
                       <p>Remaining max: {formatCurrency(remainingReturn, currency)}</p>
                     </div>
-                    <div className="pt-1">
-                      <label className="text-sm font-medium">Payment type *</label>
+                    <div className="min-w-0 space-y-1 pt-1">
+                      <label className="text-sm font-medium">Refund payment type *</label>
+                      {purchasePaymentTypeLabel ? (
+                        <p className="text-xs text-muted-foreground">
+                          Purchase was recorded as{" "}
+                          <span className="font-medium text-foreground">
+                            {purchasePaymentTypeLabel}
+                          </span>
+                          . Change below if the refund uses a different mode.
+                        </p>
+                      ) : null}
                       <Select
                         value={returnPaymentMode}
                         onValueChange={(v) => {
@@ -296,7 +330,7 @@ function PurchaseDetailsPage() {
                           if (!keepCurrent) setReturnAccountId(opts[0]?.id ?? "");
                         }}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 w-full min-w-0 max-w-full">
                           <SelectValue placeholder="Select payment type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -306,21 +340,34 @@ function PurchaseDetailsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="pt-1">
+                    <div className="min-w-0 space-y-1 pt-1">
                       <label className="text-sm font-medium">Account *</label>
                       <Select value={returnAccountId} onValueChange={setReturnAccountId}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue
-                            placeholder={
-                              returnPaymentMode === "cash"
+                        <SelectTrigger className="mt-1 w-full min-w-0 max-w-full">
+                          <span className="truncate text-left text-sm">
+                            {selectedReturnAccount
+                              ? formatAccountTriggerLabel(
+                                  selectedReturnAccount,
+                                  businessById[selectedReturnAccount.businessId],
+                                  showAccountBusiness,
+                                )
+                              : returnPaymentMode === "cash"
                                 ? "Select cash account"
-                                : "Select bank account"
-                            }
-                          />
+                                : "Select bank account"}
+                          </span>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                           {returnAccountOptions.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
+                            <SelectItem
+                              key={a.id}
+                              value={a.id}
+                              className="whitespace-normal"
+                              title={formatAccountOptionLabel(
+                                a,
+                                businessById[a.businessId],
+                                showAccountBusiness,
+                              )}
+                            >
                               {formatAccountOptionLabel(
                                 a,
                                 businessById[a.businessId],
@@ -331,13 +378,13 @@ function PurchaseDetailsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="pt-1">
+                    <div className="min-w-0 space-y-1 pt-1">
                       <label className="text-sm font-medium">Return date *</label>
                       <Input
                         type="date"
                         value={returnDate}
                         onChange={(e) => setReturnDate(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 w-full max-w-full"
                       />
                     </div>
                   </div>

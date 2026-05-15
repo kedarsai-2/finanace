@@ -1,6 +1,8 @@
 import type { Account } from "@/types/account";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
-import type { Payment, PaymentMode } from "@/types/payment";
+import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
+import type { Payment, PaymentDirection, PaymentMode } from "@/types/payment";
+import { PAYMENT_MODE_LABEL } from "@/types/payment";
 
 /** True when any allocation line hits one of the documents (id or doc number). */
 export function paymentAllocatesToDocumentList(
@@ -86,6 +88,52 @@ export function formatAccountOptionLabel(
     parts.push(masked);
   }
   return parts.join(" • ");
+}
+
+/** Compact label for select triggers (avoids overflowing narrow dialogs). */
+export function formatAccountTriggerLabel(
+  account: Account,
+  businessName?: string,
+  showBusiness = false,
+): string {
+  if (!showBusiness || !businessName) return account.name;
+  return `${account.name} · ${businessName}`;
+}
+
+/** Human-readable payment type from invoice/purchase import field. */
+export function documentPaymentTypeLabel(raw: unknown): string {
+  const trimmed = String(raw ?? "").trim();
+  if (trimmed) return trimmed;
+  return PAYMENT_MODE_LABEL[parseSpreadsheetPaymentMode(raw)];
+}
+
+/** Credit-note settlement supports cash/bank only; cheque sales map to bank. */
+export function creditNoteSettlementMode(raw: unknown): "cash" | "bank" {
+  return parseSpreadsheetPaymentMode(raw) === "cash" ? "cash" : "bank";
+}
+
+/** Prefer account from payments on the source document; else first account for mode. */
+export function defaultSettlementAccountId(options: {
+  mode: PaymentMode;
+  accounts: Account[];
+  payments: Payment[];
+  docId: string;
+  direction: PaymentDirection;
+}): string {
+  const picker = accountsForPaymentPicker(options.accounts);
+  const modeMatches = (p: Payment) =>
+    p.mode === options.mode ||
+    (options.mode === "bank" && p.mode === "cheque") ||
+    (options.mode === "cheque" && p.mode === "bank");
+
+  for (const p of options.payments) {
+    if (p.direction !== options.direction) continue;
+    if (!(p.allocations ?? []).some((a) => a.docId === options.docId)) continue;
+    if (!modeMatches(p)) continue;
+    const id = resolvePaymentAccountId(p, picker);
+    if (id) return id;
+  }
+  return accountOptionsForMode(picker, options.mode)[0]?.id ?? "";
 }
 
 /** Excel/bulk-import receipts — tracked on the invoice but not edited as payment rows. */
