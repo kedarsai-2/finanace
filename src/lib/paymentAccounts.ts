@@ -13,9 +13,22 @@ export function accountOptionsForMode(accounts: Account[], mode: PaymentMode): A
   return accounts;
 }
 
-/** Match saved payment to an account row (id, then name + mode). */
+/** Dropdown options for a payment, always including the saved account when present. */
+export function accountOptionsForPayment(
+  accounts: Account[],
+  mode: PaymentMode,
+  savedAccountId?: string,
+): Account[] {
+  const opts = accountOptionsForMode(accounts, mode);
+  if (!savedAccountId) return opts;
+  if (opts.some((a) => a.id === savedAccountId)) return opts;
+  const saved = accounts.find((a) => a.id === savedAccountId);
+  return saved ? [saved, ...opts] : opts;
+}
+
+/** Match saved payment to an account row (id first; name only when unambiguous). */
 export function resolvePaymentAccountId(
-  payment: Pick<Payment, "accountId" | "account" | "mode">,
+  payment: Pick<Payment, "accountId" | "account" | "mode" | "businessId">,
   accounts: Account[],
 ): string | undefined {
   if (payment.accountId) {
@@ -24,9 +37,15 @@ export function resolvePaymentAccountId(
   }
   const name = (payment.account ?? "").trim().toLowerCase();
   if (!name) return undefined;
-  const forMode = accountOptionsForMode(accounts, payment.mode);
-  const byName = forMode.find((a) => a.name.trim().toLowerCase() === name);
-  if (byName) return byName.id;
+
+  const scoped =
+    payment.businessId != null && payment.businessId !== ""
+      ? accounts.filter((a) => a.businessId === payment.businessId)
+      : accounts;
+  const pool = scoped.length > 0 ? scoped : accounts;
+  const forMode = accountOptionsForMode(pool, payment.mode);
+  const matches = forMode.filter((a) => a.name.trim().toLowerCase() === name);
+  if (matches.length === 1) return matches[0].id;
   return undefined;
 }
 

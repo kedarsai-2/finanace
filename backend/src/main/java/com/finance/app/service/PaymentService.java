@@ -1,7 +1,9 @@
 package com.finance.app.service;
 
+import com.finance.app.domain.Account;
 import com.finance.app.domain.Payment;
 import com.finance.app.domain.enumeration.PaymentMode;
+import com.finance.app.repository.AccountRepository;
 import com.finance.app.repository.PaymentAllocationRepository;
 import com.finance.app.repository.PaymentRepository;
 import com.finance.app.service.dto.PaymentDTO;
@@ -33,18 +35,34 @@ public class PaymentService {
 
     private final BankLedgerAccountService bankLedgerAccountService;
 
+    private final AccountRepository accountRepository;
+
     public PaymentService(
         PaymentRepository paymentRepository,
         PaymentAllocationRepository paymentAllocationRepository,
         PaymentMapper paymentMapper,
         CashLedgerAccountService cashLedgerAccountService,
-        BankLedgerAccountService bankLedgerAccountService
+        BankLedgerAccountService bankLedgerAccountService,
+        AccountRepository accountRepository
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentAllocationRepository = paymentAllocationRepository;
         this.paymentMapper = paymentMapper;
         this.cashLedgerAccountService = cashLedgerAccountService;
         this.bankLedgerAccountService = bankLedgerAccountService;
+        this.accountRepository = accountRepository;
+    }
+
+    /** Load a managed account when the client sends {@code account: { id }} so the chosen ledger is persisted. */
+    private void applyAccountFromDto(Payment payment, PaymentDTO paymentDTO) {
+        if (paymentDTO.getAccount() == null || paymentDTO.getAccount().getId() == null) {
+            return;
+        }
+        Long accountId = paymentDTO.getAccount().getId();
+        Account account = accountRepository
+            .findById(accountId)
+            .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountId));
+        payment.setAccount(account);
     }
 
     /**
@@ -56,16 +74,8 @@ public class PaymentService {
     public PaymentDTO save(PaymentDTO paymentDTO) {
         LOG.debug("Request to save Payment : {}", paymentDTO);
         Payment payment = paymentMapper.toEntity(paymentDTO);
-        if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
-            payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
-        }
-        if (
-            (payment.getMode() == PaymentMode.BANK || payment.getMode() == PaymentMode.UPI) &&
-            payment.getAccount() == null &&
-            payment.getBusiness() != null
-        ) {
-            payment.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(payment.getBusiness().getId()));
-        }
+        applyAccountFromDto(payment, paymentDTO);
+        applyDefaultAccountIfMissing(payment);
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
     }
@@ -79,16 +89,8 @@ public class PaymentService {
     public PaymentDTO update(PaymentDTO paymentDTO) {
         LOG.debug("Request to update Payment : {}", paymentDTO);
         Payment payment = paymentMapper.toEntity(paymentDTO);
-        if (payment.getMode() == PaymentMode.CASH && payment.getAccount() == null && payment.getBusiness() != null) {
-            payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(payment.getBusiness().getId()));
-        }
-        if (
-            (payment.getMode() == PaymentMode.BANK || payment.getMode() == PaymentMode.UPI) &&
-            payment.getAccount() == null &&
-            payment.getBusiness() != null
-        ) {
-            payment.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(payment.getBusiness().getId()));
-        }
+        applyAccountFromDto(payment, paymentDTO);
+        applyDefaultAccountIfMissing(payment);
         payment = paymentRepository.save(payment);
         return paymentMapper.toDto(payment);
     }
@@ -106,22 +108,8 @@ public class PaymentService {
             .findById(paymentDTO.getId())
             .map(existingPayment -> {
                 paymentMapper.partialUpdate(existingPayment, paymentDTO);
-                if (
-                    existingPayment.getMode() == PaymentMode.CASH &&
-                    existingPayment.getAccount() == null &&
-                    existingPayment.getBusiness() != null
-                ) {
-                    existingPayment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(existingPayment.getBusiness().getId()));
-                }
-                if (
-                    (existingPayment.getMode() == PaymentMode.BANK || existingPayment.getMode() == PaymentMode.UPI) &&
-                    existingPayment.getAccount() == null &&
-                    existingPayment.getBusiness() != null
-                ) {
-                    existingPayment.setAccount(
-                        bankLedgerAccountService.getOrCreatePrimaryBankAccount(existingPayment.getBusiness().getId())
-                    );
-                }
+                applyAccountFromDto(existingPayment, paymentDTO);
+                applyDefaultAccountIfMissing(existingPayment);
 
                 return existingPayment;
             })
@@ -159,5 +147,20 @@ public class PaymentService {
         LOG.debug("Request to delete Payment : {}", id);
         paymentAllocationRepository.deleteAllByPaymentId(id);
         paymentRepository.deleteById(id);
+    }
+
+    private void applyDefaultAccountIfMissing(Payment payment) {
+        if (payment.getAccount() != null) {
+            return;
+        }
+        if (payment.getBusiness() == null) {
+            return;
+        }
+        Long businessId = payment.getBusiness().getId();
+        if (payment.getMode() == PaymentMode.CASH) {
+            payment.setAccount(cashLedgerAccountService.getOrCreateCashAccount(businessId));
+        } else if (payment.getMode() == PaymentMode.BANK || payment.getMode() == PaymentMode.UPI) {
+            payment.setAccount(bankLedgerAccountService.getOrCreatePrimaryBankAccount(businessId));
+        }
     }
 }

@@ -33,6 +33,7 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import {
   accountsForPaymentPicker,
   accountOptionsForMode,
+  accountOptionsForPayment,
   formatAccountOptionLabel,
   resolvePaymentAccountId,
 } from "@/lib/paymentAccounts";
@@ -84,19 +85,24 @@ export function PaymentForm({ initial }: PaymentFormProps) {
     [businesses],
   );
   const accountOptions = useMemo(
-    () => accountOptionsForMode(paymentPickerAccounts, mode),
-    [paymentPickerAccounts, mode],
+    () => accountOptionsForPayment(paymentPickerAccounts, mode, accountId || initial?.accountId),
+    [paymentPickerAccounts, mode, accountId, initial?.accountId],
   );
 
   const editAccountsSeededRef = useRef(false);
 
-  // After accounts load on edit, restore the real account (avoid jumping to "Default").
+  // After accounts load on edit, use the stored account id (do not guess from name).
   useEffect(() => {
     if (!isEdit || !initial || !accountsHydrated || editAccountsSeededRef.current) return;
+    editAccountsSeededRef.current = true;
+    if (initial.mode) setMode(initial.mode);
+    const savedId = initial.accountId;
+    if (savedId && paymentPickerAccounts.some((a) => a.id === savedId)) {
+      setAccountId(savedId);
+      return;
+    }
     const resolved = resolvePaymentAccountId(initial, paymentPickerAccounts);
     if (resolved) setAccountId(resolved);
-    if (initial.mode) setMode(initial.mode);
-    editAccountsSeededRef.current = true;
   }, [isEdit, initial, accountsHydrated, paymentPickerAccounts]);
 
   // Default account on create only.
