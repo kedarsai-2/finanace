@@ -7,6 +7,7 @@ import { InvoicePrintLayout } from "@/components/invoice/InvoicePrintLayout";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties } from "@/hooks/useParties";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useAccounts } from "@/hooks/useAccounts";
 
 export const Route = createFileRoute("/invoices/$id/print")({
   head: () => ({
@@ -30,6 +31,10 @@ function InvoicePrintPage() {
   const business = businesses.find((b) => b.id === invoice?.businessId);
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
+  const { accounts } = useAccounts(invoice?.businessId ?? null);
+  const payToAccount = accounts
+    .filter((a) => a.type === "bank" && !a.deleted)
+    .sort((a, b) => a.id.localeCompare(b.id))[0];
   useEffect(() => {
     if (!invoice) return;
     if (invoice.lines.length === 0) {
@@ -86,7 +91,12 @@ function InvoicePrintPage() {
       </div>
 
       <div className="mx-auto shadow-2xl">
-        <InvoicePrintLayout invoice={invoice} business={business} party={party} />
+        <InvoicePrintLayout
+          invoice={invoice}
+          business={business}
+          party={party}
+          payToAccount={payToAccount}
+        />
       </div>
 
       {/* Print rules — keep colours, hide everything else, lock to A4 */}

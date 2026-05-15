@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import type { Account } from "@/types/account";
 import type { Business } from "@/types/business";
 import type { Party } from "@/types/party";
 import type { Invoice } from "@/types/invoice";
@@ -9,14 +10,17 @@ interface Props {
   invoice: Invoice;
   business?: Business;
   party?: Party;
+  /** Primary bank account shown in the Pay To block. */
+  payToAccount?: Account;
 }
 
 /** Typography tuned to match reference Tax Invoice PDF (11pt body, compact spacing). */
 const BODY = "11px";
 const BODY_SM = "10.5px";
 const SECTION_LABEL = "12px";
-const TITLE = "38px";
+const TITLE = "26px";
 const COMPANY = "16px";
+const SIGNATURE_STAMP_SRC = "/invoice-signature-stamp.png";
 
 const DEFAULT_TERMS = [
   "This invoice is generated for services completed through the Snickr platform.",
@@ -31,7 +35,7 @@ const DEFAULT_TERMS = [
 /**
  * Print-friendly tax invoice layout (A4) — matches reference PDF spacing and type scale.
  */
-export function InvoicePrintLayout({ invoice, business, party }: Props) {
+export function InvoicePrintLayout({ invoice, business, party, payToAccount }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
   const businessName = business?.name ?? "Your Business";
@@ -56,8 +60,11 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
       }}
     >
       <header className="grid grid-cols-[1fr_auto] items-start gap-6 border-b border-slate-300 pb-3">
-        <div>
-          <h1 className="font-bold leading-tight text-slate-900" style={{ fontSize: COMPANY }}>
+        <div className="min-w-0">
+          <h1
+            className="max-w-[108mm] font-bold leading-[1.15] text-slate-900"
+            style={{ fontSize: COMPANY }}
+          >
             {businessName}
           </h1>
           <div className="mt-1 text-slate-800" style={{ fontSize: BODY, lineHeight: 1.45 }}>
@@ -76,9 +83,9 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         <BrandLogo logoUrl={business?.logoUrl} businessName={businessName} />
       </header>
 
-      <div className="py-1.5 text-center">
+      <div className="py-1 text-center">
         <p
-          className="font-bold leading-none tracking-[0.2px] text-[#8a86cf]"
+          className="font-bold leading-tight tracking-[0.15px] text-[#8a86cf]"
           style={{ fontSize: TITLE }}
         >
           Tax Invoice
@@ -181,13 +188,12 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         </div>
       </section>
 
-      <section className="mt-8 flex justify-end" style={{ fontSize: BODY }}>
-        <div className="w-[72mm] text-right" style={{ lineHeight: 1.4 }}>
-          <p>
-            For :<span className="font-semibold">{businessName}</span>
-          </p>
-          <p className="mt-14 font-semibold">Authorized Signatory</p>
-        </div>
+      <section
+        className="mt-6 grid grid-cols-2 items-start gap-10"
+        style={{ fontSize: BODY, lineHeight: 1.45 }}
+      >
+        <PayToBlock businessName={businessName} account={payToAccount} />
+        <AuthorizedSignatory businessName={businessName} />
       </section>
 
       <footer
@@ -196,6 +202,66 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
       >
         -- 1 of 1 --
       </footer>
+    </div>
+  );
+}
+
+function PayToBlock({ businessName, account }: { businessName: string; account?: Account }) {
+  const bankName = account?.name?.trim();
+  const accountNo = account?.accountNumber?.trim();
+  const ifsc = account?.ifsc?.trim();
+  const holder = businessName.trim();
+
+  if (!bankName && !accountNo && !ifsc) {
+    return (
+      <div>
+        <p className="font-semibold">Pay To:</p>
+        <p className="mt-1 text-slate-600">Bank details not configured.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-semibold">Pay To:</p>
+      <div className="mt-1 space-y-0.5">
+        {bankName ? (
+          <p>
+            Bank Name : <span className="font-semibold">{bankName}</span>
+          </p>
+        ) : null}
+        {accountNo ? (
+          <p>
+            Bank Account No. : <span className="font-semibold">{accountNo}</span>
+          </p>
+        ) : null}
+        {ifsc ? (
+          <p>
+            Bank IFSC code : <span className="font-semibold">{ifsc}</span>
+          </p>
+        ) : null}
+        {holder ? (
+          <p>
+            Account holder&apos;s name : <span className="font-semibold">{holder}</span>
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function AuthorizedSignatory({ businessName }: { businessName: string }) {
+  return (
+    <div className="text-right" style={{ lineHeight: 1.4 }}>
+      <p>
+        For :<span className="font-semibold">{businessName}</span>
+      </p>
+      <img
+        src={SIGNATURE_STAMP_SRC}
+        alt="Authorized signatory stamp"
+        className="ml-auto mt-1 h-[22mm] w-auto max-w-[58mm] object-contain object-right"
+      />
+      <p className="mt-1 font-semibold">Authorized Signatory</p>
     </div>
   );
 }
