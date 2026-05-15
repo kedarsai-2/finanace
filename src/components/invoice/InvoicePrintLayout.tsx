@@ -4,49 +4,33 @@ import type { Party } from "@/types/party";
 import type { Invoice } from "@/types/invoice";
 import { lineMath } from "@/types/invoice";
 import { formatCurrency } from "@/hooks/useParties";
-import type { Account } from "@/types/account";
-import type { Payment } from "@/types/payment";
-import { PAYMENT_MODE_LABEL } from "@/types/payment";
 
 interface Props {
   invoice: Invoice;
   business?: Business;
   party?: Party;
-  lastPayment?: Payment | null;
-  payToAccount?: Account;
 }
 
+/** Base body size — slightly larger than legacy 11px for print readability. */
+const BODY = "12px";
+const BODY_SM = "11.5px";
+const LABEL = "14px";
+const TITLE = "40px";
+const COMPANY = "20px";
+
 /**
- * Print-friendly invoice layout.
- *
- * Designed for A4 paper. All colours come from a slimmed-down inline palette
- * to guarantee the same look on screen and on paper, regardless of the user's
- * theme. The container forces a white background + dark text so dark-mode
- * users get a clean print preview.
+ * Print-friendly tax invoice layout (A4).
+ * Text-only letterhead matching reference PDF spacing; no platform logos.
  */
-export function InvoicePrintLayout({ invoice, business, party, lastPayment, payToAccount }: Props) {
+export function InvoicePrintLayout({ invoice, business, party }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
-  const resolvedMode =
-    lastPayment?.mode ??
-    (payToAccount?.type === "cash"
-      ? "cash"
-      : payToAccount
-        ? "bank"
-        : invoice.paidAmount > 0
-          ? "cash"
-          : undefined);
-  const paymentModeLabel = resolvedMode ? PAYMENT_MODE_LABEL[resolvedMode] : "—";
-  const paymentModeValue =
-    resolvedMode === "cash"
-      ? "CASH"
-      : resolvedMode
-        ? (
-            payToAccount?.name ??
-            lastPayment?.account ??
-            PAYMENT_MODE_LABEL[resolvedMode]
-          ).toUpperCase()
-        : "—";
+  const businessName = business?.name ?? "Your Business";
+  const addressLines = [
+    [business?.billingAddress?.line1, business?.billingAddress?.line2].filter(Boolean).join(", "),
+    [business?.city, business?.state, business?.billingAddress?.pincode].filter(Boolean).join(", "),
+  ].filter(Boolean);
+  const terms = termsList(invoice.terms);
 
   return (
     <div
@@ -54,73 +38,68 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
       style={{
         width: "210mm",
         minHeight: "297mm",
-        padding: "12mm 12mm 10mm 12mm",
+        padding: "14mm 14mm 12mm 14mm",
         boxSizing: "border-box",
-        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+        fontSize: BODY,
+        lineHeight: 1.45,
+        letterSpacing: "0.01em",
       }}
     >
-      {/* ---------- Letterhead ---------- */}
-      <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-3">
-        <div className="flex items-start gap-4">
-          {business?.logoUrl ? (
-            <img
-              src={business.logoUrl}
-              alt={`${business.name} logo`}
-              className="h-16 w-16 rounded-md object-contain"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-md bg-slate-900 text-2xl font-bold text-white">
-              {(business?.name ?? "B").slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h1 className="text-[18px] font-bold leading-tight">
-              {business?.name ?? "Your Business"}
-            </h1>
-            <div className="mt-1 text-[11px] leading-relaxed text-slate-700">
-              {[business?.billingAddress?.line1, business?.billingAddress?.line2]
-                .filter(Boolean)
-                .join(", ")}
-              {(business?.city || business?.state) && (
-                <div>
-                  {[business?.city, business?.state, business?.billingAddress?.pincode]
-                    .filter(Boolean)
-                    .join(", ")}
-                </div>
-              )}
-              <div className="mt-1 space-y-0.5">
-                {business?.mobile && <div>Phone no.: {business.mobile}</div>}
-                {business?.email && <div>Email: {business.email}</div>}
+      <header className="grid grid-cols-2 gap-8 border-b border-slate-300 pb-4">
+        <div>
+          <h1 className="font-bold leading-snug text-slate-900" style={{ fontSize: COMPANY }}>
+            {businessName}
+          </h1>
+          <div className="mt-2 space-y-1 text-slate-800" style={{ fontSize: BODY, lineHeight: 1.5 }}>
+            {addressLines.map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+            {business?.mobile && <div>Phone no. : {business.mobile}</div>}
+            {business?.email && <div>Email : {business.email}</div>}
+            {business?.gstNumber && (
+              <div className="font-mono" style={{ fontSize: BODY_SM }}>
+                GSTIN: {business.gstNumber}
               </div>
-              {business?.gstNumber && (
-                <div className="mt-1 font-mono">GSTIN: {business.gstNumber}</div>
-              )}
-            </div>
+            )}
           </div>
         </div>
-        <div className="text-right">
-          <div className="flex flex-col items-end gap-1">
-            <SnickrLogo />
-          </div>
+        <div className="text-right" style={{ fontSize: BODY }}>
+          <p className="leading-snug">
+            For : <span className="font-semibold">{businessName}</span>
+          </p>
+          <p className="mt-14 font-semibold tracking-wide">Authorized Signatory</p>
         </div>
       </header>
 
-      <div className="py-1.5 text-center">
-        <p className="text-[38px] font-bold leading-none tracking-[0.2px] text-[#8a86cf]">
+      <div className="py-3 text-center">
+        <p
+          className="font-bold leading-none tracking-[0.3px] text-[#8a86cf]"
+          style={{ fontSize: TITLE }}
+        >
           Tax Invoice
         </p>
       </div>
 
-      {/* ---------- Bill To / Invoice Details ---------- */}
-      <section className="mt-4 grid grid-cols-2 gap-10 text-[11px]">
+      <section className="mt-5 grid grid-cols-2 gap-12" style={{ fontSize: BODY }}>
         <div>
-          <p className="text-[13px] font-bold">Bill To</p>
-          <p className="mt-1 text-[13px] font-semibold">{invoice.partyName}</p>
-          {party?.mobile && <p className="mt-0.5">Contact No. : {party.mobile}</p>}
+          <p className="font-bold" style={{ fontSize: LABEL }}>
+            Bill To
+          </p>
+          <p className="mt-1.5 font-semibold" style={{ fontSize: LABEL }}>
+            {invoice.partyName}
+          </p>
+          {party?.mobile && (
+            <p className="mt-1" style={{ lineHeight: 1.5 }}>
+              Contact No. : {party.mobile}
+            </p>
+          )}
         </div>
         <div>
-          <p className="text-[13px] font-bold">Invoice Details</p>
-          <div className="mt-1 space-y-0.5">
+          <p className="font-bold" style={{ fontSize: LABEL }}>
+            Invoice Details
+          </p>
+          <div className="mt-1.5 space-y-1" style={{ lineHeight: 1.5 }}>
             <p>
               Invoice No. : <span className="font-semibold">{invoice.number}</span>
             </p>
@@ -132,15 +111,14 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         </div>
       </section>
 
-      {/* ---------- Items ---------- */}
-      <section className="mt-4">
-        <table className="w-full border-collapse text-[11px]">
+      <section className="mt-5">
+        <table className="w-full border-collapse" style={{ fontSize: BODY }}>
           <thead>
             <tr className="border-b border-slate-300 bg-[#8a86cf] text-white">
-              <th className="w-8 px-1.5 py-1.5 text-left font-semibold">#</th>
-              <th className="px-1.5 py-1.5 text-left font-semibold">Item name</th>
-              <th className="w-28 px-1.5 py-1.5 text-right font-semibold">Price/ Unit</th>
-              <th className="w-28 px-1.5 py-1.5 text-right font-semibold">Amount</th>
+              <th className="w-9 px-2 py-2 text-left font-semibold">#</th>
+              <th className="px-2 py-2 text-left font-semibold">Item name</th>
+              <th className="w-[30mm] px-2 py-2 text-right font-semibold">Price/ Unit</th>
+              <th className="w-[30mm] px-2 py-2 text-right font-semibold">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -149,12 +127,12 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
               const displayName = `${line.qty} ${line.name}`.trim();
               return (
                 <tr key={line.id} className="border-b border-slate-200 align-top">
-                  <td className="px-1.5 py-1.5">{idx + 1}</td>
-                  <td className="px-1.5 py-1.5">{displayName}</td>
-                  <td className="px-1.5 py-1.5 text-right tabular-nums">
+                  <td className="px-2 py-2">{idx + 1}</td>
+                  <td className="px-2 py-2">{displayName}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">
                     {formatCurrency(line.rate, currency)}
                   </td>
-                  <td className="px-1.5 py-1.5 text-right tabular-nums">
+                  <td className="px-2 py-2 text-right tabular-nums">
                     {formatCurrency(m.total, currency)}
                   </td>
                 </tr>
@@ -163,10 +141,10 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="px-1.5 py-1.5 text-right font-semibold">
+              <td colSpan={3} className="px-2 py-2 text-right font-semibold">
                 Total
               </td>
-              <td className="px-1.5 py-1.5 text-right font-semibold tabular-nums">
+              <td className="px-2 py-2 text-right font-semibold tabular-nums">
                 {formatCurrency(invoice.total, currency)}
               </td>
             </tr>
@@ -174,71 +152,43 @@ export function InvoicePrintLayout({ invoice, business, party, lastPayment, payT
         </table>
       </section>
 
-      {/* ---------- Amount in words ---------- */}
-      <section className="mt-3 text-[11px]">
+      <section className="mt-4" style={{ fontSize: BODY, lineHeight: 1.5 }}>
         <p className="font-semibold">Description</p>
-        <p className="mt-1 whitespace-pre-wrap">{(invoice.notes ?? "").trim() || "—"}</p>
+        <p className="mt-1.5 whitespace-pre-wrap">{(invoice.notes ?? "").trim() || "—"}</p>
       </section>
 
-      {/* ---------- Amount in words ---------- */}
-      <section className="mt-3 text-[11px]">
+      <section className="mt-4" style={{ fontSize: BODY, lineHeight: 1.5 }}>
         <p className="font-semibold">Invoice Amount In Words</p>
-        <p className="mt-1">{sentenceCase(amountInWords(invoice.total, currency))}</p>
+        <p className="mt-1.5">{sentenceCase(amountInWords(invoice.total, currency))}</p>
       </section>
 
-      {/* ---------- Terms / Totals ---------- */}
-      <section className="mt-4 grid grid-cols-[1.6fr_1fr] gap-8 text-[11px]">
-        <div className="space-y-3">
+      <section className="mt-6 grid grid-cols-[1.55fr_1fr] gap-10" style={{ fontSize: BODY }}>
+        {terms.length > 0 ? (
           <div>
             <p className="font-semibold">Terms and Conditions</p>
-            <ol className="mt-1 list-decimal space-y-0.5 pl-4 leading-relaxed">
-              {termsList(invoice.terms).map((t, i) => (
+            <ol className="mt-2 list-decimal space-y-1 pl-5" style={{ lineHeight: 1.55 }}>
+              {terms.map((t, i) => (
                 <li key={`${i}-${t}`}>{t}</li>
               ))}
             </ol>
           </div>
-        </div>
-        <div className="space-y-1">
+        ) : (
+          <div />
+        )}
+        <div className="space-y-1.5" style={{ lineHeight: 1.45 }}>
           <KV label="Sub Total" value={formatCurrency(invoice.total, currency)} />
           <KV label="Total" value={formatCurrency(invoice.total, currency)} highlight />
           <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
           <KV label="Balance" value={formatCurrency(balance, currency)} />
-          <KV
-            label={paymentModeLabel === "—" ? "Payment mode" : "Payment mode"}
-            value={paymentModeValue}
-          />
           <KV label="Previous Balance" value={formatCurrency(0, currency)} />
           <KV label="Current Balance" value={formatCurrency(0, currency)} />
         </div>
       </section>
 
-      {/* ---------- Pay To + Stamp ---------- */}
-      <section className="mt-6 grid grid-cols-[1.1fr_1fr] gap-8 text-[11px]">
-        <div>
-          <p className="font-semibold">Pay To:</p>
-          {resolvedMode === "cash" ? (
-            <div className="mt-1 text-slate-700">Cash</div>
-          ) : payToAccount ? (
-            <div className="mt-1 space-y-0.5 leading-relaxed">
-              <div>Bank Name : {payToAccount.name}</div>
-              {payToAccount.accountNumber && (
-                <div>Bank Account No. : {payToAccount.accountNumber}</div>
-              )}
-              {payToAccount.ifsc && <div>Bank IFSC code : {payToAccount.ifsc}</div>}
-              <div>Account holder&apos;s name : {business?.name ?? "—"}</div>
-            </div>
-          ) : (
-            <div className="mt-1 text-slate-600">—</div>
-          )}
-        </div>
-        <div className="ml-auto w-[90mm]">
-          <div className="mt-2 flex h-[31mm] items-center justify-center overflow-hidden">
-            <SmallStamp />
-          </div>
-        </div>
-      </section>
-
-      <footer className="absolute bottom-[10mm] left-0 right-0 text-center text-[10px] text-slate-500">
+      <footer
+        className="absolute bottom-[12mm] left-0 right-0 text-center text-slate-500"
+        style={{ fontSize: BODY_SM }}
+      >
         -- 1 of 1 --
       </footer>
     </div>
@@ -250,7 +200,7 @@ function KV({ label, value, highlight }: { label: string; value: string; highlig
     <div
       className={
         highlight
-          ? "flex items-baseline justify-between gap-4 bg-[#8a86cf] px-1.5 py-0.5 text-white"
+          ? "flex items-baseline justify-between gap-4 bg-[#8a86cf] px-2 py-1 text-white"
           : "flex items-baseline justify-between gap-4"
       }
     >
@@ -258,8 +208,8 @@ function KV({ label, value, highlight }: { label: string; value: string; highlig
       <span
         className={
           highlight
-            ? "min-w-[92px] text-right tabular-nums text-white"
-            : "min-w-[92px] text-right tabular-nums text-slate-900"
+            ? "min-w-[96px] text-right tabular-nums text-white"
+            : "min-w-[96px] text-right tabular-nums text-slate-900"
         }
       >
         {value}
@@ -274,47 +224,14 @@ function sentenceCase(s: string) {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-function termsList(raw?: string) {
+function termsList(raw?: string): string[] {
   const cleaned = (raw ?? "").trim();
-  if (cleaned) {
-    const lines = cleaned
-      .split(/\r?\n+/)
-      .map((l) => l.trim().replace(/^\d+[).\s]+/, ""))
-      .filter(Boolean);
-    if (lines.length) return lines;
-  }
-  return [
-    "This invoice is generated for services completed through the Snickr platform.",
-    "Snickr acts as a service facilitation platform connecting customers with independent service providers.",
-    "Charges include service fees, convenience/platform fees.",
-    "Payment is due immediately unless otherwise agreed.",
-    "Refunds and cancellations are governed by SnickR’s refund policy.",
-    "Any dispute regarding service quality must be reported within 24 hours of service completion.",
-    "Snickr’s liability is limited to the platform/service facilitation charges collected.",
-  ];
+  if (!cleaned) return [];
+  return cleaned
+    .split(/\r?\n+/)
+    .map((l) => l.trim().replace(/^\d+[).\s]+/, ""))
+    .filter(Boolean);
 }
-
-function SnickrLogo() {
-  return (
-    <img
-      src="/qobox-logo.png"
-      alt="QOBOX"
-      style={{ height: "40px", width: "120px", objectFit: "contain" }}
-    />
-  );
-}
-
-function SmallStamp() {
-  return (
-    <img
-      src="/snickr-stamp.png"
-      alt="Company stamp"
-      style={{ height: "30mm", width: "auto", objectFit: "contain" }}
-    />
-  );
-}
-
-// ---------- Indian-style amount-in-words ----------------------------------
 
 const ONES = [
   "",
@@ -354,7 +271,6 @@ function below1000(n: number): string {
   return r === 0 ? `${ONES[h]} hundred` : `${ONES[h]} hundred ${below100(r)}`;
 }
 
-/** Indian numbering: lakh / crore. */
 function intToWords(n: number): string {
   if (n === 0) return "zero";
   const crore = Math.floor(n / 10000000);
