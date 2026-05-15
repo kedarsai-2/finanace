@@ -22,7 +22,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import { apiFetch } from "@/lib/api";
 import { USE_BACKEND } from "@/lib/flags";
 import { buildAccountTxns } from "@/lib/accountLedger";
@@ -234,7 +234,7 @@ function CashBalancePage() {
             <div className="flex items-center justify-between gap-4">
               <div className="text-sm text-muted-foreground">Current cash balance</div>
               <div className="text-right tabular-nums">
-                {current === null ? "—" : current.toFixed(2)}
+                {current === null ? "—" : formatAccountCurrency(current, currency)}
               </div>
             </div>
             <div>
@@ -366,10 +366,10 @@ function CashBalancePage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                          {flow < 0 ? formatCurrency(flow, currency) : ""}
+                          {flow < 0 ? formatAccountCurrency(flow, currency) : ""}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                          {flow > 0 ? formatCurrency(flow, currency) : ""}
+                          {flow > 0 ? formatAccountCurrency(flow, currency) : ""}
                         </td>
                       </tr>
                     );

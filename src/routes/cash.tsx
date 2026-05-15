@@ -20,7 +20,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import { buildAccountTxns, accountBalance } from "@/lib/accountLedger";
 import { accountTxnDisplayFlow, type AccountTxn, type AccountTxnKind } from "@/types/account";
 
@@ -219,7 +219,7 @@ function CashPage() {
                     )}
                   >
                     {totalBalance < 0 ? "-" : ""}
-                    {formatCurrency(totalBalance, currency)}
+                    {formatAccountCurrency(totalBalance, currency)}
                   </p>
                 </div>
               </div>
@@ -278,7 +278,7 @@ function CashPage() {
                     )}
                   >
                     {bal < 0 ? "-" : ""}
-                    {formatCurrency(bal, acctCurrency)}
+                    {formatAccountCurrency(bal, acctCurrency)}
                   </p>
                 </button>
               );
@@ -338,10 +338,10 @@ function CashPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                            {flow < 0 ? formatCurrency(flow, currency) : ""}
+                            {flow < 0 ? formatAccountCurrency(flow, currency) : ""}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                            {flow > 0 ? formatCurrency(flow, currency) : ""}
+                            {flow > 0 ? formatAccountCurrency(flow, currency) : ""}
                           </td>
                         </tr>
                       );

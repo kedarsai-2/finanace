@@ -1,13 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
-import { Undo2, Search } from "lucide-react";
+import { Undo2, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { usePurchases } from "@/hooks/usePurchases";
+import type { Purchase } from "@/types/purchase";
+import { usePayments } from "@/hooks/usePayments";
 import { formatCurrency } from "@/hooks/useParties";
+import { deleteLinkedDocumentPayments } from "@/lib/deleteDocumentPayments";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 export const Route = createFileRoute("/purchase-returns")({
   head: () => ({
@@ -24,9 +40,11 @@ export const Route = createFileRoute("/purchase-returns")({
 
 function PurchaseReturnsPage() {
   const { activeId, scopedBusinessId, businesses } = useBusinesses();
-  const { returns, allPurchases, hydrated } = usePurchases(scopedBusinessId);
+  const { returns, allPurchases, hydrated, remove } = usePurchases(scopedBusinessId);
+  const { allPayments, remove: removePayment } = usePayments(null);
   const activeBusiness = businesses.find((b) => b.id === activeId);
   const currency = activeBusiness?.currency ?? "INR";
+  const [deleting, setDeleting] = useState<Purchase | null>(null);
 
   const sorted = useMemo(
     () => [...returns].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -54,6 +72,20 @@ function PurchaseReturnsPage() {
 
   const returnPaymentTypeLabel = (mode?: "cash" | "bank" | "cheque") =>
     mode === "cash" ? "Cash" : mode === "bank" ? "Bank" : mode === "cheque" ? "Cheque" : "Not set";
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    const n = deleting.number;
+    try {
+      await deleteLinkedDocumentPayments(allPayments, deleting.id, deleting.number, removePayment);
+      await remove(deleting.id);
+      setDeleting(null);
+      toast.success(`Deleted return ${n}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not delete purchase return";
+      toast.error(message);
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
@@ -86,7 +118,7 @@ function PurchaseReturnsPage() {
           <EmptyState />
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="hidden grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
+            <div className="hidden grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px_52px] items-center gap-4 border-b border-border bg-muted/40 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:grid">
               <span>Return No.</span>
               <span>Date</span>
               <span>Supplier</span>
@@ -94,12 +126,13 @@ function PurchaseReturnsPage() {
               <span>Payment type</span>
               <span className="text-right">Amount</span>
               <span className="text-center">Status</span>
+              <span className="sr-only">Actions</span>
             </div>
             <ul className="divide-y divide-border">
               {retPg.pageItems.map((r) => (
                 <li
                   key={r.id}
-                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px]"
+                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:grid-cols-[130px_110px_minmax(0,1.4fr)_120px_130px_120px_100px_52px]"
                 >
                   <Link
                     to="/purchase-returns/$id"
@@ -144,6 +177,22 @@ function PurchaseReturnsPage() {
                           : "Draft"}
                     </span>
                   </span>
+                  <div className="flex justify-center sm:justify-end">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      aria-label={`Delete ${r.number}`}
+                      title="Delete"
+                      onClick={() => {
+                        if (!verifyActionPassword()) return;
+                        setDeleting(r);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -157,10 +206,31 @@ function PurchaseReturnsPage() {
             />
           </div>
         )}
-      </main>
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleting?.number}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the purchase return and any linked refund receipt from cash/bank. Net
+              profit and dashboard totals will update.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void confirmDelete()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+function SummaryCard
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (

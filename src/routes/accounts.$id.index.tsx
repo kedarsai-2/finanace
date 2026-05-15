@@ -37,7 +37,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import {
   ACCOUNT_TYPE_LABEL,
   accountTxnDisplayFlow,
@@ -261,7 +261,7 @@ function AccountDetailsPage() {
             )}
           >
             {balance < 0 ? "-" : ""}
-            {formatCurrency(balance, currency)}
+            {formatAccountCurrency(balance, currency)}
           </p>
           <div className="mt-2 flex justify-end gap-1">
             <Button asChild size="sm" variant="outline" className="gap-1">
@@ -399,10 +399,10 @@ function AccountDetailsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                        {flow < 0 ? formatCurrency(flow, currency) : ""}
+                        {flow < 0 ? formatAccountCurrency(flow, currency) : ""}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                        {flow > 0 ? formatCurrency(flow, currency) : ""}
+                        {flow > 0 ? formatAccountCurrency(flow, currency) : ""}
                       </td>
                       <td
                         className={cn(
@@ -411,7 +411,7 @@ function AccountDetailsPage() {
                         )}
                       >
                         {r.balance < 0 ? "-" : ""}
-                        {formatCurrency(r.balance, currency)}
+                        {formatAccountCurrency(r.balance, currency)}
                       </td>
                     </tr>
                   );

@@ -20,7 +20,9 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { usePurchases } from "@/hooks/usePurchases";
+import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
+import { deleteLinkedDocumentPayments } from "@/lib/deleteDocumentPayments";
 import { lineMath } from "@/types/invoice";
 import { canEditPurchase } from "@/types/purchase";
 import { verifyActionPassword } from "@/lib/actionPassword";
@@ -40,6 +42,7 @@ function PurchaseReturnDetailPage() {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
   const { allPurchases, cancel, remove, ensureLines } = usePurchases(activeId);
+  const { allPayments, remove: removePayment } = usePayments(null);
   const ret = allPurchases.find((p) => p.id === id && p.kind === "return");
   const business = businesses.find((b) => b.id === ret?.businessId);
   const { parties } = useParties(ret?.businessId);
@@ -80,6 +83,7 @@ function PurchaseReturnDetailPage() {
 
   const handleDelete = async () => {
     try {
+      await deleteLinkedDocumentPayments(allPayments, ret.id, ret.number, removePayment);
       await remove(ret.id);
       toast.success(`Return ${ret.number} deleted`);
       navigate({ to: "/purchase-returns" });
@@ -288,7 +292,8 @@ function PurchaseReturnDetailPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete {ret.number}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This soft-deletes the return and reverses the ledger entry.
+                  This removes the return and any linked refund receipt from cash/bank and updates
+                  net profit.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

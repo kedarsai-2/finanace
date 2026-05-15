@@ -50,7 +50,7 @@ import { usePayments } from "@/hooks/usePayments";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency, formatCurrency } from "@/hooks/useParties";
 import {
   accountAllocatedOutsidePaymentMonth,
   accountNetChangeInMonth,
@@ -773,6 +773,7 @@ function DashboardPage() {
           currency={currency}
           tone="primary"
           amountToneFromSign
+          useAccountDecimals
           icon={<Wallet className="h-4 w-4" />}
           footer={cashCardFooter}
         />
@@ -784,6 +785,7 @@ function DashboardPage() {
           currency={currency}
           tone="primary"
           amountToneFromSign
+          useAccountDecimals
           icon={<CreditCard className="h-4 w-4" />}
           footer={bankCardFooter}
         />
@@ -962,8 +964,14 @@ function InvoicePaidChannelHint({
 }
 
 /** `formatCurrency` strips sign; this preserves minus for outflows. */
-function formatSignedCurrency(amount: number, currency: string) {
-  const core = formatCurrency(Math.abs(amount), currency);
+function formatSignedCurrency(
+  amount: number,
+  currency: string,
+  useAccountDecimals = false,
+) {
+  const core = useAccountDecimals
+    ? formatAccountCurrency(Math.abs(amount), currency)
+    : formatCurrency(Math.abs(amount), currency);
   if (amount < 0) return `-${core}`;
   return core;
 }
@@ -1010,7 +1018,7 @@ function DocumentModeByChannelFooter({
                     : "text-muted-foreground",
               )}
             >
-              {formatSignedCurrency(r.signed, currency)}
+              {formatSignedCurrency(r.signed, currency, true)}
             </span>
           </li>
         ))}
@@ -1043,7 +1051,7 @@ function AccountMonthBreakdown({
           <li key={r.id} className="flex justify-between gap-2 tabular-nums">
             <span className="min-w-0 truncate">{r.name}</span>
             <span className="shrink-0 text-right" title="Ledger net (balance impact)">
-              {formatCurrency(r.ledgerNet, currency)}
+              {formatAccountCurrency(r.ledgerNet, currency)}
             </span>
           </li>
         ))}
@@ -1062,6 +1070,7 @@ function BalanceCard({
   tone,
   icon,
   amountToneFromSign,
+  useAccountDecimals,
   footer,
 }: {
   to: string;
@@ -1075,6 +1084,8 @@ function BalanceCard({
   icon: React.ReactNode;
   /** When set, balance text is green when non-negative, red when negative. */
   amountToneFromSign?: boolean;
+  /** Show 2 decimal places (cash/bank ledger balances). */
+  useAccountDecimals?: boolean;
   footer?: ReactNode;
 }) {
   const toneCls = {
@@ -1102,7 +1113,9 @@ function BalanceCard({
           amountToneFromSign && (amount >= 0 ? "text-success" : "text-destructive"),
         )}
       >
-        {formatCurrency(amount, currency)}
+        {useAccountDecimals
+          ? formatAccountCurrency(amount, currency)
+          : formatCurrency(amount, currency)}
       </p>
       {footer ? <div className="mt-2">{footer}</div> : null}
       {note ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{note}</p> : null}

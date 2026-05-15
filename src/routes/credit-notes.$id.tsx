@@ -20,7 +20,9 @@ import {
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
+import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
+import { deleteLinkedDocumentPayments } from "@/lib/deleteDocumentPayments";
 import { canEditInvoice, lineMath } from "@/types/invoice";
 import { verifyActionPassword } from "@/lib/actionPassword";
 
@@ -39,6 +41,7 @@ function CreditNoteDetailPage() {
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
   const { allInvoices, hydrated, cancel, remove, ensureLines } = useInvoices(activeId);
+  const { allPayments, remove: removePayment } = usePayments(null);
   const cn = allInvoices.find((i) => i.id === id && i.kind === "credit-note");
   const business = businesses.find((b) => b.id === cn?.businessId);
   const { parties } = useParties(cn?.businessId);
@@ -81,6 +84,7 @@ function CreditNoteDetailPage() {
 
   const handleDelete = async () => {
     try {
+      await deleteLinkedDocumentPayments(allPayments, cn.id, cn.number, removePayment);
       await remove(cn.id);
       toast.success(`Credit note ${cn.number} deleted`);
       navigate({ to: "/credit-notes" });
@@ -284,7 +288,8 @@ function CreditNoteDetailPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete {cn.number}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This soft-deletes the credit note and reverses its ledger effect.
+                  This removes the credit note and any linked refund payment from cash/bank and
+                  updates net profit.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

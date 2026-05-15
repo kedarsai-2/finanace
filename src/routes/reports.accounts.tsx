@@ -19,7 +19,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import { buildAccountTxns } from "@/lib/accountLedger";
 import { downloadCsv } from "@/lib/reportExport";
 import { cn } from "@/lib/utils";
@@ -174,7 +174,7 @@ function AccountReport() {
                 )}
               >
                 {closingBalance < 0 ? "-" : ""}
-                {formatCurrency(closingBalance, currency)}
+                {formatAccountCurrency(closingBalance, currency)}
               </p>
             </div>
           )}
@@ -213,10 +213,10 @@ function AccountReport() {
                     <td className="px-4 py-3">{txnTypeLabel(r)}</td>
                     <td className="px-4 py-3 font-mono text-xs">{r.refNo ?? "—"}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                      {flow < 0 ? formatCurrency(flow, currency) : ""}
+                      {flow < 0 ? formatAccountCurrency(flow, currency) : ""}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-success">
-                      {flow > 0 ? formatCurrency(flow, currency) : ""}
+                      {flow > 0 ? formatAccountCurrency(flow, currency) : ""}
                     </td>
                     <td
                       className={cn(
@@ -225,7 +225,7 @@ function AccountReport() {
                       )}
                     >
                       {r.balance < 0 ? "-" : ""}
-                      {formatCurrency(r.balance, currency)}
+                      {formatAccountCurrency(r.balance, currency)}
                     </td>
                   </tr>
                 );

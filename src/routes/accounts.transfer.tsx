@@ -26,7 +26,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import { accountBalance, buildAccountTxns } from "@/lib/accountLedger";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 
@@ -148,9 +148,9 @@ function TransferPage() {
     }
     if (!(amount > 0)) return "Enter an amount greater than 0";
     if (mode === "transfer" && amount > fromBalance + 0.01)
-      return `Insufficient balance (${formatCurrency(fromBalance, currency)})`;
+      return `Insufficient balance (${formatAccountCurrency(fromBalance, currency)})`;
     if (mode === "adjustment" && adjustmentDirection === "decrement" && amount > fromBalance + 0.01)
-      return `Insufficient balance (${formatCurrency(fromBalance, currency)})`;
+      return `Insufficient balance (${formatAccountCurrency(fromBalance, currency)})`;
     if (!proofDataUrl) return "Upload proof image";
     return null;
   };
@@ -181,7 +181,7 @@ function TransferPage() {
       });
       if (mode === "transfer") {
         toast.success(
-          `Transferred ${formatCurrency(amount, currency)} from ${
+          `Transferred ${formatAccountCurrency(amount, currency)} from ${
             accountsById[fromId]?.name
           } to ${accountsById[toId]?.name}`,
         );
@@ -189,7 +189,7 @@ function TransferPage() {
         toast.success(
           `${adjustmentDirection === "increment" ? "Increased" : "Decreased"} ${
             accountsById[fromId]?.name
-          } by ${formatCurrency(amount, currency)}`,
+          } by ${formatAccountCurrency(amount, currency)}`,
         );
       }
       navigate({ to: search.scope === "cash" ? "/cash" : "/accounts" });
@@ -289,7 +289,7 @@ function TransferPage() {
               </Select>
               {fromId && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Available {formatCurrency(fromBalance, currency)}
+                  Available {formatAccountCurrency(fromBalance, currency)}
                 </p>
               )}
             </div>

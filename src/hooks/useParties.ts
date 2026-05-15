@@ -408,14 +408,37 @@ export function useParties(businessId?: string | null) {
   };
 }
 
-export function formatCurrency(amount: number, currency = "INR") {
+export type FormatCurrencyOptions = {
+  /** Decimal places (e.g. 2 for cash/bank ledger balances). Default 0 for summary cards. */
+  fractionDigits?: number;
+};
+
+export function formatCurrency(
+  amount: number,
+  currency = "INR",
+  options?: FormatCurrencyOptions,
+) {
+  const fractionDigits = options?.fractionDigits ?? 0;
   try {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(Math.abs(amount));
   } catch {
-    return `₹${Math.abs(amount).toLocaleString("en-IN")}`;
+    const n = Math.abs(amount);
+    if (fractionDigits > 0) {
+      return `₹${n.toLocaleString("en-IN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      })}`;
+    }
+    return `₹${n.toLocaleString("en-IN")}`;
   }
+}
+
+/** Cash and bank balances — show paise (2 decimal places). */
+export function formatAccountCurrency(amount: number, currency = "INR") {
+  return formatCurrency(amount, currency, { fractionDigits: 2 });
 }

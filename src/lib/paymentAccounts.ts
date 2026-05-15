@@ -2,6 +2,19 @@ import type { Account } from "@/types/account";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import type { Payment, PaymentMode } from "@/types/payment";
 
+/** Payments posted only against one document (e.g. credit note / purchase return settlement). */
+export function paymentsSolelyAllocatedToDocument(
+  payments: Payment[],
+  docId: string,
+  docNumber = "",
+): Payment[] {
+  return payments.filter(
+    (p) =>
+      p.allocations.length > 0 &&
+      p.allocations.every((a) => allocationMatchesDocument(a, docId, docNumber)),
+  );
+}
+
 /** All usable accounts for payment pickers (cross-business). */
 export function accountsForPaymentPicker(accounts: Account[]): Account[] {
   return accounts.filter((a) => !!a.id && !a.deleted);

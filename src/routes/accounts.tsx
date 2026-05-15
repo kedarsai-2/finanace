@@ -32,7 +32,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/hooks/useParties";
+import { formatAccountCurrency } from "@/hooks/useParties";
 import {
   ACCOUNT_TYPE_LABEL,
   accountTxnDisplayFlow,
@@ -267,7 +267,7 @@ function AccountsPage() {
                   )}
                 >
                   {totalBankBalance < 0 ? "-" : ""}
-                  {formatCurrency(totalBankBalance, defaultCurrency)}
+                  {formatAccountCurrency(totalBankBalance, defaultCurrency)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Across {bankAccounts.length} bank account{bankAccounts.length === 1 ? "" : "s"}
@@ -359,10 +359,10 @@ function AccountsPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                            {flow < 0 ? formatCurrency(flow, defaultCurrency) : ""}
+                            {flow < 0 ? formatAccountCurrency(flow, defaultCurrency) : ""}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                            {flow > 0 ? formatCurrency(flow, defaultCurrency) : ""}
+                            {flow > 0 ? formatAccountCurrency(flow, defaultCurrency) : ""}
                           </td>
                         </tr>
                       );
@@ -450,7 +450,7 @@ function AccountCard({
           )}
         >
           {balance < 0 ? "-" : ""}
-          {formatCurrency(balance, currency)}
+          {formatAccountCurrency(balance, currency)}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
           {txnCount} transaction{txnCount === 1 ? "" : "s"}
