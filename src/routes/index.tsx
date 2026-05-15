@@ -138,6 +138,12 @@ function DashboardPage() {
   const { accounts } = useAccounts(scopedBusinessId, businessIds);
   const { transfers } = useTransfers(scopedBusinessId);
 
+  // Fetch all-businesses data specifically for account balance cards (total net).
+  const { payments: allPaymentsForBalance } = usePayments(null);
+  const { expenses: allExpensesForBalance } = useExpenses(null);
+  const { transfers: allTransfersForBalance } = useTransfers(null);
+  const { accounts: allAccountsForBalance } = useAccounts(null, businessIds);
+
   const [range, setRange] = useState<Range>("6m");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const monthOptions = useMemo(
@@ -271,11 +277,8 @@ function DashboardPage() {
     totalCreditNotes -
     totalExpenses;
 
-  /** Cash/bank: net movement for the month (incl. cross-month allocations to this month's docs). */
-  const accountsForBalances = useMemo(() => {
-    if (!scopedBusinessId) return accounts;
-    return accounts.filter((a) => a.businessId === scopedBusinessId);
-  }, [accounts, scopedBusinessId]);
+  /** Cash/bank: always use all accounts across all businesses for total net. */
+  const accountsForBalances = useMemo(() => allAccountsForBalance, [allAccountsForBalance]);
 
   const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
   const monthPurchaseIds = useMemo(
@@ -302,15 +305,15 @@ function DashboardPage() {
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
         account: a,
-        payments,
-        transfers,
-        expenses,
+        payments: allPaymentsForBalance,
+        transfers: allTransfersForBalance,
+        expenses: allExpensesForBalance,
         accountsById,
       });
       const inMonth = accountNetChangeInMonth(txns, monthStart);
       const liftSales = accountAllocatedOutsidePaymentMonth(
         a,
-        payments,
+        allPaymentsForBalance,
         monthStart,
         monthInvoiceIds,
         "in",
@@ -318,7 +321,7 @@ function DashboardPage() {
       );
       const liftPurchases = accountAllocatedOutsidePaymentMonth(
         a,
-        payments,
+        allPaymentsForBalance,
         monthStart,
         monthPurchaseIds,
         "out",
@@ -346,9 +349,9 @@ function DashboardPage() {
     };
   }, [
     accountsForBalances,
-    payments,
-    transfers,
-    expenses,
+    allPaymentsForBalance,
+    allTransfersForBalance,
+    allExpensesForBalance,
     monthStart,
     monthInvoiceIds,
     monthPurchaseIds,

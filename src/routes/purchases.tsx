@@ -214,7 +214,12 @@ function PurchasesPage() {
   const { purchases, hydrated, upsert, remove, cancel } = usePurchases(scopedBusinessId);
   const { parties, upsert: upsertParty } = useParties(scopedBusinessId);
   const { items, upsert: upsertItem } = useItems(scopedBusinessId);
-  const { create: createImportPayment, refresh: refreshPaymentsAfterBulk } = usePayments(activeId);
+  const {
+    create: createImportPayment,
+    refresh: refreshPaymentsAfterBulk,
+    allPayments,
+    remove: removePayment,
+  } = usePayments(activeId);
   const { accounts: accountsForImport } = useAccounts(activeId, []);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
@@ -704,7 +709,12 @@ function PurchasesPage() {
     if (!verifyActionPassword()) return;
     const n = deleting.number;
     try {
-      await remove(deleting.id);
+      const docId = deleting.id;
+      const linkedPayments = allPayments.filter(
+        (p) => p.allocations.length > 0 && p.allocations.every((a) => a.docId === docId),
+      );
+      await asyncPool(BULK_IO_CONCURRENCY, linkedPayments, (p) => removePayment(p.id));
+      await remove(docId);
       setDeleting(null);
       toast.success(`Deleted ${n}`);
     } catch (err) {
@@ -718,6 +728,12 @@ function PurchasesPage() {
     if (!ids.length) return;
     if (!verifyActionPassword()) return;
     try {
+      const deletingIdSet = new Set(ids);
+      const linkedPayments = allPayments.filter(
+        (p) =>
+          p.allocations.length > 0 && p.allocations.every((a) => deletingIdSet.has(a.docId)),
+      );
+      await asyncPool(BULK_IO_CONCURRENCY, linkedPayments, (p) => removePayment(p.id));
       await asyncPool(BULK_IO_CONCURRENCY, ids, (id) => remove(id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
