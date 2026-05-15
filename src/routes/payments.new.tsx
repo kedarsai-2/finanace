@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -35,6 +35,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
+import { accountsForPaymentPicker, accountOptionsForMode } from "@/lib/paymentAccounts";
 import {
   PAYMENT_MODE_LABEL,
   type Payment,
@@ -70,7 +71,6 @@ function NewPaymentPage() {
   const { parties } = useParties(activeId);
   const { accounts, hydrated: accountsHydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
   const { invoices, upsert: upsertInvoice } = useInvoices(activeId);
   const { purchases, upsert: upsertPurchase } = usePurchases(activeId);
   const { create: createPayment } = usePayments(activeId);
@@ -89,22 +89,41 @@ function NewPaymentPage() {
   const [rows, setRows] = useState<AllocRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const firstAccountId = bankAccounts[0]?.id ?? "";
+  const paymentPickerAccounts = useMemo(
+    () => accountsForPaymentPicker(safeAccounts, activeId, [accountId]),
+    [safeAccounts, activeId, accountId],
+  );
+  const accountOptions = useMemo(
+    () => accountOptionsForMode(paymentPickerAccounts, mode),
+    [paymentPickerAccounts, mode],
+  );
+
+  const modeEffectMountedRef = useRef(false);
+
   useEffect(() => {
     if (!accountsHydrated || accountId) return;
-    if (mode !== "cash" && firstAccountId) setAccountId(firstAccountId);
-  }, [accountsHydrated, firstAccountId, accountId, mode]);
+    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
+    if (opts[0]?.id) setAccountId(opts[0].id);
+  }, [accountsHydrated, accountId, mode, paymentPickerAccounts]);
 
   const selectedAccount = safeAccounts.find((a) => a.id === accountId);
 
+  const onPaymentModeChange = (next: import("@/types/payment").PaymentMode) => {
+    const opts = accountOptionsForMode(paymentPickerAccounts, next);
+    const keepCurrent = !!accountId && opts.some((a) => a.id === accountId);
+    setMode(next);
+    if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
+  };
+
   useEffect(() => {
-    if (mode === "cash") {
-      setAccountId("");
+    if (!modeEffectMountedRef.current) {
+      modeEffectMountedRef.current = true;
       return;
     }
-    if (!accountId && firstAccountId) setAccountId(firstAccountId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
+    const keepCurrent = !!accountId && opts.some((a) => a.id === accountId);
+    if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
+  }, [mode, paymentPickerAccounts, accountId]);
 
   // All parties are eligible — direction is now derived from doc allocations only.
   const filteredParties = parties;
@@ -254,8 +273,9 @@ function NewPaymentPage() {
 
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (mode !== "cash" && !accountId) return "Select a bank account";
-    if (!proofDataUrl) return "Upload payment attachment (image or document)";
+    if (!accountId) return mode === "cash" ? "Select a cash account" : "Select a bank account";
+    if (mode !== "cash" && !proofDataUrl)
+      return "Upload payment attachment (image or document)";
     if (overAllocated) return "Allocation exceeds the entered amount";
     if (partyId && rows.length > 0 && unallocated > 0.01) {
       // Allow advance if user explicitly unchecks all rows.
@@ -292,8 +312,8 @@ function NewPaymentPage() {
         date: date.toISOString(),
         amount,
         mode,
-        accountId: mode === "cash" ? undefined : accountId,
-        account: mode === "cash" ? "Cash" : selectedAccount?.name,
+        accountId: accountId || undefined,
+        account: selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
         proofDataUrl,
@@ -469,7 +489,9 @@ function NewPaymentPage() {
               <Label htmlFor="mode">Payment mode</Label>
               <Select
                 value={mode}
-                onValueChange={(v) => setMode(v as import("@/types/payment").PaymentMode)}
+                onValueChange={(v) =>
+                  onPaymentModeChange(v as import("@/types/payment").PaymentMode)
+                }
               >
                 <SelectTrigger id="mode">
                   <SelectValue />
@@ -486,26 +508,24 @@ function NewPaymentPage() {
               </Select>
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="account">Bank account {mode === "cash" ? "" : "*"}</Label>
-              {mode === "cash" ? (
-                <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
-                  Uses Cash balance (no bank account)
-                </div>
-              ) : bankAccounts.length === 0 ? (
+              <Label htmlFor="account">Account *</Label>
+              {accountOptions.length === 0 ? (
                 <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  No bank accounts yet.{" "}
+                  No {mode === "cash" ? "cash" : "bank"} accounts yet.{" "}
                   <Link to="/accounts/new" className="font-medium text-primary underline">
-                    Add a bank account
+                    Add an account
                   </Link>{" "}
                   first.
                 </p>
               ) : (
                 <Select value={accountId || undefined} onValueChange={(v) => setAccountId(v)}>
                   <SelectTrigger id="account">
-                    <SelectValue placeholder="Select bank account" />
+                    <SelectValue
+                      placeholder={`Select ${mode === "cash" ? "cash" : "bank"} account`}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {bankAccounts.map((a) => (
+                    {accountOptions.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
                       </SelectItem>
@@ -537,7 +557,7 @@ function NewPaymentPage() {
               <ProofUpload
                 id="pay-proof-new"
                 label="Attachments"
-                required
+                required={mode !== "cash"}
                 proofDataUrl={proofDataUrl}
                 proofName={proofName}
                 onChange={(p) => {

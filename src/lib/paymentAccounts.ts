@@ -20,6 +20,16 @@ export function accountOptionsForMode(accounts: Account[], mode: PaymentMode): A
   return accounts;
 }
 
+/** Excel/bulk-import receipts — tracked on the invoice but not edited as payment rows. */
+export function isImportLedgerPayment(p: {
+  excludeFromLedger?: boolean;
+  proofName?: string | null;
+}): boolean {
+  if (p.excludeFromLedger) return true;
+  const name = (p.proofName ?? "").toLowerCase();
+  return name.startsWith("import-") && name.includes("placeholder");
+}
+
 export function allocationMatchesDocument(
   alloc: { docId: string; docNumber: string },
   documentId: string,

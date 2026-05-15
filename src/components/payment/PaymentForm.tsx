@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   ArrowDownCircle,
@@ -30,6 +30,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
+import { accountsForPaymentPicker, accountOptionsForMode } from "@/lib/paymentAccounts";
 import {
   PAYMENT_MODE_LABEL,
   type Payment,
@@ -54,8 +55,6 @@ export function PaymentForm({ initial }: PaymentFormProps) {
   const { parties } = useParties(effectiveBusinessId ?? null);
   const { accounts, hydrated: accountsHydrated } = useAccounts(null, businessIds);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
-  const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);
-  const bankAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "bank"), [safeAccounts]);
 
   const { create: createPayment, update: updatePayment } = usePayments(null);
 
@@ -73,29 +72,38 @@ export function PaymentForm({ initial }: PaymentFormProps) {
   const [proofName, setProofName] = useState<string | undefined>(initial?.proofName);
   const [submitting, setSubmitting] = useState(false);
 
-  const accountOptions = mode === "cash" ? cashAccounts : bankAccounts;
+  const paymentPickerAccounts = useMemo(
+    () => accountsForPaymentPicker(accounts, effectiveBusinessId, [accountId]),
+    [accounts, effectiveBusinessId, accountId],
+  );
+  const accountOptions = useMemo(
+    () => accountOptionsForMode(paymentPickerAccounts, mode),
+    [paymentPickerAccounts, mode],
+  );
 
-  // Auto-select first bank account on create when mode is non-cash.
-  const firstBankId = bankAccounts[0]?.id ?? "";
+  const modeEffectMountedRef = useRef(false);
+
   useEffect(() => {
     if (isEdit || !accountsHydrated || accountId) return;
-    if (mode !== "cash" && firstBankId) setAccountId(firstBankId);
-  }, [accountsHydrated, firstBankId, accountId, mode, isEdit]);
+    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
+    if (opts[0]?.id) setAccountId(opts[0].id);
+  }, [accountsHydrated, accountId, mode, isEdit, paymentPickerAccounts]);
 
-  // When mode changes (user action), reset account to first suitable one.
   useEffect(() => {
-    if (mode === "cash") {
-      setAccountId(cashAccounts[0]?.id ?? "");
-    } else if (bankAccounts[0]?.id) {
-      setAccountId(bankAccounts[0].id);
+    if (!modeEffectMountedRef.current) {
+      modeEffectMountedRef.current = true;
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
+    const keepCurrent = !!accountId && opts.some((a) => a.id === accountId);
+    if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
+  }, [mode, paymentPickerAccounts, accountId]);
 
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";
-    if (mode !== "cash" && !accountId) return "Select a bank account";
-    if (!proofDataUrl) return "Upload payment attachment (image or document)";
+    if (!accountId) return `Select a ${mode === "cash" ? "cash" : "bank"} account`;
+    if (mode !== "cash" && !proofDataUrl)
+      return "Upload payment attachment (image or document)";
     return null;
   };
 
@@ -114,8 +122,8 @@ export function PaymentForm({ initial }: PaymentFormProps) {
         date: date.toISOString(),
         amount,
         mode,
-        accountId: mode === "cash" ? undefined : (accountId || undefined),
-        account: mode === "cash" ? "Cash" : selectedAccount?.name,
+        accountId: accountId || undefined,
+        account: selectedAccount?.name,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
         proofDataUrl,
@@ -226,7 +234,17 @@ export function PaymentForm({ initial }: PaymentFormProps) {
 
           <div className="sm:col-span-2">
             <Label htmlFor="mode">Payment mode</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as Payment["mode"])}>
+            <Select
+              value={mode}
+              onValueChange={(v) => {
+                const nextMode = v as Payment["mode"];
+                const opts = accountOptionsForMode(paymentPickerAccounts, nextMode);
+                const keepCurrent =
+                  !!accountId && opts.some((a) => a.id === accountId);
+                setMode(nextMode);
+                if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
+              }}
+            >
               <SelectTrigger id="mode"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(Object.keys(PAYMENT_MODE_LABEL) as Payment["mode"][]).map((m) => (
@@ -237,7 +255,7 @@ export function PaymentForm({ initial }: PaymentFormProps) {
           </div>
 
           <div className="sm:col-span-2">
-            <Label htmlFor="account">Account {mode !== "cash" ? "*" : ""}</Label>
+            <Label htmlFor="account">Account *</Label>
             {accountOptions.length === 0 ? (
               <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 No {mode === "cash" ? "cash" : "bank"} accounts yet.{" "}

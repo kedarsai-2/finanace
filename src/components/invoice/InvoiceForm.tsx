@@ -75,6 +75,7 @@ import {
   accountsForPaymentPicker,
   accountOptionsForMode,
   allocationMatchesDocument,
+  isImportLedgerPayment,
 } from "@/lib/paymentAccounts";
 
 interface Props {
@@ -189,17 +190,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setTermsText(existing.terms ?? "");
       if (!paymentsHydrated) return;
 
-      const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
       const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
         allocationMatchesDocument(alloc, existing.id, existing.number);
 
       const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
-        .filter((p) => {
-          const hasAllocationMatch = p.allocations.some(matchesCurrentInvoice);
-          const hasReferenceMatch =
-            (p.reference ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
-          return hasAllocationMatch || hasReferenceMatch;
-        })
+        .filter(
+          (p) =>
+            !isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice),
+        )
         .map((p) => {
           const alloc = p.allocations.find(matchesCurrentInvoice);
           return {
@@ -228,8 +226,19 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
       if (!shouldReseed) return;
 
+      const importOnlyPaid =
+        paymentRecords
+          .filter(
+            (p) =>
+              isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice),
+          )
+          .reduce((sum, p) => {
+            const alloc = p.allocations.find(matchesCurrentInvoice);
+            return sum + Number(alloc?.amount ?? p.amount ?? 0);
+          }, 0) > 0;
+
       const linkedSplits =
-        linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
+        linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0 || importOnlyPaid
           ? linkedSplitsFromRecords
           : [
               {
@@ -285,6 +294,18 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       ),
     [accounts, documentBusinessId, payments],
   );
+
+  const importReceiptTotal = useMemo(() => {
+    if (!existing) return 0;
+    const matchesDoc = (alloc: { docId: string; docNumber: string }) =>
+      allocationMatchesDocument(alloc, existing.id, existing.number);
+    return paymentRecords
+      .filter((p) => isImportLedgerPayment(p) && p.allocations.some(matchesDoc))
+      .reduce((sum, p) => {
+        const alloc = p.allocations.find(matchesDoc);
+        return sum + Number(alloc?.amount ?? p.amount ?? 0);
+      }, 0);
+  }, [existing, paymentRecords]);
 
   // -------- Edit-lock -----------------------------------------------------
   const locked = mode === "edit" && existing ? !canEditInvoice(existing) : false;
@@ -423,7 +444,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     const currentSourcePaid = payments
       .filter((s) => !!s.sourcePaymentId)
       .reduce((sum, s) => sum + Math.max(0, s.amount || 0), 0);
-    const outstandingLimit = Math.max(0, totals.total - currentSourcePaid);
+    const outstandingLimit = Math.max(0, totals.total - currentSourcePaid - importReceiptTotal);
     for (const s of payments) {
       if (!(s.amount > 0)) return "Each payment row must have an amount > 0";
       if (s.sourcePaymentId && s.sourceLocked) {
@@ -911,6 +932,16 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           title="Payment"
           description="Optional. Add one or more payments — supports split tender (e.g. part Cash, part Bank). Bank, UPI and Cheque payments require a proof image."
         >
+          {importReceiptTotal > 0.005 && (
+            <p className="mb-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              Excel/import receipt of{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(importReceiptTotal, currency)}
+              </span>{" "}
+              is already on this sale and is not shown below. Add rows here only for extra
+              cash/bank receipts.
+            </p>
+          )}
           <PaymentSplitsEditor
             splits={payments}
             accounts={paymentPickerAccounts}

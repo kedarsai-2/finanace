@@ -63,6 +63,7 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import {
   accountsForPaymentPicker,
   allocationMatchesDocument,
+  isImportLedgerPayment,
 } from "@/lib/paymentAccounts";
 
 interface Props {
@@ -147,9 +148,28 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [paymentSplits, setPaymentSplits] = useState<PurchasePaymentSplit[]>([]);
   const seededPaymentsForPurchaseRef = useRef<string | null>(null);
   const initialSourceSplitsRef = useRef<Record<string, PurchasePaymentSplit>>({});
+  const linkedPaymentAccountIds = useMemo(() => {
+    if (!existing) return [];
+    const matchesDoc = (alloc: { docId: string; docNumber: string }) =>
+      allocationMatchesDocument(alloc, existing.id, existing.number);
+    return paymentRecords
+      .filter(
+        (p) =>
+          p.direction === "out" &&
+          !isImportLedgerPayment(p) &&
+          p.allocations.some(matchesDoc) &&
+          p.accountId,
+      )
+      .map((p) => p.accountId!);
+  }, [existing, paymentRecords]);
+
   const paymentPickerAccounts = useMemo(
-    () => accountsForPaymentPicker(accounts, documentBusinessId, [purchaseAccountId]),
-    [accounts, documentBusinessId, purchaseAccountId],
+    () =>
+      accountsForPaymentPicker(accounts, documentBusinessId, [
+        purchaseAccountId,
+        ...linkedPaymentAccountIds,
+      ]),
+    [accounts, documentBusinessId, purchaseAccountId, linkedPaymentAccountIds],
   );
   const paymentAccounts = useMemo(
     () =>
@@ -177,20 +197,30 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
       setPurchaseCategory(existing.purchaseCategory ?? "short-term");
-      setPurchasePaymentMode(existing.purchasePaymentMode ?? "cash");
       setProofDataUrl(existing.proofDataUrl);
       setProofName(existing.proofName);
       if (seededPaymentsForPurchaseRef.current !== existing.id) {
         if (!paymentsHydrated) return;
-        const normalizedPurchaseNumber = existing.number.trim().toLowerCase();
         const matchesCurrentPurchase = (alloc: { docId: string; docNumber: string }) =>
           allocationMatchesDocument(alloc, existing.id, existing.number);
-        const linkedPayments = paymentRecords.filter((p) => {
-          const hasAllocationMatch = p.allocations.some(matchesCurrentPurchase);
-          const hasReferenceMatch =
-            (p.reference ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
-          return p.direction === "out" && (hasAllocationMatch || hasReferenceMatch);
-        });
+        const linkedPayments = paymentRecords.filter(
+          (p) =>
+            p.direction === "out" &&
+            !isImportLedgerPayment(p) &&
+            p.allocations.some(matchesCurrentPurchase),
+        );
+        const importOnlyPaid =
+          paymentRecords
+            .filter(
+              (p) =>
+                p.direction === "out" &&
+                isImportLedgerPayment(p) &&
+                p.allocations.some(matchesCurrentPurchase),
+            )
+            .reduce((sum, p) => {
+              const alloc = p.allocations.find(matchesCurrentPurchase);
+              return sum + Number(alloc?.amount ?? p.amount ?? 0);
+            }, 0) > 0;
         const linkedSplitsFromRecords: PurchasePaymentSplit[] = linkedPayments.map((p) => ({
           id: `pay_existing_${p.id}`,
           sourcePaymentId: p.id,
@@ -200,7 +230,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           ),
         }));
         const linkedSplits =
-          linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
+          linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0 || importOnlyPaid
             ? linkedSplitsFromRecords
             : [
                 {
@@ -216,10 +246,10 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         );
         const primaryPayment = linkedPayments[0];
         if (primaryPayment) {
-          setPurchasePaymentMode(primaryPayment.mode);
           if (primaryPayment.accountId) setPurchaseAccountId(primaryPayment.accountId);
-        } else if (existing.purchasePaymentMode) {
-          setPurchasePaymentMode(existing.purchasePaymentMode);
+          setPurchasePaymentMode(primaryPayment.mode);
+        } else {
+          setPurchasePaymentMode(existing.purchasePaymentMode ?? "cash");
         }
         seededPaymentsForPurchaseRef.current = existing.id;
       }
@@ -232,14 +262,25 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     }
   }, [existing, hydrated, activeId, allPurchases, ensureLines, paymentRecords, paymentsHydrated]);
 
-  // Pick a default only when empty or current account does not match the selected mode.
+  const party = parties.find((p) => p.id === partyId);
+
+  // Default account on new purchases only.
   useEffect(() => {
+    if (existing) return;
     if (purchaseAccountId && paymentAccounts.some((a) => a.id === purchaseAccountId)) return;
     if (paymentAccounts[0]?.id) setPurchaseAccountId(paymentAccounts[0].id);
-    else if (purchaseAccountId) setPurchaseAccountId("");
-  }, [purchasePaymentMode, paymentAccounts, purchaseAccountId]);
+  }, [existing, purchasePaymentMode, paymentAccounts, purchaseAccountId]);
 
-  const party = parties.find((p) => p.id === partyId);
+  const onPurchasePaymentModeChange = (next: PurchasePaymentMode) => {
+    setPurchasePaymentMode(next);
+    const opts =
+      next === "cash"
+        ? paymentPickerAccounts.filter((a) => a.type === "cash")
+        : paymentPickerAccounts.filter((a) => a.type === "bank");
+    const keepCurrent =
+      !!purchaseAccountId && opts.some((a) => a.id === purchaseAccountId);
+    if (!keepCurrent) setPurchaseAccountId(opts[0]?.id ?? "");
+  };
 
   const totals = useMemo(
     () =>
@@ -680,7 +721,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               <Label>Payment type *</Label>
               <Select
                 value={purchasePaymentMode}
-                onValueChange={(v) => setPurchasePaymentMode(v as PurchasePaymentMode)}
+                onValueChange={(v) => onPurchasePaymentModeChange(v as PurchasePaymentMode)}
               >
                 <SelectTrigger>
                   <SelectValue />
