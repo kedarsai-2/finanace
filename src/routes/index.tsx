@@ -227,6 +227,46 @@ function DashboardPage() {
   /** Collections in the selected month (payment date), including invoice-linked receipts. */
   const totalReceived = totalPaymentsReceived;
 
+  const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
+  const monthPurchaseIds = useMemo(
+    () => new Set(monthPurchases.map((p) => p.id)),
+    [monthPurchases],
+  );
+  const monthCreditNoteIds = useMemo(
+    () => new Set(monthCreditNotes.map((cn) => cn.id)),
+    [monthCreditNotes],
+  );
+  const monthPurchaseReturnIds = useMemo(
+    () => new Set(monthPurchaseReturns.map((r) => r.id)),
+    [monthPurchaseReturns],
+  );
+
+  /** Payments not tied to month sales/purchase docs — advances, misc receipts, etc. */
+  const standalonePaymentsIn = useMemo(() => {
+    const allocToMonthDoc = (p: (typeof monthPaymentsForLedger)[0]) =>
+      (p.allocations ?? []).some(
+        (a) =>
+          monthInvoiceIds.has(a.docId) ||
+          monthCreditNoteIds.has(a.docId),
+      );
+    return monthPaymentsForLedger
+      .filter((p) => p.direction === "in" && !allocToMonthDoc(p))
+      .reduce((s, p) => s + p.amount, 0);
+  }, [monthPaymentsForLedger, monthInvoiceIds, monthCreditNoteIds]);
+
+  const standalonePaymentsOut = useMemo(() => {
+    const allocToMonthDoc = (p: (typeof monthPaymentsForLedger)[0]) =>
+      (p.allocations ?? []).some(
+        (a) =>
+          monthPurchaseIds.has(a.docId) ||
+          monthPurchaseReturnIds.has(a.docId) ||
+          monthCreditNoteIds.has(a.docId),
+      );
+    return monthPaymentsForLedger
+      .filter((p) => p.direction === "out" && !allocToMonthDoc(p))
+      .reduce((s, p) => s + p.amount, 0);
+  }, [monthPaymentsForLedger, monthPurchaseIds, monthPurchaseReturnIds, monthCreditNoteIds]);
+
   /** Paid portions on invoices in the month, split by stored payment mode (import/UI). Not the same as ledger cash/bank. */
   const salesPaidByChannel = useMemo(() => {
     let bankLike = 0;
@@ -268,23 +308,21 @@ function DashboardPage() {
     return { bankLike, cashLike };
   }, [monthExpenses]);
 
+  /**
+   * Accrual P&L for the month. Invoice/purchase/credit-note totals already reflect revenue
+   * and costs; linked payments are excluded so a paid sale or CN refund is not counted twice.
+   */
   const netProfit =
-    totalSales +
-    totalPaymentsReceived -
-    totalPurchases -
-    totalPaymentsPaid +
-    totalPurchaseReturns -
+    totalSales -
     totalCreditNotes -
-    totalExpenses;
+    totalPurchases +
+    totalPurchaseReturns -
+    totalExpenses +
+    standalonePaymentsIn -
+    standalonePaymentsOut;
 
   /** Cash/bank: always use all accounts across all businesses for total net. */
   const accountsForBalances = useMemo(() => allAccountsForBalance, [allAccountsForBalance]);
-
-  const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
-  const monthPurchaseIds = useMemo(
-    () => new Set(monthPurchases.map((p) => p.id)),
-    [monthPurchases],
-  );
 
   const accountBalances = useMemo(() => {
     const accountsById = Object.fromEntries(accountsForBalances.map((a) => [a.id, a]));
@@ -671,7 +709,7 @@ function DashboardPage() {
           to="/reports"
           label="Net Profit"
           value={formatCurrency(netProfit, currency)}
-          note="Sales - Credit Note - Purchase + Purchase Return - Payment Pay + Payment Received - Expenses"
+          note="Sales − credit notes − purchases + purchase returns − expenses (+/− standalone payments not linked to those documents)"
           icon={
             netProfit >= 0 ? (
               <TrendingUp className="h-4 w-4" />
