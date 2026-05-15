@@ -73,12 +73,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
             )}
           </div>
         </div>
-        <div className="min-w-[52mm] text-right" style={{ fontSize: BODY, lineHeight: 1.4 }}>
-          <p>
-            For :<span className="font-semibold">{businessName}</span>
-          </p>
-          <p className="mt-12 font-semibold">Authorized Signatory</p>
-        </div>
+        <BrandLogo logoUrl={business?.logoUrl} businessName={businessName} />
       </header>
 
       <div className="py-1.5 text-center">
@@ -100,7 +95,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           </p>
           {party?.mobile && <p className="mt-0.5">Contact No. : {party.mobile}</p>}
         </div>
-        <div>
+        <div className="text-right">
           <p className="font-bold" style={{ fontSize: SECTION_LABEL }}>
             Invoice Details
           </p>
@@ -186,6 +181,15 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         </div>
       </section>
 
+      <section className="mt-8 flex justify-end" style={{ fontSize: BODY }}>
+        <div className="w-[72mm] text-right" style={{ lineHeight: 1.4 }}>
+          <p>
+            For :<span className="font-semibold">{businessName}</span>
+          </p>
+          <p className="mt-14 font-semibold">Authorized Signatory</p>
+        </div>
+      </section>
+
       <footer
         className="absolute bottom-[10mm] left-0 right-0 text-center text-slate-500"
         style={{ fontSize: BODY_SM }}
@@ -193,6 +197,17 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         -- 1 of 1 --
       </footer>
     </div>
+  );
+}
+
+function BrandLogo({ logoUrl, businessName }: { logoUrl?: string; businessName: string }) {
+  const src = logoUrl?.trim() || "/snickr-logo.png";
+  return (
+    <img
+      src={src}
+      alt={`${businessName} logo`}
+      className="h-[18mm] w-[18mm] shrink-0 object-contain object-right"
+    />
   );
 }
 
