@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -68,6 +68,9 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const [showQuickParty, setShowQuickParty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Skip the first run of the mode-change effect (initial mount).
+  const modeEffectMountedRef = useRef(false);
+
   // Autofill last-used account on create
   useEffect(() => {
     if (initial || accountId) return;
@@ -80,11 +83,15 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     if (candidate) setAccountId(candidate);
   }, [bankAccounts, cashAccounts, accountId, initial, mode]);
 
-  // When mode changes, auto-select the appropriate default account.
+  // When mode changes (user action only, not initial mount), auto-select the appropriate account.
   useEffect(() => {
+    if (!modeEffectMountedRef.current) {
+      modeEffectMountedRef.current = true;
+      return;
+    }
     if (mode === "cash") {
       setAccountId(cashAccounts[0]?.id ?? "");
-    } else if (!accountId && bankAccounts[0]?.id) {
+    } else if (bankAccounts[0]?.id) {
       setAccountId(bankAccounts[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,7 +123,7 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
       const now = new Date().toISOString();
       const exp: Expense = {
         id: initial?.id ?? `exp_${Date.now().toString(36)}`,
-        businessId: activeId,
+        businessId: initial?.businessId ?? activeId,
         accountId: accountId || undefined,
         date: date.toISOString(),
         amount,
