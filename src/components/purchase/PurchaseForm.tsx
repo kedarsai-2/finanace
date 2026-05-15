@@ -60,6 +60,10 @@ import {
 } from "@/types/purchase";
 import type { Item } from "@/types/item";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
+import {
+  accountsForPaymentPicker,
+  allocationMatchesDocument,
+} from "@/lib/paymentAccounts";
 
 interface Props {
   mode: "new" | "edit";
@@ -116,6 +120,8 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     [purchaseId, allPurchases],
   );
 
+  const documentBusinessId = existing?.businessId ?? activeId ?? null;
+
   // -------- Form state ----------------------------------------------------
   const [partyId, setPartyId] = useState("");
   const [number, setNumber] = useState("");
@@ -141,11 +147,16 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [paymentSplits, setPaymentSplits] = useState<PurchasePaymentSplit[]>([]);
   const seededPaymentsForPurchaseRef = useRef<string | null>(null);
   const initialSourceSplitsRef = useRef<Record<string, PurchasePaymentSplit>>({});
-  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
-  const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
+  const paymentPickerAccounts = useMemo(
+    () => accountsForPaymentPicker(accounts, documentBusinessId, [purchaseAccountId]),
+    [accounts, documentBusinessId, purchaseAccountId],
+  );
   const paymentAccounts = useMemo(
-    () => (purchasePaymentMode === "cash" ? cashAccounts : bankAccounts),
-    [purchasePaymentMode, cashAccounts, bankAccounts],
+    () =>
+      purchasePaymentMode === "cash"
+        ? paymentPickerAccounts.filter((a) => a.type === "cash")
+        : paymentPickerAccounts.filter((a) => a.type === "bank"),
+    [purchasePaymentMode, paymentPickerAccounts],
   );
 
   // Initialise from existing or sensible defaults.
@@ -167,28 +178,27 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       setTermsText(existing.terms ?? "");
       setPurchaseCategory(existing.purchaseCategory ?? "short-term");
       setPurchasePaymentMode(existing.purchasePaymentMode ?? "cash");
-      setPurchaseAccountId("");
       setProofDataUrl(existing.proofDataUrl);
       setProofName(existing.proofName);
       if (seededPaymentsForPurchaseRef.current !== existing.id) {
         if (!paymentsHydrated) return;
         const normalizedPurchaseNumber = existing.number.trim().toLowerCase();
         const matchesCurrentPurchase = (alloc: { docId: string; docNumber: string }) =>
-          alloc.docId === existing.id ||
-          (alloc.docNumber ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
-        const linkedSplitsFromRecords: PurchasePaymentSplit[] = paymentRecords
-          .filter((p) => {
-            const hasAllocationMatch = p.allocations.some(matchesCurrentPurchase);
-            const hasReferenceMatch =
-              (p.reference ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
-            return p.direction === "out" && (hasAllocationMatch || hasReferenceMatch);
-          })
-          .map((p) => ({
-            id: `pay_existing_${p.id}`,
-            sourcePaymentId: p.id,
-            sourceLocked: false,
-            amount: Number(p.allocations.find(matchesCurrentPurchase)?.amount ?? p.amount ?? 0),
-          }));
+          allocationMatchesDocument(alloc, existing.id, existing.number);
+        const linkedPayments = paymentRecords.filter((p) => {
+          const hasAllocationMatch = p.allocations.some(matchesCurrentPurchase);
+          const hasReferenceMatch =
+            (p.reference ?? "").trim().toLowerCase() === normalizedPurchaseNumber;
+          return p.direction === "out" && (hasAllocationMatch || hasReferenceMatch);
+        });
+        const linkedSplitsFromRecords: PurchasePaymentSplit[] = linkedPayments.map((p) => ({
+          id: `pay_existing_${p.id}`,
+          sourcePaymentId: p.id,
+          sourceLocked: false,
+          amount: Number(
+            p.allocations.find(matchesCurrentPurchase)?.amount ?? p.amount ?? 0,
+          ),
+        }));
         const linkedSplits =
           linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
             ? linkedSplitsFromRecords
@@ -204,6 +214,13 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         initialSourceSplitsRef.current = Object.fromEntries(
           linkedSplitsFromRecords.map((split) => [split.sourcePaymentId!, split]),
         );
+        const primaryPayment = linkedPayments[0];
+        if (primaryPayment) {
+          setPurchasePaymentMode(primaryPayment.mode);
+          if (primaryPayment.accountId) setPurchaseAccountId(primaryPayment.accountId);
+        } else if (existing.purchasePaymentMode) {
+          setPurchasePaymentMode(existing.purchasePaymentMode);
+        }
         seededPaymentsForPurchaseRef.current = existing.id;
       }
     } else if (activeId) {
@@ -215,11 +232,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     }
   }, [existing, hydrated, activeId, allPurchases, ensureLines, paymentRecords, paymentsHydrated]);
 
+  // Pick a default only when empty or current account does not match the selected mode.
   useEffect(() => {
-    if (!purchaseAccountId && paymentAccounts[0]?.id) {
-      setPurchaseAccountId(paymentAccounts[0].id);
-    }
-  }, [purchasePaymentMode, purchaseAccountId, paymentAccounts]);
+    if (purchaseAccountId && paymentAccounts.some((a) => a.id === purchaseAccountId)) return;
+    if (paymentAccounts[0]?.id) setPurchaseAccountId(paymentAccounts[0].id);
+    else if (purchaseAccountId) setPurchaseAccountId("");
+  }, [purchasePaymentMode, paymentAccounts, purchaseAccountId]);
 
   const party = parties.find((p) => p.id === partyId);
 

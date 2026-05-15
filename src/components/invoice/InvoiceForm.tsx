@@ -71,6 +71,11 @@ import {
 import type { Item } from "@/types/item";
 import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
 import type { Account } from "@/types/account";
+import {
+  accountsForPaymentPicker,
+  accountOptionsForMode,
+  allocationMatchesDocument,
+} from "@/lib/paymentAccounts";
 
 interface Props {
   mode: "new" | "edit";
@@ -89,24 +94,6 @@ type PaymentSplit = {
   proofDataUrl?: string;
   proofName?: string;
 };
-
-/** Match allocation to invoice by id (any format) or document number. */
-function allocationMatchesInvoice(
-  alloc: { docId: string; docNumber: string },
-  invoiceId: string,
-  invoiceNumber: string,
-): boolean {
-  const norm = (s: string) => s.trim().toLowerCase();
-  const aDoc = norm(alloc.docId);
-  const iDoc = norm(invoiceId);
-  if (aDoc && iDoc && aDoc === iDoc) return true;
-  const aNum = parseInt(alloc.docId, 10);
-  const iNum = parseInt(invoiceId, 10);
-  if (!Number.isNaN(aNum) && !Number.isNaN(iNum) && aNum === iNum) return true;
-  const invNo = norm(invoiceNumber);
-  const allocNo = norm(alloc.docNumber ?? "");
-  return invNo.length > 0 && allocNo === invNo;
-}
 
 function emptyLine(): InvoiceLine {
   return {
@@ -142,6 +129,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
     () => (invoiceId ? allInvoices.find((i) => i.id === invoiceId) : undefined),
     [invoiceId, allInvoices],
   );
+
+  const documentBusinessId = existing?.businessId ?? activeId ?? null;
 
   // -------- Form state ----------------------------------------------------
   const [partyId, setPartyId] = useState("");
@@ -202,7 +191,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
 
       const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
       const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
-        allocationMatchesInvoice(alloc, existing.id, existing.number);
+        allocationMatchesDocument(alloc, existing.id, existing.number);
 
       const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
         .filter((p) => {
@@ -285,6 +274,16 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const preDiscountTotal = useMemo(
     () => Math.max(0, totals.taxableValue + totals.overallDiscountAmount),
     [totals.taxableValue, totals.overallDiscountAmount],
+  );
+
+  const paymentPickerAccounts = useMemo(
+    () =>
+      accountsForPaymentPicker(
+        accounts,
+        documentBusinessId,
+        payments.map((p) => p.accountId),
+      ),
+    [accounts, documentBusinessId, payments],
   );
 
   // -------- Edit-lock -----------------------------------------------------
@@ -914,7 +913,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         >
           <PaymentSplitsEditor
             splits={payments}
-            accounts={accounts}
+            accounts={paymentPickerAccounts}
             currency={currency}
             invoiceTotal={totals.total}
             alreadyPaidAmount={existing?.paidAmount ?? 0}
@@ -1329,13 +1328,7 @@ function PaymentSplitsEditor({
         const proof = parseProofAttachments(s.proofDataUrl, s.proofName);
         const isLockedSource = Boolean(s.sourcePaymentId && s.sourceLocked);
         const requiresProof = s.mode !== "cash";
-        const accountOptionsForMode = (mode: PaymentMode) =>
-          accounts.filter((a) => {
-            if (mode === "cash") return a.type === "cash";
-            if (mode === "bank" || mode === "cheque") return a.type === "bank";
-            return true;
-          });
-        const accountOptions = accountOptionsForMode(s.mode);
+        const accountOptions = accountOptionsForMode(accounts, s.mode);
         return (
           <div key={s.id} className="rounded-xl border border-border bg-card p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_1fr_140px_auto] sm:items-end">
@@ -1345,10 +1338,12 @@ function PaymentSplitsEditor({
                   value={s.mode}
                   onValueChange={(v) => {
                     const nextMode = v as PaymentMode;
-                    const opts = accountOptionsForMode(nextMode);
+                    const opts = accountOptionsForMode(accounts, nextMode);
+                    const keepCurrent =
+                      !!s.accountId && opts.some((a) => a.id === s.accountId);
                     onChange(s.id, {
                       mode: nextMode,
-                      accountId: opts.find((a) => a.id === s.accountId)?.id ?? opts[0]?.id,
+                      accountId: keepCurrent ? s.accountId : opts[0]?.id,
                     });
                   }}
                   disabled={disabled || isLockedSource}
