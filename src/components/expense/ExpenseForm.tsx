@@ -70,16 +70,19 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   // Autofill last-used account on create
   useEffect(() => {
     if (initial || accountId) return;
-    if (mode === "cash") return;
+    if (mode === "cash") {
+      if (cashAccounts[0]?.id) setAccountId(cashAccounts[0].id);
+      return;
+    }
     const last = typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) : null;
     const candidate = (last && bankAccounts.find((a) => a.id === last)?.id) || bankAccounts[0]?.id;
     if (candidate) setAccountId(candidate);
-  }, [bankAccounts, accountId, initial, mode]);
+  }, [bankAccounts, cashAccounts, accountId, initial, mode]);
 
-  // If user switches to cash mode, clear account selection (cash doesn't need a bank account).
+  // When mode changes, auto-select the appropriate default account.
   useEffect(() => {
     if (mode === "cash") {
-      setAccountId("");
+      setAccountId(cashAccounts[0]?.id ?? "");
     } else if (!accountId && bankAccounts[0]?.id) {
       setAccountId(bankAccounts[0].id);
     }
@@ -95,7 +98,7 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const onSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeId) return toast.error("Select a business first");
-    if (mode !== "cash" && !accountId) return toast.error("Bank account is required");
+    if (!accountId) return toast.error(mode === "cash" ? "Select a cash account" : "Select a bank account");
     if (!(amount > 0)) return toast.error("Amount must be greater than 0");
     if (!type) return toast.error("Select expense type");
     const normalizedCategory = category.trim().toLowerCase();
@@ -110,11 +113,10 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     setSubmitting(true);
     try {
       const now = new Date().toISOString();
-      const soleCashId = cashAccounts.length === 1 ? cashAccounts[0].id : undefined;
       const exp: Expense = {
         id: initial?.id ?? `exp_${Date.now().toString(36)}`,
         businessId: activeId,
-        accountId: mode === "cash" ? soleCashId : accountId,
+        accountId: accountId || undefined,
         date: date.toISOString(),
         amount,
         type,
@@ -231,24 +233,20 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
             <Label htmlFor="exp-acc">
               Account <span className="text-destructive">*</span>
             </Label>
-            {mode === "cash" ? (
-              <div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm text-muted-foreground">
-                Not required for Cash expenses
-              </div>
-            ) : (
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger id="exp-acc">
-                  <SelectValue placeholder="Select bank account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bankAccounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger id="exp-acc">
+                <SelectValue
+                  placeholder={mode === "cash" ? "Select cash account" : "Select bank account"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {(mode === "cash" ? cashAccounts : bankAccounts).map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name} • {ACCOUNT_TYPE_LABEL[a.type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="sm:col-span-3">
             <Label htmlFor="exp-mode">Payment mode</Label>

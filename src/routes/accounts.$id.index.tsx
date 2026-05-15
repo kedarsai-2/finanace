@@ -138,16 +138,15 @@ function AccountDetailsPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
-  const { scopedBusinessId, businesses } = useBusinesses();
-  const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
+  const { businesses } = useBusinesses();
   const { accounts, hydrated } = useAccounts(null, []);
   const { payments } = usePayments();
   const { transfers } = useTransfers();
   const { expenses } = useExpenses();
 
   const account = accounts.find((a) => a.id === id);
-  const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
-  const currency = business?.currency ?? "INR";
+  const currency =
+    (businesses.find((b) => b.id === account?.businessId) ?? businesses[0])?.currency ?? "INR";
 
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),

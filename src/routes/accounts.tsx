@@ -107,6 +107,11 @@ function AccountsPage() {
   const { transfers } = useTransfers();
   const { expenses } = useExpenses();
 
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b])),
+    [businesses],
+  );
+
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
     [accounts],
@@ -114,6 +119,8 @@ function AccountsPage() {
 
   // Only bank accounts are managed on this page; cash lives on /cash.
   const bankAccounts = useMemo(() => accounts.filter((a) => a.type === "bank"), [accounts]);
+
+  const showBusinessLabel = businesses.length > 1;
 
   const cards = useMemo(() => {
     return bankAccounts.map((a) => {
@@ -169,8 +176,8 @@ function AccountsPage() {
   );
   const acctPg = useListPagination(cards, accountsPgKey);
 
-  const business = businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0];
-  const currency = business?.currency ?? "INR";
+  const defaultCurrency =
+    (businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0])?.currency ?? "INR";
 
   if (!bHyd || !hydrated) {
     return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
@@ -260,7 +267,7 @@ function AccountsPage() {
                   )}
                 >
                   {totalBankBalance < 0 ? "-" : ""}
-                  {formatCurrency(totalBankBalance, currency)}
+                  {formatCurrency(totalBankBalance, defaultCurrency)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Across {bankAccounts.length} bank account{bankAccounts.length === 1 ? "" : "s"}
@@ -276,7 +283,8 @@ function AccountsPage() {
                 account={account}
                 balance={balance}
                 txnCount={txns}
-                currency={currency}
+                currency={businessById[account.businessId]?.currency ?? defaultCurrency}
+                businessName={showBusinessLabel ? (businessById[account.businessId]?.name ?? "") : ""}
                 onDelete={async () => {
                   try {
                     await remove(account.id);
@@ -403,12 +411,14 @@ function AccountCard({
   balance,
   txnCount,
   currency,
+  businessName,
   onDelete,
 }: {
   account: Account;
   balance: number;
   txnCount: number;
   currency: string;
+  businessName?: string;
   onDelete: () => void;
 }) {
   const Icon = TYPE_ICON[account.type];
@@ -428,6 +438,7 @@ function AccountCard({
             <p className="wrap-break-word font-semibold leading-tight">{account.name}</p>
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
               {ACCOUNT_TYPE_LABEL[account.type]}
+              {businessName ? ` · ${businessName}` : ""}
             </p>
           </div>
         </div>

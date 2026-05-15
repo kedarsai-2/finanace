@@ -85,8 +85,15 @@ function CashPage() {
   const { transfers } = useTransfers();
   const { expenses } = useExpenses();
 
-  const business = businesses.find((b) => b.id === activeId);
-  const currency = business?.currency ?? "INR";
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b])),
+    [businesses],
+  );
+  const showBusinessLabel = businesses.length > 1;
+
+  const defaultCurrency =
+    (businesses.find((b) => b.id === activeId) ?? businesses[0])?.currency ?? "INR";
+  const currency = defaultCurrency;
 
   const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
 
@@ -231,25 +238,36 @@ function CashPage() {
                 accountsById,
               });
               const bal = accountBalance(txns);
+              const acctCurrency = businessById[a.businessId]?.currency ?? currency;
+              const acctBusinessName = showBusinessLabel
+                ? (businessById[a.businessId]?.name ?? "")
+                : "";
               return (
                 <button
                   key={a.id}
                   type="button"
                   onClick={() => {
-                    if (!effectiveBusinessId) {
+                    const bizId = a.businessId || effectiveBusinessId;
+                    if (!bizId) {
                       toast.error("No business available for cash balance");
                       return;
                     }
-                    if (isAll) setActiveId(effectiveBusinessId);
+                    if (isAll && bizId !== "__all__") setActiveId(bizId);
                     navigate({
                       to: "/accounts/$id",
                       params: { id: a.id },
+                      search: { source: "cash" },
                     });
                   }}
                   className="group w-full rounded-xl border border-border bg-card p-6 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="font-semibold">{a.name}</p>
+                    <div>
+                      <p className="font-semibold">{a.name}</p>
+                      {acctBusinessName && (
+                        <p className="text-xs text-muted-foreground">{acctBusinessName}</p>
+                      )}
+                    </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </div>
                   <p className="text-xs uppercase tracking-wider text-muted-foreground">Balance</p>
@@ -260,7 +278,7 @@ function CashPage() {
                     )}
                   >
                     {bal < 0 ? "-" : ""}
-                    {formatCurrency(bal, currency)}
+                    {formatCurrency(bal, acctCurrency)}
                   </p>
                 </button>
               );

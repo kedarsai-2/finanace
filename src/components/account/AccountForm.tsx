@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { ACCOUNT_TYPE_LABEL, type Account, type AccountType } from "@/types/account";
@@ -20,8 +27,15 @@ interface Props {
 
 export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const navigate = useNavigate();
-  const { activeId } = useBusinesses();
-  const { upsert } = useAccounts(activeId, []);
+  const { activeId, businesses } = useBusinesses();
+
+  const isAllMode = !activeId || activeId === "__all__";
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>(
+    account?.businessId ?? (isAllMode ? "" : (activeId ?? "")),
+  );
+  const effectiveBusinessId = isAllMode ? selectedBusinessId : (activeId ?? "");
+
+  const { upsert } = useAccounts(effectiveBusinessId || null, []);
 
   const [name, setName] = useState(account?.name ?? "");
   const [type] = useState<"cash" | "bank">(account?.type ?? defaultType ?? "bank");
@@ -36,6 +50,8 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const validate = () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Account name is required";
+    if (mode === "create" && !effectiveBusinessId)
+      next.business = "Select a business for this account";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -43,7 +59,7 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    if (!activeId) {
+    if (!effectiveBusinessId) {
       toast.error("Select a business first");
       return;
     }
@@ -51,7 +67,7 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
     try {
       const payload: Account = {
         id: account?.id ?? "",
-        businessId: account?.businessId ?? activeId,
+        businessId: account?.businessId ?? effectiveBusinessId,
         name: name.trim(),
         type,
         openingBalance: Number(openingBalance) || 0,
@@ -80,6 +96,27 @@ export function AccountForm({ account, mode, defaultType, returnTo }: Props) {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {mode === "create" && isAllMode && (
+            <div className="sm:col-span-2">
+              <Label htmlFor="business">Business *</Label>
+              <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+                <SelectTrigger id="business">
+                  <SelectValue placeholder="Select a business" />
+                </SelectTrigger>
+                <SelectContent>
+                  {businesses.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.business && (
+                <p className="mt-1 text-xs text-destructive">{errors.business}</p>
+              )}
+            </div>
+          )}
+
           <div className="sm:col-span-2">
             <Label htmlFor="name">Account name *</Label>
             <Input

@@ -8,7 +8,7 @@ const cap =
 const isNativeCapacitor = !!cap?.isNativePlatform?.();
 
 // Production backend — always used for native APK builds.
-const PRODUCTION_BACKEND = "https://finanace-454d.onrender.com";
+const PRODUCTION_BACKEND = "https://finance.aau.co.in/api";
 
 // APK should always run against backend auth/data APIs.
 export const USE_BACKEND = envBackendEnabled || isNativeCapacitor;
