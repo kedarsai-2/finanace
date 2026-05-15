@@ -199,8 +199,9 @@ export function usePayments(businessId?: string | null) {
   const create = useCallback(
     async (p: Omit<Payment, "id">, opts?: CreatePaymentOptions) => {
       if (USE_BACKEND) {
-        if (!businessId) throw new Error("Missing businessId");
-        const paymentDto = paymentToDto(p, businessId);
+        const effectiveBizId = businessId ?? p.businessId;
+        if (!effectiveBizId) throw new Error("Missing businessId");
+        const paymentDto = paymentToDto(p, effectiveBizId);
         const saved = await apiFetch<PaymentDTO>(`/api/payments`, {
           method: "POST",
           body: JSON.stringify(paymentDto),

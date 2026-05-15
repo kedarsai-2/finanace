@@ -403,8 +403,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     }
     setSubmitting(true);
     try {
-      const p = buildPurchase(status);
-      await upsert(p);
+      const draft = buildPurchase(status);
+      const saved = await upsert(draft);
+      const p = saved ?? draft;
       const selectedPaymentAccount = paymentAccounts.find((a) => a.id === purchaseAccountId);
       if (status === "final") {
         const sourceSplits = paymentSplits.filter((s) => !!s.sourcePaymentId && !s.sourceLocked);
@@ -464,6 +465,9 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
         status === "final" ? `Purchase ${p.number} finalised` : `Draft ${p.number} saved`,
       );
       navigate(LIST_SEARCH);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save purchase";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
