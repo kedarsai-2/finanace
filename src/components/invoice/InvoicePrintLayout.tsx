@@ -19,7 +19,7 @@ const BODY = "11px";
 const BODY_SM = "10.5px";
 const SECTION_LABEL = "12px";
 const TITLE = "26px";
-const COMPANY = "16px";
+const COMPANY = "18px";
 const SIGNATURE_STAMP_SRC = "/invoice-signature-stamp.png";
 
 const DEFAULT_TERMS = [
@@ -39,6 +39,7 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
   const currency = business?.currency ?? "INR";
   const businessName = business?.name ?? "Your Business";
+  const [businessNameLine1, businessNameLine2] = splitBusinessNameTwoLines(businessName);
   const addressLines = [
     [business?.billingAddress?.line1, business?.billingAddress?.line2].filter(Boolean).join(", "),
     [business?.city, business?.state, business?.billingAddress?.pincode].filter(Boolean).join(", "),
@@ -62,10 +63,11 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
       <header className="grid grid-cols-[1fr_auto] items-start gap-6 border-b border-slate-300 pb-3">
         <div className="min-w-0">
           <h1
-            className="max-w-[108mm] font-bold leading-[1.15] text-slate-900"
+            className="font-bold uppercase leading-[1.12] tracking-[0.01em] text-slate-900"
             style={{ fontSize: COMPANY }}
           >
-            {businessName}
+            <span className="block">{businessNameLine1}</span>
+            {businessNameLine2 ? <span className="block">{businessNameLine2}</span> : null}
           </h1>
           <div className="mt-1 text-slate-800" style={{ fontSize: BODY, lineHeight: 1.45 }}>
             {addressLines.map((line) => (
@@ -192,8 +194,12 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
         className="mt-6 grid grid-cols-2 items-start gap-10"
         style={{ fontSize: BODY, lineHeight: 1.45 }}
       >
+        <AuthorizedSignatory
+          line1={businessNameLine1}
+          line2={businessNameLine2}
+          fullName={businessName}
+        />
         <PayToBlock businessName={businessName} account={payToAccount} />
-        <AuthorizedSignatory businessName={businessName} />
       </section>
 
       <footer
@@ -250,20 +256,66 @@ function PayToBlock({ businessName, account }: { businessName: string; account?:
   );
 }
 
-function AuthorizedSignatory({ businessName }: { businessName: string }) {
+function AuthorizedSignatory({
+  line1,
+  line2,
+  fullName,
+}: {
+  line1: string;
+  line2: string;
+  fullName: string;
+}) {
   return (
-    <div className="text-right" style={{ lineHeight: 1.4 }}>
-      <p>
-        For :<span className="font-semibold">{businessName}</span>
+    <div className="text-left" style={{ lineHeight: 1.4 }}>
+      <p className="font-semibold">
+        For :{line2 ? (
+          <>
+            <span className="block">{line1}</span>
+            <span className="block">{line2}</span>
+          </>
+        ) : (
+          <span>{fullName}</span>
+        )}
       </p>
       <img
         src={SIGNATURE_STAMP_SRC}
         alt="Authorized signatory stamp"
-        className="ml-auto mt-1 h-[22mm] w-auto max-w-[58mm] object-contain object-right"
+        className="mt-1 h-[22mm] w-auto max-w-[58mm] object-contain object-left"
       />
       <p className="mt-1 font-semibold">Authorized Signatory</p>
     </div>
   );
+}
+
+/** Split long company names onto two lines like the reference invoice header. */
+function splitBusinessNameTwoLines(name: string): [string, string] {
+  const n = name.trim();
+  if (!n) return ["Your Business", ""];
+
+  const madnessSuffix = n.match(
+    /^(.+?)\s+(MADNESS(?:\s+PRIVATE\s+LIMITED|\s+PVT\.?\s+LTD\.?)?)$/i,
+  );
+  if (madnessSuffix) {
+    return [madnessSuffix[1].trim(), madnessSuffix[2].trim()];
+  }
+
+  const pvtSuffix = n.match(/^(.+?)\s+(PRIVATE\s+LIMITED|PVT\.?\s+LTD\.?|LIMITED)$/i);
+  if (pvtSuffix) {
+    const leftWords = pvtSuffix[1].trim().split(/\s+/);
+    if (leftWords.length > 2) {
+      const mid = Math.ceil(leftWords.length / 2);
+      return [
+        leftWords.slice(0, mid).join(" "),
+        `${leftWords.slice(mid).join(" ")} ${pvtSuffix[2]}`.trim(),
+      ];
+    }
+    return [pvtSuffix[1].trim(), pvtSuffix[2].trim()];
+  }
+
+  const words = n.split(/\s+/);
+  if (words.length <= 3) return [n, ""];
+  const mid = Math.ceil(words.length / 2);
+  return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
 }
 
 function BrandLogo({ logoUrl, businessName }: { logoUrl?: string; businessName: string }) {
