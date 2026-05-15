@@ -104,7 +104,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     create: createPayment,
     update: updatePayment,
     remove: removePayment,
-  } = usePayments(activeId);
+  } = usePayments(null);
   const { accounts } = useAccounts(null, businessIds);
   const activeBusiness = businesses.find((b) => b.id === activeId);
 
