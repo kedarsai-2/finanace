@@ -149,7 +149,7 @@ export function usePayments(businessId?: string | null) {
       return;
     }
     setPayments([]);
-    setHydrated(true);
+    setHydrated(false);
   }, []);
 
   useEffect(() => {
@@ -193,7 +193,9 @@ export function usePayments(businessId?: string | null) {
 
   useEffect(() => {
     if (!USE_BACKEND) return;
-    void refresh().catch(() => setPayments([]));
+    void refresh()
+      .catch(() => setPayments([]))
+      .finally(() => setHydrated(true));
   }, [refresh]);
 
   const create = useCallback(

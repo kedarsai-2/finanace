@@ -90,6 +90,24 @@ type PaymentSplit = {
   proofName?: string;
 };
 
+/** Match allocation to invoice by id (any format) or document number. */
+function allocationMatchesInvoice(
+  alloc: { docId: string; docNumber: string },
+  invoiceId: string,
+  invoiceNumber: string,
+): boolean {
+  const norm = (s: string) => s.trim().toLowerCase();
+  const aDoc = norm(alloc.docId);
+  const iDoc = norm(invoiceId);
+  if (aDoc && iDoc && aDoc === iDoc) return true;
+  const aNum = parseInt(alloc.docId, 10);
+  const iNum = parseInt(invoiceId, 10);
+  if (!Number.isNaN(aNum) && !Number.isNaN(iNum) && aNum === iNum) return true;
+  const invNo = norm(invoiceNumber);
+  const allocNo = norm(alloc.docNumber ?? "");
+  return invNo.length > 0 && allocNo === invNo;
+}
+
 function emptyLine(): InvoiceLine {
   return {
     id: `ln_${Math.random().toString(36).slice(2, 9)}`,
@@ -180,54 +198,67 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
       setOverallDiscountValue(existing.overallDiscountValue);
       setNotes(existing.notes ?? "");
       setTermsText(existing.terms ?? "");
-      if (seededPaymentsForInvoiceRef.current !== existing.id) {
-        // Always wait for payment hydration in edit mode so we do not seed
-        // "no payments" too early and accidentally allow duplicate entries.
-        if (!paymentsHydrated) return;
-        const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
-        const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
-          alloc.docId === existing.id ||
-          (alloc.docNumber ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
-        const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
-          .filter((p) => {
-            const hasAllocationMatch = p.allocations.some(matchesCurrentInvoice);
-            const hasReferenceMatch =
-              (p.reference ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
-            return hasAllocationMatch || hasReferenceMatch;
-          })
-          .map((p) => ({
+      if (!paymentsHydrated) return;
+
+      const normalizedInvoiceNumber = existing.number.trim().toLowerCase();
+      const matchesCurrentInvoice = (alloc: { docId: string; docNumber: string }) =>
+        allocationMatchesInvoice(alloc, existing.id, existing.number);
+
+      const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
+        .filter((p) => {
+          const hasAllocationMatch = p.allocations.some(matchesCurrentInvoice);
+          const hasReferenceMatch =
+            (p.reference ?? "").trim().toLowerCase() === normalizedInvoiceNumber;
+          return hasAllocationMatch || hasReferenceMatch;
+        })
+        .map((p) => {
+          const alloc = p.allocations.find(matchesCurrentInvoice);
+          return {
             id: `pay_existing_${p.id}`,
             sourcePaymentId: p.id,
             sourceLocked: false,
             mode: p.mode,
             accountId: p.accountId,
-            amount: Number(p.allocations.find(matchesCurrentInvoice)?.amount ?? p.amount ?? 0),
+            amount: Number(alloc?.amount ?? p.amount ?? 0),
             reference: p.reference,
             notes: p.notes,
             proofDataUrl: p.proofDataUrl,
             proofName: p.proofName,
-          }));
-        const linkedSplits =
-          linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
-            ? linkedSplitsFromRecords
-            : [
-                {
-                  id: `pay_existing_carried_${existing.id}`,
-                  sourcePaymentId: `carried_${existing.id}`,
-                  sourceLocked: true,
-                  mode: "cash" as PaymentMode,
-                  amount: Number(existing.paidAmount ?? 0),
-                  notes: "Previously captured payment",
-                },
-              ];
-        setPayments(linkedSplits);
-        initialSourceSplitsRef.current = Object.fromEntries(
-          linkedSplitsFromRecords
-            .filter((split) => !!split.sourcePaymentId)
-            .map((split) => [split.sourcePaymentId!, split]),
-        );
-        seededPaymentsForInvoiceRef.current = existing.id;
-      }
+          };
+        });
+
+      const onlyLegacyPlaceholder =
+        payments.length === 1 &&
+        payments[0]?.sourceLocked &&
+        String(payments[0]?.sourcePaymentId ?? "").startsWith("carried_");
+      const shouldReseed =
+        seededPaymentsForInvoiceRef.current !== existing.id ||
+        (onlyLegacyPlaceholder && linkedSplitsFromRecords.length > 0) ||
+        (seededPaymentsForInvoiceRef.current === existing.id &&
+          linkedSplitsFromRecords.length > payments.filter((s) => s.sourcePaymentId && !s.sourceLocked).length);
+
+      if (!shouldReseed) return;
+
+      const linkedSplits =
+        linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0
+          ? linkedSplitsFromRecords
+          : [
+              {
+                id: `pay_existing_carried_${existing.id}`,
+                sourcePaymentId: `carried_${existing.id}`,
+                sourceLocked: true,
+                mode: "cash" as PaymentMode,
+                amount: Number(existing.paidAmount ?? 0),
+                notes: "Previously captured payment",
+              },
+            ];
+      setPayments(linkedSplits);
+      initialSourceSplitsRef.current = Object.fromEntries(
+        linkedSplitsFromRecords
+          .filter((split) => !!split.sourcePaymentId)
+          .map((split) => [split.sourcePaymentId!, split]),
+      );
+      seededPaymentsForInvoiceRef.current = existing.id;
     } else if (activeId) {
       setNumber(nextInvoiceNumber(allInvoices, activeId));
       if (seededPaymentsForInvoiceRef.current !== null) {
@@ -236,7 +267,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         seededPaymentsForInvoiceRef.current = null;
       }
     }
-  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords, paymentsHydrated]);
+  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords, paymentsHydrated, payments]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -1297,13 +1328,14 @@ function PaymentSplitsEditor({
         const uploadingProof = Boolean(uploadingProofIds[s.id]);
         const proof = parseProofAttachments(s.proofDataUrl, s.proofName);
         const isLockedSource = Boolean(s.sourcePaymentId && s.sourceLocked);
-        const requiresAccount = s.mode !== "cash";
         const requiresProof = s.mode !== "cash";
-        const accountOptions = accounts.filter((a) => {
-          if (s.mode === "cash") return a.type === "cash";
-          if (s.mode === "bank" || s.mode === "cheque") return a.type === "bank";
-          return true;
-        });
+        const accountOptionsForMode = (mode: PaymentMode) =>
+          accounts.filter((a) => {
+            if (mode === "cash") return a.type === "cash";
+            if (mode === "bank" || mode === "cheque") return a.type === "bank";
+            return true;
+          });
+        const accountOptions = accountOptionsForMode(s.mode);
         return (
           <div key={s.id} className="rounded-xl border border-border bg-card p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_1fr_140px_auto] sm:items-end">
@@ -1311,9 +1343,14 @@ function PaymentSplitsEditor({
                 <Label>Mode *</Label>
                 <Select
                   value={s.mode}
-                  onValueChange={(v) =>
-                    onChange(s.id, { mode: v as PaymentMode, accountId: undefined })
-                  }
+                  onValueChange={(v) => {
+                    const nextMode = v as PaymentMode;
+                    const opts = accountOptionsForMode(nextMode);
+                    onChange(s.id, {
+                      mode: nextMode,
+                      accountId: opts.find((a) => a.id === s.accountId)?.id ?? opts[0]?.id,
+                    });
+                  }}
                   disabled={disabled || isLockedSource}
                 >
                   <SelectTrigger>
@@ -1329,13 +1366,11 @@ function PaymentSplitsEditor({
                 </Select>
               </div>
               <div>
-                <Label>{requiresAccount ? "Account *" : "Account"}</Label>
+                <Label>Account *</Label>
                 <Select
                   value={s.accountId ?? ""}
                   onValueChange={(v) => onChange(s.id, { accountId: v || undefined })}
-                  disabled={
-                    disabled || isLockedSource || (s.mode === "cash" && accountOptions.length === 0)
-                  }
+                  disabled={disabled || isLockedSource || accountOptions.length === 0}
                 >
                   <SelectTrigger>
                     <SelectValue
