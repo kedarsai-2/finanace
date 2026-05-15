@@ -49,6 +49,11 @@ import { lineMath } from "@/types/invoice";
 import { canEditPurchase, type Purchase, type ReturnPaymentMode } from "@/types/purchase";
 import { parseProofAttachments } from "@/lib/proofAttachments";
 import { verifyActionPassword } from "@/lib/actionPassword";
+import {
+  accountOptionsForMode,
+  accountsForPaymentPicker,
+  formatAccountOptionLabel,
+} from "@/lib/paymentAccounts";
 
 export const Route = createFileRoute("/purchases/$id/")({
   head: () => ({
@@ -74,12 +79,18 @@ function PurchaseDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, scopedBusinessId } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
+  const showAccountBusiness = businesses.length > 1;
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b.name])),
+    [businesses],
+  );
   const { allPurchases, cancel, remove, ensureLines, convertToReturn } =
     usePurchases(scopedBusinessId);
   const purchase = allPurchases.find((p) => p.id === id);
   const business = businesses.find((b) => b.id === purchase?.businessId);
   const { parties } = useParties(purchase?.businessId);
-  const { accounts } = useAccounts(purchase?.businessId);
+  const { accounts } = useAccounts(null, businessIds);
   const { create: createPayment } = usePayments(purchase?.businessId);
   const party = parties.find((p) => p.id === purchase?.partyId);
   const purchaseId = purchase?.id ?? "";
@@ -97,12 +108,13 @@ function PurchaseDetailsPage() {
   const [returnPaymentMode, setReturnPaymentMode] = useState<ReturnPaymentMode>("cash");
   const [returnAccountId, setReturnAccountId] = useState<string>("");
   const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const paymentPickerAccounts = useMemo(
+    () => accountsForPaymentPicker(accounts),
+    [accounts],
+  );
   const returnAccountOptions = useMemo(
-    () =>
-      accounts.filter((a) =>
-        returnPaymentMode === "cash" ? a.type === "cash" : a.type === "bank",
-      ),
-    [accounts, returnPaymentMode],
+    () => accountOptionsForMode(paymentPickerAccounts, returnPaymentMode),
+    [paymentPickerAccounts, returnPaymentMode],
   );
 
   useEffect(() => {
@@ -275,7 +287,14 @@ function PurchaseDetailsPage() {
                       <label className="text-sm font-medium">Payment type *</label>
                       <Select
                         value={returnPaymentMode}
-                        onValueChange={(v) => setReturnPaymentMode(v as ReturnPaymentMode)}
+                        onValueChange={(v) => {
+                          const nextMode = v as ReturnPaymentMode;
+                          const opts = accountOptionsForMode(paymentPickerAccounts, nextMode);
+                          const keepCurrent =
+                            !!returnAccountId && opts.some((a) => a.id === returnAccountId);
+                          setReturnPaymentMode(nextMode);
+                          if (!keepCurrent) setReturnAccountId(opts[0]?.id ?? "");
+                        }}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Select payment type" />
@@ -302,7 +321,11 @@ function PurchaseDetailsPage() {
                         <SelectContent>
                           {returnAccountOptions.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
-                              {a.name}
+                              {formatAccountOptionLabel(
+                                a,
+                                businessById[a.businessId],
+                                showAccountBusiness,
+                              )}
                             </SelectItem>
                           ))}
                         </SelectContent>

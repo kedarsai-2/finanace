@@ -69,6 +69,11 @@ import {
   shareInvoiceByEmail,
 } from "@/lib/share";
 import { verifyActionPassword } from "@/lib/actionPassword";
+import {
+  accountOptionsForMode,
+  accountsForPaymentPicker,
+  formatAccountOptionLabel,
+} from "@/lib/paymentAccounts";
 
 export const Route = createFileRoute("/invoices/$id/")({
   head: () => ({
@@ -95,6 +100,12 @@ function InvoiceDetailsPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { businesses, activeId } = useBusinesses();
+  const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
+  const showAccountBusiness = businesses.length > 1;
+  const businessById = useMemo(
+    () => Object.fromEntries(businesses.map((b) => [b.id, b.name])),
+    [businesses],
+  );
   const { allInvoices, hydrated, cancel, remove, ensureLines, convertToCreditNote } =
     useInvoices(activeId);
   const invoice = allInvoices.find((i) => i.id === id);
@@ -102,16 +113,20 @@ function InvoiceDetailsPage() {
   const { parties } = useParties(invoice?.businessId);
   const party = parties.find((p) => p.id === invoice?.partyId);
   const { payments, create: createPayment } = usePayments(invoice?.businessId);
-  const { accounts } = useAccounts(invoice?.businessId);
+  const { accounts } = useAccounts(null, businessIds);
   const [payOpen, setPayOpen] = useState(false);
   const [cnOpen, setCnOpen] = useState(false);
   const [cnAmount, setCnAmount] = useState<number>(0);
   const [cnPaymentMode, setCnPaymentMode] = useState<"cash" | "bank">("cash");
   const [cnAccountId, setCnAccountId] = useState<string>("");
   const [cnReturnDate, setCnReturnDate] = useState<string>("");
+  const paymentPickerAccounts = useMemo(
+    () => accountsForPaymentPicker(accounts),
+    [accounts],
+  );
   const cnAccountOptions = useMemo(
-    () => accounts.filter((a) => a.type === cnPaymentMode),
-    [accounts, cnPaymentMode],
+    () => accountOptionsForMode(paymentPickerAccounts, cnPaymentMode),
+    [paymentPickerAccounts, cnPaymentMode],
   );
 
   useEffect(() => {
@@ -358,7 +373,14 @@ function InvoiceDetailsPage() {
                       <label className="text-sm font-medium">Payment type *</label>
                       <Select
                         value={cnPaymentMode}
-                        onValueChange={(v) => setCnPaymentMode(v as "cash" | "bank")}
+                        onValueChange={(v) => {
+                          const nextMode = v as "cash" | "bank";
+                          const opts = accountOptionsForMode(paymentPickerAccounts, nextMode);
+                          const keepCurrent =
+                            !!cnAccountId && opts.some((a) => a.id === cnAccountId);
+                          setCnPaymentMode(nextMode);
+                          if (!keepCurrent) setCnAccountId(opts[0]?.id ?? "");
+                        }}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Select payment type" />
@@ -378,7 +400,11 @@ function InvoiceDetailsPage() {
                         <SelectContent>
                           {cnAccountOptions.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
-                              {a.name}
+                              {formatAccountOptionLabel(
+                                a,
+                                businessById[a.businessId],
+                                showAccountBusiness,
+                              )}
                             </SelectItem>
                           ))}
                         </SelectContent>

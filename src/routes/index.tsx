@@ -58,6 +58,7 @@ import {
   expenseExcludedFromLedger,
   paymentExcludedFromLedger,
 } from "@/lib/accountLedger";
+import { paymentAllocatesToDocumentList } from "@/lib/paymentAccounts";
 import { parseSpreadsheetPaymentMode } from "@/lib/spreadsheetImportLedger";
 import type { Expense } from "@/types/expense";
 import type { Purchase } from "@/types/purchase";
@@ -227,41 +228,26 @@ function DashboardPage() {
     () => new Set(monthPurchases.map((p) => p.id)),
     [monthPurchases],
   );
-  const monthCreditNoteIds = useMemo(
-    () => new Set(monthCreditNotes.map((cn) => cn.id)),
-    [monthCreditNotes],
-  );
-  const monthPurchaseReturnIds = useMemo(
-    () => new Set(monthPurchaseReturns.map((r) => r.id)),
-    [monthPurchaseReturns],
-  );
-
   /** Payments not tied to month sales/purchase docs — advances, misc receipts, etc. */
   const standalonePaymentsIn = useMemo(() => {
-    const allocToMonthDoc = (p: (typeof monthPaymentsForLedger)[0]) =>
-      (p.allocations ?? []).some(
-        (a) =>
-          monthInvoiceIds.has(a.docId) ||
-          monthCreditNoteIds.has(a.docId) ||
-          monthPurchaseReturnIds.has(a.docId),
-      );
+    const monthDocsIn = [...monthInvoices, ...monthCreditNotes, ...monthPurchaseReturns];
     return monthPaymentsForLedger
-      .filter((p) => p.direction === "in" && !allocToMonthDoc(p))
+      .filter(
+        (p) =>
+          p.direction === "in" && !paymentAllocatesToDocumentList(p, monthDocsIn),
+      )
       .reduce((s, p) => s + p.amount, 0);
-  }, [monthPaymentsForLedger, monthInvoiceIds, monthCreditNoteIds, monthPurchaseReturnIds]);
+  }, [monthPaymentsForLedger, monthInvoices, monthCreditNotes, monthPurchaseReturns]);
 
   const standalonePaymentsOut = useMemo(() => {
-    const allocToMonthDoc = (p: (typeof monthPaymentsForLedger)[0]) =>
-      (p.allocations ?? []).some(
-        (a) =>
-          monthPurchaseIds.has(a.docId) ||
-          monthPurchaseReturnIds.has(a.docId) ||
-          monthCreditNoteIds.has(a.docId),
-      );
+    const monthDocsOut = [...monthPurchases, ...monthCreditNotes, ...monthPurchaseReturns];
     return monthPaymentsForLedger
-      .filter((p) => p.direction === "out" && !allocToMonthDoc(p))
+      .filter(
+        (p) =>
+          p.direction === "out" && !paymentAllocatesToDocumentList(p, monthDocsOut),
+      )
       .reduce((s, p) => s + p.amount, 0);
-  }, [monthPaymentsForLedger, monthPurchaseIds, monthPurchaseReturnIds, monthCreditNoteIds]);
+  }, [monthPaymentsForLedger, monthPurchases, monthCreditNotes, monthPurchaseReturns]);
 
   const allPurchaseReturnIds = useMemo(
     () => new Set(livePurchaseReturns.map((r) => r.id)),

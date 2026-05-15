@@ -2,6 +2,18 @@ import type { Account } from "@/types/account";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import type { Payment, PaymentMode } from "@/types/payment";
 
+/** True when any allocation line hits one of the documents (id or doc number). */
+export function paymentAllocatesToDocumentList(
+  payment: Pick<Payment, "allocations">,
+  documents: Array<{ id: string; number?: string }>,
+): boolean {
+  const allocs = payment.allocations ?? [];
+  if (!allocs.length || !documents.length) return false;
+  return allocs.some((a) =>
+    documents.some((d) => allocationMatchesDocument(a, d.id, d.number ?? "")),
+  );
+}
+
 /** Payments posted only against one document (e.g. credit note / purchase return settlement). */
 export function paymentsSolelyAllocatedToDocument(
   payments: Payment[],
