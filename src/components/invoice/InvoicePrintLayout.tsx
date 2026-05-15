@@ -194,12 +194,17 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
         className="mt-6 grid grid-cols-2 items-start gap-10"
         style={{ fontSize: BODY, lineHeight: 1.45 }}
       >
+        <PayToBlock
+          line1={businessNameLine1}
+          line2={businessNameLine2}
+          fullName={businessName}
+          account={payToAccount}
+        />
         <AuthorizedSignatory
           line1={businessNameLine1}
           line2={businessNameLine2}
           fullName={businessName}
         />
-        <PayToBlock businessName={businessName} account={payToAccount} />
       </section>
 
       <footer
@@ -212,11 +217,20 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
   );
 }
 
-function PayToBlock({ businessName, account }: { businessName: string; account?: Account }) {
+function PayToBlock({
+  line1,
+  line2,
+  fullName,
+  account,
+}: {
+  line1: string;
+  line2: string;
+  fullName: string;
+  account?: Account;
+}) {
   const bankName = account?.name?.trim();
   const accountNo = account?.accountNumber?.trim();
   const ifsc = account?.ifsc?.trim();
-  const holder = businessName.trim();
 
   if (!bankName && !accountNo && !ifsc) {
     return (
@@ -246,9 +260,20 @@ function PayToBlock({ businessName, account }: { businessName: string; account?:
             Bank IFSC code : <span className="font-semibold">{ifsc}</span>
           </p>
         ) : null}
-        {holder ? (
+        {fullName ? (
           <p>
-            Account holder&apos;s name : <span className="font-semibold">{holder}</span>
+            Account holder&apos;s name :{" "}
+            <span className="font-semibold">
+              {line2 ? (
+                <>
+                  {line1}
+                  <br />
+                  {line2}
+                </>
+              ) : (
+                fullName
+              )}
+            </span>
           </p>
         ) : null}
       </div>
@@ -266,9 +291,10 @@ function AuthorizedSignatory({
   fullName: string;
 }) {
   return (
-    <div className="text-left" style={{ lineHeight: 1.4 }}>
+    <div className="text-right" style={{ lineHeight: 1.4 }}>
       <p className="font-semibold">
-        For :{line2 ? (
+        For :
+        {line2 ? (
           <>
             <span className="block">{line1}</span>
             <span className="block">{line2}</span>
@@ -277,12 +303,14 @@ function AuthorizedSignatory({
           <span>{fullName}</span>
         )}
       </p>
-      <img
-        src={SIGNATURE_STAMP_SRC}
-        alt="Authorized signatory stamp"
-        className="mt-1 h-[22mm] w-auto max-w-[58mm] object-contain object-left"
-      />
-      <p className="mt-1 font-semibold">Authorized Signatory</p>
+      <div className="ml-auto mt-2 inline-flex w-[48mm] flex-col items-center">
+        <img
+          src={SIGNATURE_STAMP_SRC}
+          alt="Authorized signatory stamp"
+          className="h-[20mm] w-full object-contain"
+        />
+        <p className="mt-1 w-full text-center font-semibold">Authorized Signatory</p>
+      </div>
     </div>
   );
 }
