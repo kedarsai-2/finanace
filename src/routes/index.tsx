@@ -263,6 +263,32 @@ function DashboardPage() {
       .reduce((s, p) => s + p.amount, 0);
   }, [monthPaymentsForLedger, monthPurchaseIds, monthPurchaseReturnIds, monthCreditNoteIds]);
 
+  const allPurchaseReturnIds = useMemo(
+    () => new Set(livePurchaseReturns.map((r) => r.id)),
+    [livePurchaseReturns],
+  );
+
+  /**
+   * Purchase-return benefit in P&L: return documents dated this month, or supplier
+   * refunds received this month (whichever captures the return without double-counting).
+   */
+  const purchaseReturnProfitImpact = useMemo(() => {
+    const fromDocs = totalPurchaseReturns;
+    const fromRefunds = monthPaymentsForLedger
+      .filter((p) => p.direction === "in")
+      .reduce((s, p) => {
+        const pr = (p.allocations ?? [])
+          .filter((a) => allPurchaseReturnIds.has(a.docId))
+          .reduce((sum, a) => sum + a.amount, 0);
+        return s + pr;
+      }, 0);
+    return Math.max(fromDocs, fromRefunds);
+  }, [
+    totalPurchaseReturns,
+    monthPaymentsForLedger,
+    allPurchaseReturnIds,
+  ]);
+
   /** Paid portions on invoices in the month, split by stored payment mode (import/UI). Not the same as ledger cash/bank. */
   const salesPaidByChannel = useMemo(() => {
     let bankLike = 0;
@@ -312,7 +338,7 @@ function DashboardPage() {
     totalSales -
     totalCreditNotes -
     totalPurchases +
-    totalPurchaseReturns -
+    purchaseReturnProfitImpact -
     totalExpenses +
     standalonePaymentsIn -
     standalonePaymentsOut;
@@ -706,7 +732,7 @@ function DashboardPage() {
           to="/reports"
           label="Net Profit"
           value={formatCurrency(netProfit, currency)}
-          note="Sales − credit notes − purchases + purchase returns − expenses (+/− standalone payments not linked to those documents)"
+          note="Sales − credit notes − purchases + purchase returns (document or refund received) − expenses (+/− other standalone payments)"
           icon={
             netProfit >= 0 ? (
               <TrendingUp className="h-4 w-4" />
