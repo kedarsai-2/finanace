@@ -254,7 +254,9 @@ export function usePayments(businessId?: string | null) {
   const update = useCallback(
     async (id: string, patch: Partial<Omit<Payment, "id" | "businessId">>) => {
       if (USE_BACKEND) {
-        if (!businessId) throw new Error("Missing businessId");
+        // Fall back to the payment's own businessId when hook is unscoped (businessId = null).
+        const effectiveBizId = businessId ?? payments.find((x) => x.id === id)?.businessId;
+        if (!effectiveBizId) throw new Error("Missing businessId");
         const idNum = toNumId(id);
         if (idNum == null) throw new Error("Invalid payment id");
         const current = payments.find((x) => x.id === id);
@@ -266,7 +268,7 @@ export function usePayments(businessId?: string | null) {
         };
         const paymentDto = paymentToDto(
           {
-            businessId,
+            businessId: effectiveBizId,
             partyId: merged.partyId,
             direction: merged.direction,
             date: merged.date,
@@ -281,7 +283,7 @@ export function usePayments(businessId?: string | null) {
             allocations: merged.allocations,
             excludeFromLedger: merged.excludeFromLedger,
           },
-          businessId,
+          effectiveBizId,
         );
         await apiFetch<PaymentDTO>(`/api/payments/${idNum}`, {
           method: "PATCH",
@@ -289,7 +291,7 @@ export function usePayments(businessId?: string | null) {
         });
 
         const existingAllocs = await apiFetch<PaymentAllocationDTO[]>(
-          `/api/payment-allocations/by-business/${encodeURIComponent(String(businessId))}`,
+          `/api/payment-allocations/by-business/${encodeURIComponent(String(effectiveBizId))}`,
         )
           .then((list) => list.filter((a) => toNumId(a.payment?.id) === idNum))
           .catch(() => []);

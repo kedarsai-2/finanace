@@ -6,11 +6,12 @@ import {
   useRouterState,
   type SearchSchemaInput,
 } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
-import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Paperclip } from "lucide-react";
+import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Paperclip, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,9 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { useParties, formatCurrency } from "@/hooks/useParties";
-import { PAYMENT_MODE_LABEL, type PaymentDirection } from "@/types/payment";
+import { PAYMENT_MODE_LABEL, type Payment, type PaymentDirection } from "@/types/payment";
 import { hasAnyProof, parseProofAttachments, primaryProofUrl } from "@/lib/proofAttachments";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 const DIRS = ["all", "in", "out"] as const;
 type DirFilter = (typeof DIRS)[number];
@@ -72,9 +74,11 @@ function PaymentsPage() {
   const navigate = useNavigate({ from: "/payments" });
 
   const { activeId, businesses } = useBusinesses();
-  const { payments } = usePayments(activeId);
+  const { payments, remove: removePayment } = usePayments(activeId);
   const { accounts } = useAccounts(activeId, []);
   const { parties } = useParties(activeId);
+
+  const [deleting, setDeleting] = useState<Payment | null>(null);
   const safeAccounts = useMemo(() => accounts.filter((a) => !!a.id), [accounts]);
 
   const business = businesses.find((b) => b.id === activeId);
@@ -96,6 +100,18 @@ function PaymentsPage() {
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, search.dir, search.account, search.from, search.to]);
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    if (!verifyActionPassword()) return;
+    try {
+      await removePayment(deleting.id);
+      toast.success("Payment deleted");
+      setDeleting(null);
+    } catch {
+      toast.error("Could not delete payment");
+    }
+  };
 
   const payPgKey = useMemo(
     () => `${search.dir}|${search.account}|${search.from}|${search.to}`,
@@ -263,6 +279,7 @@ function PaymentsPage() {
                 <th className="px-4 py-3 text-left">Account</th>
                 <th className="px-4 py-3 text-left">Reference</th>
                 <th className="w-10 px-2 py-3 text-center">Proof</th>
+                <th className="w-20 px-2 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -318,6 +335,26 @@ function PaymentsPage() {
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </td>
+                    <td className="px-2 py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        <Link
+                          to="/payments/$id/edit"
+                          params={{ id: p.id }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Edit payment"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(p)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          title="Delete payment"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -334,6 +371,28 @@ function PaymentsPage() {
           </>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      {deleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+            <h2 className="mb-2 text-lg font-semibold">Delete payment?</h2>
+            <p className="mb-5 text-sm text-muted-foreground">
+              {formatCurrency(deleting.amount, currency)} on{" "}
+              {format(new Date(deleting.date), "dd MMM yyyy")} will be permanently removed.
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleting(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
