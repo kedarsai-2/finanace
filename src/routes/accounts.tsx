@@ -359,10 +359,10 @@ function AccountsPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-destructive/80">
-                            {flow < 0 ? formatCurrency(flow, currency) : ""}
+                            {flow < 0 ? formatCurrency(flow, defaultCurrency) : ""}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                            {flow > 0 ? formatCurrency(flow, currency) : ""}
+                            {flow > 0 ? formatCurrency(flow, defaultCurrency) : ""}
                           </td>
                         </tr>
                       );
