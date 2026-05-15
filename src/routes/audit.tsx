@@ -3,7 +3,8 @@ import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { Eye, ShieldCheck, FileX } from "lucide-react";
+import { Eye, ShieldCheck, FileX, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { clearAuditLogs } from "@/lib/audit";
+import { verifyActionPassword } from "@/lib/actionPassword";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAuditLogs } from "@/hooks/useAuditLogs";
@@ -116,6 +129,15 @@ function AuditPage() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [active, setActive] = useState<AuditEntry | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+
+  const handleClearAll = () => {
+    if (!verifyActionPassword()) return;
+    clearAuditLogs();
+    setActive(null);
+    setClearOpen(false);
+    toast.success("Activity log cleared");
+  };
 
   const userOptions = useMemo(() => {
     return Array.from(new Set(logs.map((l) => l.user))).sort();
@@ -146,10 +168,45 @@ function AuditPage() {
             Every create, edit, delete, cancel and payment recorded across the app.
           </p>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          {filtered.length.toLocaleString()} of {logs.length.toLocaleString()} entries
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="text-xs">
+            {filtered.length.toLocaleString()} of {logs.length.toLocaleString()} entries
+          </Badge>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={!hydrated || logs.length === 0}
+            onClick={() => setClearOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear all logs
+          </Button>
+        </div>
       </header>
+
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all activity logs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {logs.length.toLocaleString()} log entr
+              {logs.length === 1 ? "y" : "ies"} stored in this browser. Your invoices, payments,
+              and other data are not affected. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear logs
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <section className="mb-4 rounded-xl border border-border bg-card p-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

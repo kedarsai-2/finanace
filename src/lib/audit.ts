@@ -40,6 +40,17 @@ export function readAuditLogs(): AuditEntry[] {
   return readAll();
 }
 
+/** Remove all stored audit entries from this browser (localStorage only). */
+export function clearAuditLogs(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new CustomEvent("bm.audit.changed"));
+}
+
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
