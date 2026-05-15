@@ -11,16 +11,25 @@ interface Props {
   party?: Party;
 }
 
-/** Base body size — slightly larger than legacy 11px for print readability. */
-const BODY = "12px";
-const BODY_SM = "11.5px";
-const LABEL = "14px";
-const TITLE = "40px";
-const COMPANY = "20px";
+/** Typography tuned to match reference Tax Invoice PDF (11pt body, compact spacing). */
+const BODY = "11px";
+const BODY_SM = "10.5px";
+const SECTION_LABEL = "12px";
+const TITLE = "38px";
+const COMPANY = "16px";
+
+const DEFAULT_TERMS = [
+  "This invoice is generated for services completed through the Snickr platform.",
+  "Snickr acts as a service facilitation platform connecting customers with independent service providers.",
+  "Charges include service fees, convenience/platform fees.",
+  "Payment is due immediately unless otherwise agreed.",
+  "Refunds and cancellations are governed by SnickR's refund policy.",
+  "Any dispute regarding service quality must be reported within 24 hours of service completion.",
+  "Snickr's liability is limited to the platform/service facilitation charges collected.",
+];
 
 /**
- * Print-friendly tax invoice layout (A4).
- * Text-only letterhead matching reference PDF spacing; no platform logos.
+ * Print-friendly tax invoice layout (A4) — matches reference PDF spacing and type scale.
  */
 export function InvoicePrintLayout({ invoice, business, party }: Props) {
   const balance = Math.max(0, invoice.total - invoice.paidAmount);
@@ -38,68 +47,64 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
       style={{
         width: "210mm",
         minHeight: "297mm",
-        padding: "14mm 14mm 12mm 14mm",
+        padding: "12mm 12mm 10mm 12mm",
         boxSizing: "border-box",
         fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
         fontSize: BODY,
-        lineHeight: 1.45,
-        letterSpacing: "0.01em",
+        lineHeight: 1.4,
+        letterSpacing: "0",
       }}
     >
-      <header className="grid grid-cols-2 gap-8 border-b border-slate-300 pb-4">
+      <header className="grid grid-cols-[1fr_auto] items-start gap-6 border-b border-slate-300 pb-3">
         <div>
-          <h1 className="font-bold leading-snug text-slate-900" style={{ fontSize: COMPANY }}>
+          <h1 className="font-bold leading-tight text-slate-900" style={{ fontSize: COMPANY }}>
             {businessName}
           </h1>
-          <div className="mt-2 space-y-1 text-slate-800" style={{ fontSize: BODY, lineHeight: 1.5 }}>
+          <div className="mt-1 text-slate-800" style={{ fontSize: BODY, lineHeight: 1.45 }}>
             {addressLines.map((line) => (
               <div key={line}>{line}</div>
             ))}
             {business?.mobile && <div>Phone no. : {business.mobile}</div>}
             {business?.email && <div>Email : {business.email}</div>}
             {business?.gstNumber && (
-              <div className="font-mono" style={{ fontSize: BODY_SM }}>
+              <div className="mt-0.5 font-mono" style={{ fontSize: BODY_SM }}>
                 GSTIN: {business.gstNumber}
               </div>
             )}
           </div>
         </div>
-        <div className="text-right" style={{ fontSize: BODY }}>
-          <p className="leading-snug">
-            For : <span className="font-semibold">{businessName}</span>
+        <div className="min-w-[52mm] text-right" style={{ fontSize: BODY, lineHeight: 1.4 }}>
+          <p>
+            For :<span className="font-semibold">{businessName}</span>
           </p>
-          <p className="mt-14 font-semibold tracking-wide">Authorized Signatory</p>
+          <p className="mt-12 font-semibold">Authorized Signatory</p>
         </div>
       </header>
 
-      <div className="py-3 text-center">
+      <div className="py-1.5 text-center">
         <p
-          className="font-bold leading-none tracking-[0.3px] text-[#8a86cf]"
+          className="font-bold leading-none tracking-[0.2px] text-[#8a86cf]"
           style={{ fontSize: TITLE }}
         >
           Tax Invoice
         </p>
       </div>
 
-      <section className="mt-5 grid grid-cols-2 gap-12" style={{ fontSize: BODY }}>
+      <section className="mt-4 grid grid-cols-2 gap-10" style={{ fontSize: BODY }}>
         <div>
-          <p className="font-bold" style={{ fontSize: LABEL }}>
+          <p className="font-bold" style={{ fontSize: SECTION_LABEL }}>
             Bill To
           </p>
-          <p className="mt-1.5 font-semibold" style={{ fontSize: LABEL }}>
+          <p className="mt-1 font-semibold" style={{ fontSize: SECTION_LABEL }}>
             {invoice.partyName}
           </p>
-          {party?.mobile && (
-            <p className="mt-1" style={{ lineHeight: 1.5 }}>
-              Contact No. : {party.mobile}
-            </p>
-          )}
+          {party?.mobile && <p className="mt-0.5">Contact No. : {party.mobile}</p>}
         </div>
         <div>
-          <p className="font-bold" style={{ fontSize: LABEL }}>
+          <p className="font-bold" style={{ fontSize: SECTION_LABEL }}>
             Invoice Details
           </p>
-          <div className="mt-1.5 space-y-1" style={{ lineHeight: 1.5 }}>
+          <div className="mt-1 space-y-0.5">
             <p>
               Invoice No. : <span className="font-semibold">{invoice.number}</span>
             </p>
@@ -111,14 +116,14 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         </div>
       </section>
 
-      <section className="mt-5">
+      <section className="mt-4">
         <table className="w-full border-collapse" style={{ fontSize: BODY }}>
           <thead>
             <tr className="border-b border-slate-300 bg-[#8a86cf] text-white">
-              <th className="w-9 px-2 py-2 text-left font-semibold">#</th>
-              <th className="px-2 py-2 text-left font-semibold">Item name</th>
-              <th className="w-[30mm] px-2 py-2 text-right font-semibold">Price/ Unit</th>
-              <th className="w-[30mm] px-2 py-2 text-right font-semibold">Amount</th>
+              <th className="w-8 px-1.5 py-1.5 text-left font-semibold">#</th>
+              <th className="px-1.5 py-1.5 text-left font-semibold">Item name</th>
+              <th className="w-28 px-1.5 py-1.5 text-right font-semibold">Price/ Unit</th>
+              <th className="w-28 px-1.5 py-1.5 text-right font-semibold">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -127,12 +132,12 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
               const displayName = `${line.qty} ${line.name}`.trim();
               return (
                 <tr key={line.id} className="border-b border-slate-200 align-top">
-                  <td className="px-2 py-2">{idx + 1}</td>
-                  <td className="px-2 py-2">{displayName}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">
+                  <td className="px-1.5 py-1.5">{idx + 1}</td>
+                  <td className="px-1.5 py-1.5">{displayName}</td>
+                  <td className="px-1.5 py-1.5 text-right tabular-nums">
                     {formatCurrency(line.rate, currency)}
                   </td>
-                  <td className="px-2 py-2 text-right tabular-nums">
+                  <td className="px-1.5 py-1.5 text-right tabular-nums">
                     {formatCurrency(m.total, currency)}
                   </td>
                 </tr>
@@ -141,10 +146,10 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="px-2 py-2 text-right font-semibold">
+              <td colSpan={3} className="px-1.5 py-1.5 text-right font-semibold">
                 Total
               </td>
-              <td className="px-2 py-2 text-right font-semibold tabular-nums">
+              <td className="px-1.5 py-1.5 text-right font-semibold tabular-nums">
                 {formatCurrency(invoice.total, currency)}
               </td>
             </tr>
@@ -152,30 +157,26 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
         </table>
       </section>
 
-      <section className="mt-4" style={{ fontSize: BODY, lineHeight: 1.5 }}>
+      <section className="mt-3" style={{ fontSize: BODY, lineHeight: 1.4 }}>
         <p className="font-semibold">Description</p>
-        <p className="mt-1.5 whitespace-pre-wrap">{(invoice.notes ?? "").trim() || "—"}</p>
+        <p className="mt-1 whitespace-pre-wrap">{(invoice.notes ?? "").trim() || "—"}</p>
       </section>
 
-      <section className="mt-4" style={{ fontSize: BODY, lineHeight: 1.5 }}>
+      <section className="mt-3" style={{ fontSize: BODY, lineHeight: 1.4 }}>
         <p className="font-semibold">Invoice Amount In Words</p>
-        <p className="mt-1.5">{sentenceCase(amountInWords(invoice.total, currency))}</p>
+        <p className="mt-1">{amountInWordsDisplay(invoice.total, currency)}</p>
       </section>
 
-      <section className="mt-6 grid grid-cols-[1.55fr_1fr] gap-10" style={{ fontSize: BODY }}>
-        {terms.length > 0 ? (
-          <div>
-            <p className="font-semibold">Terms and Conditions</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5" style={{ lineHeight: 1.55 }}>
-              {terms.map((t, i) => (
-                <li key={`${i}-${t}`}>{t}</li>
-              ))}
-            </ol>
-          </div>
-        ) : (
-          <div />
-        )}
-        <div className="space-y-1.5" style={{ lineHeight: 1.45 }}>
+      <section className="mt-4 grid grid-cols-[1.6fr_1fr] gap-8" style={{ fontSize: BODY }}>
+        <div>
+          <p className="font-semibold">Terms and Conditions</p>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4" style={{ lineHeight: 1.45 }}>
+            {terms.map((t, i) => (
+              <li key={`${i}-${t}`}>{t}</li>
+            ))}
+          </ol>
+        </div>
+        <div className="space-y-0.5" style={{ lineHeight: 1.35 }}>
           <KV label="Sub Total" value={formatCurrency(invoice.total, currency)} />
           <KV label="Total" value={formatCurrency(invoice.total, currency)} highlight />
           <KV label="Received" value={formatCurrency(invoice.paidAmount, currency)} />
@@ -186,7 +187,7 @@ export function InvoicePrintLayout({ invoice, business, party }: Props) {
       </section>
 
       <footer
-        className="absolute bottom-[12mm] left-0 right-0 text-center text-slate-500"
+        className="absolute bottom-[10mm] left-0 right-0 text-center text-slate-500"
         style={{ fontSize: BODY_SM }}
       >
         -- 1 of 1 --
@@ -200,16 +201,16 @@ function KV({ label, value, highlight }: { label: string; value: string; highlig
     <div
       className={
         highlight
-          ? "flex items-baseline justify-between gap-4 bg-[#8a86cf] px-2 py-1 text-white"
-          : "flex items-baseline justify-between gap-4"
+          ? "flex items-baseline justify-between gap-3 bg-[#8a86cf] px-1.5 py-0.5 text-white"
+          : "flex items-baseline justify-between gap-3"
       }
     >
       <span className={highlight ? "text-white" : "text-slate-700"}>{label}</span>
       <span
         className={
           highlight
-            ? "min-w-[96px] text-right tabular-nums text-white"
-            : "min-w-[96px] text-right tabular-nums text-slate-900"
+            ? "min-w-[88px] text-right tabular-nums text-white"
+            : "min-w-[88px] text-right tabular-nums text-slate-900"
         }
       >
         {value}
@@ -218,19 +219,22 @@ function KV({ label, value, highlight }: { label: string; value: string; highlig
   );
 }
 
-function sentenceCase(s: string) {
-  const t = (s ?? "").trim();
-  if (!t) return t;
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-
 function termsList(raw?: string): string[] {
   const cleaned = (raw ?? "").trim();
-  if (!cleaned) return [];
-  return cleaned
+  if (!cleaned) return DEFAULT_TERMS;
+  const lines = cleaned
     .split(/\r?\n+/)
     .map((l) => l.trim().replace(/^\d+[).\s]+/, ""))
     .filter(Boolean);
+  return lines.length ? lines : DEFAULT_TERMS;
+}
+
+function amountInWordsDisplay(amount: number, currency: string): string {
+  if (Math.abs(amount) < 0.005) return "Zero";
+  const words = amountInWords(amount, currency);
+  const t = words.trim();
+  if (!t) return t;
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 const ONES = [
