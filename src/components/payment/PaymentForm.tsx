@@ -34,6 +34,7 @@ import {
   accountsForPaymentPicker,
   accountOptionsForMode,
   formatAccountOptionLabel,
+  resolvePaymentAccountId,
 } from "@/lib/paymentAccounts";
 import {
   PAYMENT_MODE_LABEL,
@@ -87,23 +88,23 @@ export function PaymentForm({ initial }: PaymentFormProps) {
     [paymentPickerAccounts, mode],
   );
 
-  const modeEffectMountedRef = useRef(false);
+  const editAccountsSeededRef = useRef(false);
 
+  // After accounts load on edit, restore the real account (avoid jumping to "Default").
+  useEffect(() => {
+    if (!isEdit || !initial || !accountsHydrated || editAccountsSeededRef.current) return;
+    const resolved = resolvePaymentAccountId(initial, paymentPickerAccounts);
+    if (resolved) setAccountId(resolved);
+    if (initial.mode) setMode(initial.mode);
+    editAccountsSeededRef.current = true;
+  }, [isEdit, initial, accountsHydrated, paymentPickerAccounts]);
+
+  // Default account on create only.
   useEffect(() => {
     if (isEdit || !accountsHydrated || accountId) return;
     const opts = accountOptionsForMode(paymentPickerAccounts, mode);
     if (opts[0]?.id) setAccountId(opts[0].id);
   }, [accountsHydrated, accountId, mode, isEdit, paymentPickerAccounts]);
-
-  useEffect(() => {
-    if (!modeEffectMountedRef.current) {
-      modeEffectMountedRef.current = true;
-      return;
-    }
-    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
-    const keepCurrent = !!accountId && opts.some((a) => a.id === accountId);
-    if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
-  }, [mode, paymentPickerAccounts, accountId]);
 
   const validate = (): string | null => {
     if (!(amount > 0)) return "Enter an amount greater than 0";

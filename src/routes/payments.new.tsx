@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -104,8 +104,6 @@ function NewPaymentPage() {
     [paymentPickerAccounts, mode],
   );
 
-  const modeEffectMountedRef = useRef(false);
-
   useEffect(() => {
     if (!accountsHydrated || accountId) return;
     const opts = accountOptionsForMode(paymentPickerAccounts, mode);
@@ -120,16 +118,6 @@ function NewPaymentPage() {
     setMode(next);
     if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
   };
-
-  useEffect(() => {
-    if (!modeEffectMountedRef.current) {
-      modeEffectMountedRef.current = true;
-      return;
-    }
-    const opts = accountOptionsForMode(paymentPickerAccounts, mode);
-    const keepCurrent = !!accountId && opts.some((a) => a.id === accountId);
-    if (!keepCurrent) setAccountId(opts[0]?.id ?? "");
-  }, [mode, paymentPickerAccounts, accountId]);
 
   // All parties are eligible — direction is now derived from doc allocations only.
   const filteredParties = parties;

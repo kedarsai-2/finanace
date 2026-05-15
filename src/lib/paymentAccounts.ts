@@ -1,6 +1,6 @@
 import type { Account } from "@/types/account";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
-import type { PaymentMode } from "@/types/payment";
+import type { Payment, PaymentMode } from "@/types/payment";
 
 /** All usable accounts for payment pickers (cross-business). */
 export function accountsForPaymentPicker(accounts: Account[]): Account[] {
@@ -11,6 +11,23 @@ export function accountOptionsForMode(accounts: Account[], mode: PaymentMode): A
   if (mode === "cash") return accounts.filter((a) => a.type === "cash");
   if (mode === "bank" || mode === "cheque") return accounts.filter((a) => a.type === "bank");
   return accounts;
+}
+
+/** Match saved payment to an account row (id, then name + mode). */
+export function resolvePaymentAccountId(
+  payment: Pick<Payment, "accountId" | "account" | "mode">,
+  accounts: Account[],
+): string | undefined {
+  if (payment.accountId) {
+    const byId = accounts.find((a) => a.id === payment.accountId);
+    if (byId) return byId.id;
+  }
+  const name = (payment.account ?? "").trim().toLowerCase();
+  if (!name) return undefined;
+  const forMode = accountOptionsForMode(accounts, payment.mode);
+  const byName = forMode.find((a) => a.name.trim().toLowerCase() === name);
+  if (byName) return byName.id;
+  return undefined;
 }
 
 export function formatAccountOptionLabel(

@@ -52,7 +52,7 @@ function EditPaymentPage() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">Edit Payment</h1>
       </header>
-      <PaymentForm initial={payment} />
+      <PaymentForm key={payment.id} initial={payment} />
     </div>
   );
 }
