@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PartyPicker } from "@/components/party/PartyPicker";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -265,22 +266,15 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-[240px] flex-1">
                 <Label htmlFor="exp-party">Party</Label>
-                <Select
-                  value={partyId || "__none"}
-                  onValueChange={(v) => setPartyId(v === "__none" ? "" : v)}
-                >
-                  <SelectTrigger id="exp-party">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">None</SelectItem>
-                    {supplierParties.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PartyPicker
+                  id="exp-party"
+                  parties={supplierParties}
+                  value={partyId || null}
+                  onChange={setPartyId}
+                  allowEmpty
+                  emptyOptionLabel="None"
+                  placeholder="None"
+                />
               </div>
               <Button
                 type="button"

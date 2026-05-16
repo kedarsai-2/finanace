@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PartyPicker } from "@/components/party/PartyPicker";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -102,19 +103,14 @@ function SalesReport() {
           </div>
           <div className="min-w-[180px]">
             <Label>Party</Label>
-            <Select value={partyId} onValueChange={setPartyId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All parties</SelectItem>
-                {parties.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PartyPicker
+              parties={parties}
+              value={partyId}
+              onChange={setPartyId}
+              allowAll
+              allOptionLabel="All parties"
+              placeholder="All parties"
+            />
           </div>
           <div className="min-w-[160px]">
             <Label>Status</Label>

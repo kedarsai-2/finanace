@@ -5,14 +5,8 @@ import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PartyPicker } from "@/components/party/PartyPicker";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { usePurchases } from "@/hooks/usePurchases";
@@ -89,19 +83,15 @@ function PurchaseReport() {
           </div>
           <div className="min-w-[200px]">
             <Label>Supplier</Label>
-            <Select value={supplierId} onValueChange={setSupplierId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All suppliers</SelectItem>
-                {suppliers.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PartyPicker
+              parties={suppliers}
+              value={supplierId}
+              onChange={setSupplierId}
+              allowAll
+              allOptionLabel="All suppliers"
+              placeholder="All suppliers"
+              searchPlaceholder="Search suppliers…"
+            />
           </div>
           {(from || to || supplierId !== "all") && (
             <Button

@@ -4,13 +4,7 @@ import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { format, differenceInDays } from "date-fns";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PartyPicker } from "@/components/party/PartyPicker";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useParties, formatCurrency } from "@/hooks/useParties";
@@ -128,19 +122,14 @@ function PartyReport() {
       filters={
         <div className="min-w-[240px]">
           <Label>Party</Label>
-          <Select value={partyId} onValueChange={setPartyId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All parties</SelectItem>
-              {parties.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PartyPicker
+            parties={parties}
+            value={partyId}
+            onChange={setPartyId}
+            allowAll
+            allOptionLabel="All parties"
+            placeholder="All parties"
+          />
         </div>
       }
     >

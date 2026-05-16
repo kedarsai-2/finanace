@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PartyPicker } from "@/components/party/PartyPicker";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -196,15 +197,15 @@ export function PaymentForm({ initial }: PaymentFormProps) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Label htmlFor="party">Party (optional)</Label>
-            <Select value={partyId || "_none"} onValueChange={(v) => setPartyId(v === "_none" ? "" : v)}>
-              <SelectTrigger id="party"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_none">No party (general / advance)</SelectItem>
-                {parties.filter((p) => !!p.id).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PartyPicker
+              id="party"
+              parties={parties}
+              value={partyId || null}
+              onChange={setPartyId}
+              allowEmpty
+              emptyOptionLabel="No party (general / advance)"
+              placeholder="No party (general / advance)"
+            />
           </div>
 
           <div>
