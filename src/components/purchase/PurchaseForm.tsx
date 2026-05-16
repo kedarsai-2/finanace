@@ -3,14 +3,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
   ArrowLeft,
-  CalendarIcon,
   Loader2,
   Plus,
   Save,
   Send,
   Trash2,
   UserPlus,
-  Search as SearchIcon,
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,8 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -28,18 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 
 import { FormSection } from "@/components/business/FormSection";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
+import { PartyPicker } from "@/components/party/PartyPicker";
 import { QuickAddItemDialog } from "@/components/item/QuickAddItemDialog";
+import { ItemLinePicker } from "@/components/item/ItemLinePicker";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { ProofUpload } from "@/components/proof/ProofUpload";
 
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -140,7 +131,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const [proofName, setProofName] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
-  const [partyOpen, setPartyOpen] = useState(false);
   const [quickPartyOpen, setQuickPartyOpen] = useState(false);
   const [quickItemForRow, setQuickItemForRow] = useState<string | null>(null);
   const [quickAssetOpen, setQuickAssetOpen] = useState(false);
@@ -582,49 +572,12 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <Label>Party *</Label>
-              <Popover open={partyOpen} onOpenChange={setPartyOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className={cn(
-                      "h-10 w-full justify-between font-normal text-white hover:text-white",
-                      !party && "text-white/80",
-                    )}
-                  >
-                    {party ? party.name : "Select party…"}
-                    <SearchIcon className="ml-2 h-4 w-4 text-white/85" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search parties…" />
-                    <CommandList>
-                      <CommandEmpty>No parties found.</CommandEmpty>
-                      <CommandGroup>
-                        {suppliers.map((p) => (
-                          <CommandItem
-                            key={p.id}
-                            value={`${p.name} ${p.mobile}`}
-                            onSelect={() => {
-                              setPartyId(p.id);
-                              setPartyOpen(false);
-                            }}
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">{p.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {p.mobile}
-                                {p.state ? ` • ${p.state}` : ""}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <PartyPicker
+                parties={suppliers}
+                value={partyId || null}
+                onChange={setPartyId}
+                disabled={locked}
+              />
               {party && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   GSTIN: {party.gstNumber ?? "—"} • State: {party.state ?? "—"}
@@ -661,23 +614,11 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
             </div>
             <div>
               <Label>Purchase date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 w-full justify-between font-normal">
-                    {format(date, "dd MMM yyyy")}
-                    <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(d) => d && setDate(d)}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerField
+                value={date}
+                onChange={(d) => d && setDate(d)}
+                title="Purchase date"
+              />
             </div>
             <div>
               <Label>Category *</Label>
@@ -745,41 +686,14 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
             </div>
             <div>
               <Label>Due date (optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "h-10 w-full justify-between font-normal text-white hover:text-white",
-                      !dueDate && "text-white/80",
-                    )}
-                  >
-                    {dueDate ? format(dueDate, "dd MMM yyyy") : "Not set"}
-                    <CalendarIcon className="ml-2 h-4 w-4 text-white/85" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                    <span className="text-xs text-muted-foreground">Pick a date</span>
-                    {dueDate && (
-                      <button
-                        type="button"
-                        onClick={() => setDueDate(undefined)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={(d) => setDueDate(d ?? undefined)}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerField
+                value={dueDate}
+                onChange={setDueDate}
+                placeholder="Not set"
+                clearable
+                title="Due date"
+                buttonClassName="text-white hover:text-white"
+              />
             </div>
           </div>
         </FormSection>
@@ -811,13 +725,19 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
                   return (
                     <tr key={line.id} className="align-top">
                       <td className="min-w-[220px] px-2 py-2">
-                        <ItemPicker
+                        <ItemLinePicker
                           value={line.name}
                           items={items.filter((i) => i.type === "product")}
                           onSelect={(item) => applyItemToLine(line.id, item)}
                           onChangeName={(v) => updateLine(line.id, { name: v, itemId: undefined })}
                           onQuickAdd={() => setQuickItemForRow(line.id)}
                           locked={!!line.itemId}
+                          inputPlaceholder="Search or type asset…"
+                          searchPlaceholder="Search assets…"
+                          emptyLabel="No assets match."
+                          quickAddLabel="+ Quick add new asset"
+                          priceKey="purchasePrice"
+                          sheetTitle="Select asset"
                         />
                       </td>
                       <td className="w-20 px-2 py-2">
@@ -1138,108 +1058,3 @@ function Row({
   );
 }
 
-function ItemPicker({
-  value,
-  items,
-  onSelect,
-  onChangeName,
-  onQuickAdd,
-  locked,
-}: {
-  value: string;
-  items: Item[];
-  onSelect: (item: Item) => void;
-  onChangeName: (v: string) => void;
-  onQuickAdd: () => void;
-  locked?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const active = items.filter((i) => i.active);
-  return (
-    <div className="flex gap-1">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="flex-1">
-            <Input
-              value={value}
-              onChange={(e) => onChangeName(e.target.value)}
-              onFocus={() => !locked && setOpen(true)}
-              onPointerDown={(e) => {
-                if (locked) return;
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                if (locked) return;
-                e.stopPropagation();
-                setOpen(true);
-              }}
-              readOnly={locked}
-              placeholder="Search or type asset…"
-              className={cn("h-9", locked && "bg-muted/50 cursor-not-allowed")}
-            />
-          </div>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[320px] p-0"
-          align="start"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          <Command>
-            <CommandInput placeholder="Search assets…" autoFocus />
-            <CommandList>
-              <CommandEmpty>
-                <div className="py-3 text-center text-sm text-muted-foreground">
-                  No assets match.
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      onQuickAdd();
-                    }}
-                    className="mt-1 block w-full text-primary hover:underline"
-                  >
-                    + Quick add new asset
-                  </button>
-                </div>
-              </CommandEmpty>
-              <CommandGroup>
-                {active.map((it) => (
-                  <CommandItem
-                    key={it.id}
-                    value={`${it.name} ${it.sku ?? ""}`}
-                    onSelect={() => {
-                      onSelect(it);
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <div>
-                        <p className="font-medium">{it.name}</p>
-                        {it.sku && (
-                          <p className="font-mono text-xs text-muted-foreground">{it.sku}</p>
-                        )}
-                      </div>
-                      <span className="tabular-nums text-muted-foreground">
-                        {it.purchasePrice ?? it.sellingPrice}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="h-9 w-9 shrink-0"
-        onClick={onQuickAdd}
-        aria-label="Quick add item"
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}

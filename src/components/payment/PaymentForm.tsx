@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format } from "date-fns";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
-  CalendarIcon,
   Loader2,
   Wallet,
 } from "lucide-react";
@@ -14,8 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import {
   Select,
   SelectContent,
@@ -226,23 +223,11 @@ export function PaymentForm({ initial }: PaymentFormProps) {
 
           <div>
             <Label>Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="h-10 w-full justify-between font-normal">
-                  {format(date, "dd MMM yyyy")}
-                  <CalendarIcon className="ml-2 h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => d && setDate(d)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <DatePickerField
+              value={date}
+              onChange={(d) => d && setDate(d)}
+              title="Payment date"
+            />
           </div>
 
           <div className="sm:col-span-2">

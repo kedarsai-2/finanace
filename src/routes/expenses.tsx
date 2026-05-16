@@ -4,7 +4,6 @@ import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
-  CalendarIcon,
   CircleHelp,
   Plus,
   Receipt,
@@ -21,8 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import {
   Select,
   SelectContent,
@@ -917,28 +915,14 @@ function DateField({
   return (
     <div>
       <Label className="sr-only">{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="h-10 w-full justify-between font-normal text-white hover:text-white"
-          >
-            <span className={cn(!value && "text-white/80")}>
-              {value ? format(value, "dd/MM/yyyy") : label}
-            </span>
-            <CalendarIcon className="ml-2 h-4 w-4 text-white/85" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={onChange}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-          />
-        </PopoverContent>
-      </Popover>
+      <DatePickerField
+        variant="filter"
+        placeholder={label}
+        value={value}
+        onChange={onChange}
+        formatStr="dd/MM/yyyy"
+        title={label}
+      />
     </div>
   );
 }

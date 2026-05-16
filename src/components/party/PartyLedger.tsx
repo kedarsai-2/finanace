@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { format, startOfMonth, startOfYear, subDays } from "date-fns";
-import { CalendarIcon, Download, FileSpreadsheet, FileText, Receipt, X } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Receipt, X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -368,27 +367,14 @@ function DateButton({
   onChange: (d: Date | undefined) => void;
 }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("h-8 gap-1.5 font-normal", !date && "text-muted-foreground")}
-        >
-          <CalendarIcon className="h-3.5 w-3.5" />
-          {date ? format(date, "dd MMM yyyy") : label}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={onChange}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-      </PopoverContent>
-    </Popover>
+    <DatePickerField
+      variant="field"
+      placeholder={label}
+      value={date}
+      onChange={onChange}
+      title={label}
+      buttonClassName={cn("h-8 text-sm", !date && "text-muted-foreground")}
+    />
   );
 }
 

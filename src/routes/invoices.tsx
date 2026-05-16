@@ -18,7 +18,6 @@ import {
   Trash2,
   FileText,
   Ban,
-  CalendarIcon,
   CircleHelp,
   Upload,
   X,
@@ -29,8 +28,7 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import {
   Select,
   SelectContent,
@@ -1177,29 +1175,14 @@ function DatePill({
   onChange: (d?: Date) => void;
 }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
-            value ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <CalendarIcon className="h-3.5 w-3.5" />
-          {value ? format(value, "dd/MM/yyyy") : label}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={value}
-          onSelect={onChange}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-      </PopoverContent>
-    </Popover>
+    <DatePickerField
+      variant="chip"
+      placeholder={label}
+      value={value}
+      onChange={onChange}
+      formatStr="dd/MM/yyyy"
+      title={label}
+    />
   );
 }
 

@@ -5,7 +5,15 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { useResponsiveOverlay } from "@/hooks/use-responsive-overlay";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -79,139 +87,176 @@ export function BusinessSwitcher() {
     router.invalidate();
   };
 
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setQuery("");
-      }}
+  const useSheet = useResponsiveOverlay();
+
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) setQuery("");
+  };
+
+  const triggerButton = (
+    <Button
+      variant="outline"
+      role="combobox"
+      aria-expanded={open}
+      aria-label="Switch business"
+      className="h-12 w-auto max-w-[220px] justify-between gap-3 border-white/30 bg-white/10 px-3 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)] backdrop-blur-sm hover:bg-white/15 hover:text-white sm:w-[280px] sm:max-w-none"
+      onClick={useSheet ? () => setOpen(true) : undefined}
     >
+      <div className="flex min-w-0 items-center gap-2.5">
+        {isAll ? (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
+            <Layers className="h-4 w-4" />
+          </div>
+        ) : (
+          <Avatar business={active} />
+        )}
+        <div className="min-w-0 text-left">
+          <p className="truncate text-[11px] font-medium uppercase tracking-wider text-white/80">
+            Active business
+          </p>
+          <p className="truncate text-sm font-semibold leading-tight text-white">
+            {hydrated
+              ? isAll
+                ? "All Companies"
+                : (active?.name ?? "Select a business")
+              : "Loading…"}
+          </p>
+        </div>
+      </div>
+      <ChevronsUpDown className="h-4 w-4 shrink-0 text-white/85" />
+    </Button>
+  );
+
+  const switcherPanel = (
+    <>
+      <div className="border-b border-border p-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search businesses…"
+            className="h-9 pl-8"
+          />
+        </div>
+      </div>
+
+      <div className="max-h-72 overflow-y-auto p-1">
+        <button
+          type="button"
+          onClick={handlePickAll}
+          className={cn(
+            "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors",
+            "hover:bg-accent",
+            isAll && "bg-primary/5",
+          )}
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
+            <Layers className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium leading-tight">All Companies</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Combined view across all businesses
+            </p>
+          </div>
+          {isAll && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        </button>
+        <div className="my-1 h-px bg-border" />
+        {filtered.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            No businesses match "{query}"
+          </p>
+        ) : (
+          filtered.map((b) => {
+            const isActive = b.id === activeId;
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => handlePick(b)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors",
+                  "hover:bg-accent",
+                  isActive && "bg-primary/5",
+                )}
+              >
+                <Avatar business={b} size={32} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium leading-tight">{b.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {b.city}, {b.state}
+                    {b.gstNumber ? " • GST" : ""}
+                  </p>
+                </div>
+                {isActive && <Check className="h-4 w-4 shrink-0 text-primary" />}
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      <div className="border-t border-border p-1">
+        <Button
+          asChild
+          variant="ghost"
+          className="h-10 w-full justify-start gap-2 font-medium text-primary hover:text-primary"
+          onClick={() => setOpen(false)}
+        >
+          <Link to="/businesses/new">
+            <Plus className="h-4 w-4" />
+            Add Business
+          </Link>
+        </Button>
+      </div>
+    </>
+  );
+
+  if (useSheet) {
+    return (
+      <>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
+            <TooltipContent>Switch</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent side="bottom" className="flex max-h-[min(85dvh,640px)] flex-col gap-0 p-0">
+            <SheetHeader className="border-b border-border px-4 py-3 text-left">
+              <SheetTitle>Switch business</SheetTitle>
+              <SheetDescription className="sr-only">Search and select a business</SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
+              {switcherPanel}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                aria-label="Switch business"
-                className="h-12 w-auto max-w-[220px] justify-between gap-3 border-white/30 bg-white/10 px-3 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)] backdrop-blur-sm hover:bg-white/15 hover:text-white sm:w-[280px] sm:max-w-none"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  {isAll ? (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
-                      <Layers className="h-4 w-4" />
-                    </div>
-                  ) : (
-                    <Avatar business={active} />
-                  )}
-                  <div className="min-w-0 text-left">
-                    <p className="truncate text-[11px] font-medium uppercase tracking-wider text-white/80">
-                      Active business
-                    </p>
-                    <p className="truncate text-sm font-semibold leading-tight text-white">
-                      {hydrated
-                        ? isAll
-                          ? "All Companies"
-                          : (active?.name ?? "Select a business")
-                        : "Loading…"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronsUpDown className="h-4 w-4 shrink-0 text-white/85" />
-              </Button>
-            </PopoverTrigger>
+            <PopoverTrigger asChild>{triggerButton}</PopoverTrigger>
           </TooltipTrigger>
           <TooltipContent>Switch</TooltipContent>
         </Tooltip>
       </TooltipProvider>
       <PopoverContent
         align="start"
+        side="bottom"
         sideOffset={8}
+        avoidCollisions
+        collisionPadding={12}
         className="w-(--radix-popover-trigger-width) min-w-[280px] p-0"
       >
-        <div className="border-b border-border p-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search businesses…"
-              className="h-9 pl-8"
-            />
-          </div>
-        </div>
-
-        <div className="max-h-72 overflow-y-auto p-1">
-          <button
-            type="button"
-            onClick={handlePickAll}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors",
-              "hover:bg-accent",
-              isAll && "bg-primary/5",
-            )}
-          >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-accent to-primary text-primary-foreground">
-              <Layers className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium leading-tight">All Companies</p>
-              <p className="truncate text-xs text-muted-foreground">
-                Combined view across all businesses
-              </p>
-            </div>
-            {isAll && <Check className="h-4 w-4 shrink-0 text-primary" />}
-          </button>
-          <div className="my-1 h-px bg-border" />
-          {filtered.length === 0 ? (
-            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              No businesses match "{query}"
-            </p>
-          ) : (
-            filtered.map((b) => {
-              const isActive = b.id === activeId;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => handlePick(b)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors",
-                    "hover:bg-accent",
-                    isActive && "bg-primary/5",
-                  )}
-                >
-                  <Avatar business={b} size={32} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium leading-tight">{b.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {b.city}, {b.state}
-                      {b.gstNumber ? " • GST" : ""}
-                    </p>
-                  </div>
-                  {isActive && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                </button>
-              );
-            })
-          )}
-        </div>
-
-        <div className="border-t border-border p-1">
-          <Button
-            asChild
-            variant="ghost"
-            className="h-10 w-full justify-start gap-2 font-medium text-primary hover:text-primary"
-            onClick={() => setOpen(false)}
-          >
-            <Link to="/businesses/new">
-              <Plus className="h-4 w-4" />
-              Add Business
-            </Link>
-          </Button>
-        </div>
+        {switcherPanel}
       </PopoverContent>
     </Popover>
   );
