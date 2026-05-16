@@ -28,9 +28,12 @@ public class BankLedgerAccountService {
     }
 
     public Account getOrCreatePrimaryBankAccount(Long businessId) {
+        Business business = businessRepository
+            .findByIdForUpdate(businessId)
+            .orElseThrow(() -> new BusinessNotFoundException(businessId));
         List<Account> banks = accountRepository.findAllActiveByBusinessIdAndType(businessId, AccountType.BANK);
         if (banks.isEmpty()) {
-            return createPrimaryBankAccount(businessId);
+            return createPrimaryBankAccount(business);
         }
         return banks
             .stream()
@@ -39,11 +42,7 @@ public class BankLedgerAccountService {
             .orElse(banks.get(0));
     }
 
-    private Account createPrimaryBankAccount(Long businessId) {
-        Business business = businessRepository
-            .findById(businessId)
-            .orElseThrow(() -> new BusinessNotFoundException(businessId));
-
+    private Account createPrimaryBankAccount(Business business) {
         Account bank = new Account();
         bank.setBusiness(business);
         bank.setName("Bank");

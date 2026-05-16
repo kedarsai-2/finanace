@@ -23,19 +23,18 @@ public class CashLedgerAccountService {
     }
 
     public Account getOrCreateCashAccount(Long businessId) {
+        Business business = businessRepository
+            .findByIdForUpdate(businessId)
+            .orElseThrow(() -> new BusinessNotFoundException(businessId));
         List<Account> cashAccounts = accountRepository.findAllActiveByBusinessIdAndType(businessId, AccountType.CASH);
         if (cashAccounts.isEmpty()) {
-            return createCashAccount(businessId);
+            return createCashAccount(business);
         }
         // Support legacy data with multiple active cash accounts by choosing a deterministic primary.
         return cashAccounts.stream().filter(a -> "Cash".equalsIgnoreCase(a.getName())).findFirst().orElse(cashAccounts.get(0));
     }
 
-    private Account createCashAccount(Long businessId) {
-        Business business = businessRepository
-            .findById(businessId)
-            .orElseThrow(() -> new BusinessNotFoundException(businessId));
-
+    private Account createCashAccount(Business business) {
         Account cash = new Account();
         cash.setBusiness(business);
         cash.setName("Cash");

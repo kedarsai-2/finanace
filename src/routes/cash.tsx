@@ -22,7 +22,12 @@ import { useTransfers } from "@/hooks/useTransfers";
 import { useExpenses } from "@/hooks/useExpenses";
 import { formatAccountCurrency } from "@/hooks/useParties";
 import { buildAccountTxns, accountBalance } from "@/lib/accountLedger";
-import { accountTxnDisplayFlow, type AccountTxn, type AccountTxnKind } from "@/types/account";
+import {
+  accountTxnDisplayFlow,
+  type Account,
+  type AccountTxn,
+  type AccountTxnKind,
+} from "@/types/account";
 
 export const Route = createFileRoute("/cash")({
   head: () => ({
@@ -62,6 +67,33 @@ function txnTypeLabel(r: {
   return KIND_LABEL[r.kind];
 }
 
+type CashAccountGroup = {
+  primary: Account;
+  members: Account[];
+};
+
+function accountSortKey(account: Account): number {
+  const n = Number(account.id);
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+}
+
+function groupCashAccounts(accounts: Account[]): CashAccountGroup[] {
+  const groups = new Map<string, Account[]>();
+  for (const account of accounts) {
+    const normalizedName = account.name.trim().replace(/\s+/g, " ").toLowerCase();
+    const key =
+      normalizedName === "cash" ? `${account.businessId || "_"}|auto-cash` : `custom|${account.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), account]);
+  }
+
+  return [...groups.values()].map((members) => {
+    const sorted = [...members].sort(
+      (a, b) => accountSortKey(a) - accountSortKey(b) || a.id.localeCompare(b.id),
+    );
+    return { primary: sorted[0]!, members: sorted };
+  });
+}
+
 function CashRouteLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname !== "/cash") return <Outlet />;
@@ -95,7 +127,11 @@ function CashPage() {
     (businesses.find((b) => b.id === activeId) ?? businesses[0])?.currency ?? "INR";
   const currency = defaultCurrency;
 
-  const cashAccounts = useMemo(() => accounts.filter((a) => a.type === "cash"), [accounts]);
+  const cashAccountGroups = useMemo(
+    () => groupCashAccounts(accounts.filter((a) => a.type === "cash")),
+    [accounts],
+  );
+  const cashAccounts = useMemo(() => cashAccountGroups.map((g) => g.primary), [cashAccountGroups]);
 
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
@@ -105,31 +141,33 @@ function CashPage() {
   const { totalBalance, allCashTxns } = useMemo(() => {
     let total = 0;
     const all: (AccountTxn & { accountName: string; accountId: string })[] = [];
-    for (const a of cashAccounts) {
-      const txns = buildAccountTxns({
-        account: a,
-        payments,
-        transfers,
-        expenses,
-        accountsById,
-      });
-      total += accountBalance(txns);
-      for (const t of txns) {
-        if (t.kind === "opening") continue;
-        all.push({ ...t, accountName: a.name, accountId: a.id });
+    for (const group of cashAccountGroups) {
+      for (const a of group.members) {
+        const txns = buildAccountTxns({
+          account: a,
+          payments,
+          transfers,
+          expenses,
+          accountsById,
+        });
+        total += accountBalance(txns);
+        for (const t of txns) {
+          if (t.kind === "opening") continue;
+          all.push({ ...t, accountName: group.primary.name, accountId: a.id });
+        }
       }
     }
     all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return { totalBalance: total, allCashTxns: all };
-  }, [cashAccounts, payments, transfers, expenses, accountsById]);
+  }, [cashAccountGroups, payments, transfers, expenses, accountsById]);
 
   const cashTxnKey = useMemo(
     () =>
-      `${cashAccounts
-        .map((a) => a.id)
+      `${cashAccountGroups
+        .flatMap((g) => g.members.map((a) => a.id))
         .sort()
         .join(",")}|${payments.length}|${transfers.length}|${expenses.length}`,
-    [cashAccounts, payments.length, transfers.length, expenses.length],
+    [cashAccountGroups, payments.length, transfers.length, expenses.length],
   );
   const cashTxnPg = useListPagination(allCashTxns, cashTxnKey);
 
@@ -229,15 +267,18 @@ function CashPage() {
               </p>
             </div>
 
-            {cashAccounts.map((a) => {
-              const txns = buildAccountTxns({
-                account: a,
-                payments,
-                transfers,
-                expenses,
-                accountsById,
-              });
-              const bal = accountBalance(txns);
+            {cashAccountGroups.map((group) => {
+              const a = group.primary;
+              const bal = group.members.reduce((sum, member) => {
+                const txns = buildAccountTxns({
+                  account: member,
+                  payments,
+                  transfers,
+                  expenses,
+                  accountsById,
+                });
+                return sum + accountBalance(txns);
+              }, 0);
               const acctCurrency = businessById[a.businessId]?.currency ?? currency;
               const acctBusinessName = showBusinessLabel
                 ? (businessById[a.businessId]?.name ?? "")
