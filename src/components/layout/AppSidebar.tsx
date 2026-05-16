@@ -24,7 +24,7 @@ import { changeActionPassword } from "@/lib/actionPassword";
 import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { USE_BACKEND } from "@/lib/flags";
-import { canAccessPath } from "@/lib/rbac";
+import { canAccessPath, isTabHidden } from "@/lib/rbac";
 
 const navLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -55,7 +55,10 @@ export function AppSidebar() {
     [authorities, isAuthed],
   );
   const visibleLinks = useMemo(
-    () => permittedLinks.filter((l) => isAdmin || l.to === "/role-access" || !hiddenTabs[l.to]),
+    () =>
+      permittedLinks.filter(
+        (l) => isAdmin || l.to === "/role-access" || !isTabHidden(l.to, hiddenTabs),
+      ),
     [hiddenTabs, isAdmin, permittedLinks],
   );
 

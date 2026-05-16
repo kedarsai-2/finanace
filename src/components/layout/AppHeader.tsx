@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
-import { canAccessPath } from "@/lib/rbac";
+import { canAccessPath, isTabHidden } from "@/lib/rbac";
 
 const navLinks = [
   { to: "/", label: "Dashboard" },
@@ -40,7 +40,7 @@ export function AppHeader() {
     ? navLinks.filter((l) => canAccessPath(l.to, authorities, isAuthed))
     : navLinks;
   const visibleLinks = permittedLinks.filter(
-    (l) => isAdmin || l.to === "/role-access" || !hiddenTabs[l.to],
+    (l) => isAdmin || l.to === "/role-access" || !isTabHidden(l.to, hiddenTabs),
   );
   return (
     <header className="sticky top-0 z-30 glass border-b border-border/40">

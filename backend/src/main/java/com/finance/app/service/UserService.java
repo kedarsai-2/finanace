@@ -312,7 +312,7 @@ public class UserService {
     public Optional<List<String>> getCurrentUserMobileHiddenTabs() {
         return SecurityUtils.getCurrentUserLogin()
             .flatMap(userRepository::findOneByLogin)
-            .map(user -> getPrimaryAdminHiddenTabs().orElseGet(() -> deserializeTabs(user.getMobileHiddenTabs())));
+            .map(user -> deserializeTabs(user.getMobileHiddenTabs()));
     }
 
     public Optional<List<String>> updateCurrentUserMobileHiddenTabs(List<String> hiddenTabs) {

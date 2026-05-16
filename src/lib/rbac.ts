@@ -86,6 +86,16 @@ function moduleForPath(pathname: string): RbacModuleKey {
   return "dashboard";
 }
 
+/** True when pathname matches a denied tab path (exact or nested route). */
+export function isTabHidden(pathname: string, hiddenTabs: Record<string, true>): boolean {
+  if (hiddenTabs[pathname]) return true;
+  for (const path of Object.keys(hiddenTabs)) {
+    if (path === "/") continue;
+    if (pathname === path || pathname.startsWith(`${path}/`)) return true;
+  }
+  return false;
+}
+
 export function canAccessPath(pathname: string, authorities: string[], isAuthed: boolean): boolean {
   // Public routes
   if (pathname === "/login" || pathname === "/register" || pathname === "/forbidden") return true;

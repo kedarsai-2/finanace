@@ -237,15 +237,6 @@ function RoleAccessPage() {
     }
   }, [selectedLogin, users, userPg]);
 
-  const toggleTab = (path: string, checked: boolean) => {
-    setSelectedHiddenTabs((prev) => {
-      const next = { ...prev };
-      if (checked) next[path] = true;
-      else delete next[path];
-      return next;
-    });
-  };
-
   const createUser = async () => {
     if (!newLogin.trim()) {
       toast.error("Login is required");
@@ -619,16 +610,26 @@ function RoleAccessPage() {
                             disabled={selectedIsBuiltInAdmin}
                             onCheckedChange={(v) => {
                               const isChecked = v === true;
-                              // hidden tabs are stored as deny-list
-                              toggleTab(tab.path, !isChecked);
-                              if (!isChecked) {
-                                setModuleRead((prev) => ({ ...prev, [tab.pathToModule]: false }));
-                                setModuleWrite((prev) => ({ ...prev, [tab.pathToModule]: false }));
-                                setModuleEdit((prev) => ({ ...prev, [tab.pathToModule]: false }));
-                                setModuleDelete((prev) => ({ ...prev, [tab.pathToModule]: false }));
-                              } else {
-                                setModuleRead((prev) => ({ ...prev, [tab.pathToModule]: true }));
-                              }
+                              setSelectedHiddenTabs((prev) => {
+                                const next = { ...prev };
+                                if (isChecked) delete next[tab.path];
+                                else next[tab.path] = true;
+
+                                const moduleKey = tab.pathToModule;
+                                const tabsForModule = TAB_OPTIONS.filter(
+                                  (t) => t.pathToModule === moduleKey,
+                                );
+                                const anyVisible = tabsForModule.some((t) => !next[t.path]);
+                                if (anyVisible) {
+                                  setModuleRead((p) => ({ ...p, [moduleKey]: true }));
+                                } else {
+                                  setModuleRead((p) => ({ ...p, [moduleKey]: false }));
+                                  setModuleWrite((p) => ({ ...p, [moduleKey]: false }));
+                                  setModuleEdit((p) => ({ ...p, [moduleKey]: false }));
+                                  setModuleDelete((p) => ({ ...p, [moduleKey]: false }));
+                                }
+                                return next;
+                              });
                             }}
                           />
                           <span>{tab.label}</span>

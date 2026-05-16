@@ -18,7 +18,7 @@ import appCss from "../styles.css?url";
 import { USE_BACKEND } from "@/lib/flags";
 import { useAuth } from "@/hooks/useAuth";
 import { getAuthoritiesFromToken, getJwt } from "@/lib/auth";
-import { canAccessPath } from "@/lib/rbac";
+import { canAccessPath, isTabHidden } from "@/lib/rbac";
 import { useMobileTabSettings } from "@/hooks/useMobileTabSettings";
 
 function ClickProbe() {
@@ -160,7 +160,7 @@ function RootComponent() {
   useEffect(() => {
     if (!USE_BACKEND || !isAuthed || !hydrated) return;
     if (pathname === "/forbidden" || pathname === "/login") return;
-    if (!isAdmin && hiddenTabs[pathname]) {
+    if (!isAdmin && isTabHidden(pathname, hiddenTabs)) {
       void router.navigate({ href: "/forbidden" });
     }
   }, [hiddenTabs, hydrated, isAdmin, isAuthed, pathname, router]);
