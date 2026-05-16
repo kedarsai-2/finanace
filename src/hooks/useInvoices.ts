@@ -16,7 +16,7 @@ import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchAllPages } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 import {
   composeNotesWithMeta,
@@ -533,9 +533,9 @@ function useInvoicesRepository(businessId?: string | null) {
       return;
     }
     const query = businessId
-      ? `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`
-      : `/api/invoices?size=500&sort=id,desc`;
-    const list = await apiFetch<InvoiceDTO[]>(query);
+      ? `/api/invoices?businessId.equals=${encodeURIComponent(String(businessId))}&sort=id,desc`
+      : `/api/invoices?sort=id,desc`;
+    const list = await apiFetchAllPages<InvoiceDTO>(query);
     setInvoices(list.filter((dto) => !dto.deleted).map(dtoToInvoice));
     setHydrated(true);
   }, [businessId]);
@@ -831,7 +831,9 @@ function useInvoicesRepository(businessId?: string | null) {
 export function useInvoices(businessId?: string | null) {
   const repo = useContext(InvoicesContext);
   if (!repo) {
-    throw new Error("useInvoices must be used within <InvoicesProvider> (wrap the app <Outlet />).");
+    throw new Error(
+      "useInvoices must be used within <InvoicesProvider> (wrap the app <Outlet />).",
+    );
   }
   const invoices = useMemo(
     () =>

@@ -126,3 +126,44 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
+
+function withPagination(path: string, page: number, size: number): string {
+  const url = new URL(path, "http://local");
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("size", String(size));
+  return `${url.pathname}${url.search}`;
+}
+
+function pageSignature(rows: unknown[]): string {
+  return rows
+    .slice(0, 5)
+    .map((row) => {
+      if (row && typeof row === "object" && "id" in row) {
+        return String((row as { id?: unknown }).id ?? "");
+      }
+      return JSON.stringify(row);
+    })
+    .join("|");
+}
+
+export async function apiFetchAllPages<T>(
+  path: string,
+  { pageSize = 500, maxPages = 1000 }: { pageSize?: number; maxPages?: number } = {},
+): Promise<T[]> {
+  const all: T[] = [];
+  let previousSignature = "";
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const rows = await apiFetch<T[]>(withPagination(path, page, pageSize));
+    if (!Array.isArray(rows) || rows.length === 0) break;
+
+    const signature = pageSignature(rows);
+    if (page > 0 && signature && signature === previousSignature) break;
+    previousSignature = signature;
+
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+
+  return all;
+}

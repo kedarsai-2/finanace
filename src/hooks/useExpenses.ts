@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_EXPENSE_TYPES, type Expense } from "@/types/expense";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchAllPages } from "@/lib/api";
 import { getJwt } from "@/lib/auth";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 
@@ -189,11 +189,11 @@ export function useExpenses(businessId?: string | null) {
     let cancelled = false;
     (async () => {
       try {
-        const list = await apiFetch<ExpenseDTO[]>(
+        const query =
           businessId && !isNaN(biz)
-            ? `/api/expenses?businessId.equals=${biz}&size=2000&sort=date,desc`
-            : `/api/expenses?size=2500&sort=date,desc`,
-        );
+            ? `/api/expenses?businessId.equals=${biz}&sort=date,desc`
+            : `/api/expenses?sort=date,desc`;
+        const list = await apiFetchAllPages<ExpenseDTO>(query, { pageSize: 1000 });
         if (cancelled) return;
         setExpenses(list.filter((dto) => !dto.deleted).map(dtoToExpense));
       } catch {
@@ -252,24 +252,27 @@ export function useExpenses(businessId?: string | null) {
     return Promise.resolve(e);
   }, []);
 
-  const add = useCallback((e: Expense): Promise<Expense> => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
-      // In backend mode, treat add() as create and surface errors to caller.
-      return upsert(e);
-    }
-    setExpenses((prev) => [...prev, e]);
-    logAudit({
-      module: "expense",
-      action: "create",
-      recordId: e.id,
-      reference: `${e.type} · ${e.category} · ₹${e.amount}`,
-      refLink: `/expenses/${e.id}`,
-      businessId: e.businessId,
-      after: snapshot(e),
-    });
-    return Promise.resolve(e);
-  }, []);
+  const add = useCallback(
+    (e: Expense): Promise<Expense> => {
+      const token = getJwt();
+      if (USE_BACKEND && token) {
+        // In backend mode, treat add() as create and surface errors to caller.
+        return upsert(e);
+      }
+      setExpenses((prev) => [...prev, e]);
+      logAudit({
+        module: "expense",
+        action: "create",
+        recordId: e.id,
+        reference: `${e.type} · ${e.category} · ₹${e.amount}`,
+        refLink: `/expenses/${e.id}`,
+        businessId: e.businessId,
+        after: snapshot(e),
+      });
+      return Promise.resolve(e);
+    },
+    [upsert],
+  );
 
   const remove = useCallback(async (id: string) => {
     const before = expensesRef.current.find((x) => x.id === id);

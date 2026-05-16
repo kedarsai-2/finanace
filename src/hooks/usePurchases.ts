@@ -6,7 +6,7 @@ import { useParties } from "@/hooks/useParties";
 import type { LedgerEntry } from "@/types/party";
 import { logAudit, snapshot } from "@/lib/audit";
 import { USE_BACKEND } from "@/lib/flags";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchAllPages } from "@/lib/api";
 import { businessRefFromId, toNumId, toStrId } from "@/lib/dto";
 import { composeNotesWithMeta, extractMetaFromNotes } from "@/lib/documentMeta";
 import type { ReturnPaymentMode } from "@/types/purchase";
@@ -427,9 +427,9 @@ export function usePurchases(businessId?: string | null) {
   const refresh = useCallback(async () => {
     if (!USE_BACKEND) return;
     const query = businessId
-      ? `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&size=500`
-      : "/api/purchases?size=500";
-    const list = await apiFetch<PurchaseDTO[]>(query);
+      ? `/api/purchases?businessId.equals=${encodeURIComponent(String(businessId))}&sort=id,desc`
+      : "/api/purchases?sort=id,desc";
+    const list = await apiFetchAllPages<PurchaseDTO>(query);
     setPurchases(normalizePurchases(list.filter((dto) => !dto.deleted).map(dtoToPurchase)));
   }, [businessId]);
 

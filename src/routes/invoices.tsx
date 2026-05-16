@@ -123,6 +123,66 @@ function parseRangeBoundary(ymd: string, endOfDay: boolean): Date | null {
   return dt;
 }
 
+function normalizeImportKeyPart(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function firstImportKeyPart(...values: unknown[]): string | null {
+  for (const value of values) {
+    const normalized = normalizeImportKeyPart(value);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
+function salesImportReferenceKey(
+  row: Record<string, unknown>,
+  mapped: Partial<Invoice>,
+): string | null {
+  const invoiceNo = firstImportKeyPart(
+    mapped.invoiceNo,
+    row["Invoice No"],
+    row["Invoice No."],
+    row["Invoice No./Txn No."],
+  );
+  if (invoiceNo) return `invoice:${invoiceNo}`;
+
+  const orderNo = firstImportKeyPart(
+    mapped.orderNo,
+    row["Order No"],
+    row["Order No."],
+    row["Challan/Order No"],
+    row["Challan/Order No."],
+  );
+  return orderNo ? `order:${orderNo}` : null;
+}
+
+function existingSalesImportReferenceKey(inv: Pick<Invoice, "invoiceNo" | "orderNo">): string | null {
+  const invoiceNo = firstImportKeyPart(inv.invoiceNo);
+  if (invoiceNo) return `invoice:${invoiceNo}`;
+  const orderNo = firstImportKeyPart(inv.orderNo);
+  return orderNo ? `order:${orderNo}` : null;
+}
+
+function salesImportLineRefs(row: Record<string, unknown>, mapped: Partial<Invoice>): string[] {
+  return [
+    mapped.invoiceNo,
+    row["Invoice No"],
+    row["Invoice No."],
+    row["Invoice No./Txn No."],
+    mapped.orderNo,
+    row["Order No"],
+    row["Order No."],
+    row["Challan/Order No"],
+    row["Challan/Order No."],
+  ]
+    .map(normalizeImportKeyPart)
+    .filter(Boolean);
+}
+
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 type PayFilter = (typeof PAY_FILTERS)[number];
 type TypeFilter = (typeof TYPE_FILTERS)[number];
@@ -418,12 +478,18 @@ function InvoicesPage() {
         }
       >();
       for (const row of itemRows) {
-        const ref = String(row["Invoice No./Txn No."] ?? row["Challan/Order No."] ?? "")
-          .trim()
-          .toLowerCase();
-        if (!ref) continue;
         const mapped = mapSalesItemRowToInvoiceLineFields(row);
         if (!mapped.name) continue;
+        const itemRefs = [
+          row["Invoice No./Txn No."],
+          row["Challan/Order No"],
+          row["Challan/Order No."],
+          mapped.challanOrderNo,
+        ]
+          .map(normalizeImportKeyPart)
+          .filter(Boolean);
+        const uniqueItemRefs = [...new Set(itemRefs)];
+        if (uniqueItemRefs.length === 0) continue;
         const line = {
           id: `sil_${Math.random().toString(36).slice(2, 9)}`,
           name: mapped.name,
@@ -441,9 +507,11 @@ function InvoicesPage() {
           transactionType: mapped.transactionType,
           lineAmount: mapped.lineAmount,
         };
-        const list = linesByRef.get(ref) ?? [];
-        list.push(line);
-        linesByRef.set(ref, list);
+        for (const ref of uniqueItemRefs) {
+          const list = linesByRef.get(ref) ?? [];
+          list.push(line);
+          linesByRef.set(ref, list);
+        }
 
         const itemNameKey = mapped.name.trim().toLowerCase();
         if (!itemNameKey || itemNames.has(itemNameKey) || newItemsByKey.has(itemNameKey)) continue;
@@ -478,12 +546,14 @@ function InvoicesPage() {
         businessId: i.businessId,
       }));
       const invoiceKeys = new Set(
-        invoices.map((i) => {
-          const dateKey = format(new Date(i.date), "yyyy-MM-dd");
-          const partyKey = i.partyName.trim().toLowerCase();
-          const invoiceNoKey = (i.invoiceNo ?? "").trim().toLowerCase();
-          return `${dateKey}|${partyKey}|${invoiceNoKey}|${Number(i.total).toFixed(2)}`;
-        }),
+        invoices
+          .map((i) => {
+            const dateKey = format(new Date(i.date), "yyyy-MM-dd");
+            const partyKey = normalizeImportKeyPart(i.partyName);
+            const refKey = existingSalesImportReferenceKey(i);
+            return refKey ? `${dateKey}|${partyKey}|${refKey}` : null;
+          })
+          .filter((key): key is string => key != null),
       );
       const partiesByName = new Map(
         parties
@@ -557,24 +627,12 @@ function InvoicesPage() {
         const importedDate = parseSpreadsheetDate(row["Date"]);
         const dateKey = format(new Date(importedDate), "yyyy-MM-dd");
         importedDateKeys.push(dateKey);
-        const invoiceNoKey = String(mapped.invoiceNo ?? "")
-          .trim()
-          .toLowerCase();
         const totalHint = Number(mapped.total ?? 0);
-        const dedupeKey = `${dateKey}|${partyNameKey}|${invoiceNoKey}|${totalHint.toFixed(2)}`;
-        if (batchInvoiceKeys.has(dedupeKey)) {
-          duplicates += 1;
-          continue;
-        }
-        batchInvoiceKeys.add(dedupeKey);
-
-        const refA = String(row["Invoice No"] ?? "")
-          .trim()
-          .toLowerCase();
-        const refB = String(row["Order No"] ?? "")
-          .trim()
-          .toLowerCase();
-        const sourceLines = (refA && linesByRef.get(refA)) || (refB && linesByRef.get(refB)) || [];
+        const sourceLines =
+          salesImportLineRefs(row, mapped)
+            .map((ref) => linesByRef.get(ref))
+            .find((lines): lines is Invoice["lines"] => Array.isArray(lines) && lines.length > 0) ??
+          [];
         const lines =
           sourceLines.length > 0
             ? sourceLines
@@ -596,6 +654,15 @@ function InvoicesPage() {
           overallDiscountValue: 0,
         });
         const total = totalHint > 0 ? totalHint : computed.total;
+        const refKey = salesImportReferenceKey(row, mapped);
+        if (refKey) {
+          const dedupeKey = `${dateKey}|${partyNameKey}|${refKey}`;
+          if (batchInvoiceKeys.has(dedupeKey)) {
+            duplicates += 1;
+            continue;
+          }
+          batchInvoiceKeys.add(dedupeKey);
+        }
         const paidAmount = Number(mapped.receivedPaidAmount ?? 0);
         preparedSales.push({
           row,
