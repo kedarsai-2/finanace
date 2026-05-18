@@ -19,10 +19,9 @@ export function PurchasePrintLayout({ purchase, business, party }: Props) {
 
   return (
     <div
-      className="invoice-print mx-auto bg-white text-slate-900"
+      className="invoice-print mx-auto min-h-[297mm] bg-white text-slate-900 print:min-h-0"
       style={{
         width: "210mm",
-        minHeight: "297mm",
         padding: "16mm",
         boxSizing: "border-box",
         fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

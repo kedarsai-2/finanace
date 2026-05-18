@@ -22,12 +22,15 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useParties } from "@/hooks/useParties";
+import { useItems } from "@/hooks/useItems";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
+import { ItemLinePicker } from "@/components/item/ItemLinePicker";
 import { ProofUpload } from "@/components/proof/ProofUpload";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { PAYMENT_MODE_LABEL, type PaymentMode } from "@/types/payment";
 import { DEFAULT_EXPENSE_TYPES, type Expense, type ExpenseType } from "@/types/expense";
+import type { Item } from "@/types/item";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
@@ -49,7 +52,9 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const cashAccounts = useMemo(() => safeAccounts.filter((a) => a.type === "cash"), [safeAccounts]);
   const { parties } = useParties(activeId);
   const { categories } = useExpenseCategories(activeId);
+  const { items } = useItems(activeId);
   const { add, upsert } = useExpenses(activeId);
+  const catalogItems = useMemo(() => items.filter((i) => i.type === "product"), [items]);
 
   const supplierParties = parties;
 
@@ -64,6 +69,19 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
   const [proofDataUrl, setProofDataUrl] = useState<string | undefined>(initial?.proofDataUrl);
   const [proofName, setProofName] = useState<string | undefined>(initial?.proofName);
+  const [itemName, setItemName] = useState(initial?.itemName ?? "");
+  const [itemDescription, setItemDescription] = useState(initial?.itemDescription ?? "");
+  const [orderNo, setOrderNo] = useState(initial?.orderNo ?? "");
+  const [hsnSac, setHsnSac] = useState(initial?.hsnSac ?? "");
+  const [quantity, setQuantity] = useState<number | "">(
+    initial?.quantity != null ? initial.quantity : "",
+  );
+  const [unitPrice, setUnitPrice] = useState<number | "">(
+    initial?.unitPrice != null ? initial.unitPrice : "",
+  );
+  const [taxPercent, setTaxPercent] = useState<number | "">(
+    initial?.taxPercent != null ? initial.taxPercent : "",
+  );
   const [showQuickParty, setShowQuickParty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -102,7 +120,51 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     setType("indirect");
   }, [type]);
 
-  const onSubmit = (ev: React.FormEvent) => {
+  const applyCatalogItem = (item: Item) => {
+    setItemName(item.name);
+    const price = item.purchasePrice ?? item.sellingPrice;
+    if (price > 0) setUnitPrice(price);
+    if (item.taxPercent != null) setTaxPercent(item.taxPercent);
+  };
+
+  const buildItemPayload = (): Pick<
+    Expense,
+    | "orderNo"
+    | "itemName"
+    | "itemDescription"
+    | "hsnSac"
+    | "quantity"
+    | "unitPrice"
+    | "taxPercent"
+    | "taxAmount"
+    | "lineAmount"
+  > => {
+    const qty = quantity === "" ? undefined : Number(quantity);
+    const unit = unitPrice === "" ? undefined : Number(unitPrice);
+    const taxPct = taxPercent === "" ? undefined : Number(taxPercent);
+    const name = itemName.trim();
+    const lineBase =
+      qty != null && unit != null && qty > 0 && unit >= 0 ? Math.round(qty * unit * 100) / 100 : undefined;
+    const taxAmt =
+      lineBase != null && taxPct != null && taxPct > 0
+        ? Math.round(lineBase * (taxPct / 100) * 100) / 100
+        : undefined;
+    const lineAmt =
+      lineBase != null ? Math.round((lineBase + (taxAmt ?? 0)) * 100) / 100 : undefined;
+    return {
+      orderNo: orderNo.trim() || undefined,
+      itemName: name || undefined,
+      itemDescription: itemDescription.trim() || undefined,
+      hsnSac: hsnSac.trim() || undefined,
+      quantity: qty != null && qty > 0 ? qty : undefined,
+      unitPrice: unit != null && unit >= 0 ? unit : undefined,
+      taxPercent: taxPct != null && taxPct >= 0 ? taxPct : undefined,
+      taxAmount: taxAmt,
+      lineAmount: lineAmt,
+    };
+  };
+
+  const onSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeId) return toast.error("Select a business first");
     if (!accountId) return toast.error(mode === "cash" ? "Select a cash account" : "Select a bank account");
@@ -134,17 +196,25 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
         notes: notes.trim() || undefined,
         proofDataUrl,
         proofName,
+        receivedPaidAmount: initial?.receivedPaidAmount,
+        balanceDue: initial?.balanceDue,
+        excludeFromLedger: initial?.excludeFromLedger,
+        discountPercent: initial?.discountPercent,
+        discountAmount: initial?.discountAmount,
+        ...buildItemPayload(),
         createdAt: initial?.createdAt ?? now,
         updatedAt: initial ? now : undefined,
       };
-      if (initial) upsert(exp);
-      else add(exp);
+      const saved = initial ? await upsert(exp) : await add(exp);
       if (typeof window !== "undefined") {
         if (mode !== "cash" && accountId) localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
       }
       toast.success(initial ? "Expense updated" : "Expense recorded");
-      onSaved?.(exp);
+      onSaved?.(saved);
       if (!onSaved) navigate({ to: "/expenses" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save expense";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -284,6 +354,100 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
               >
                 <Plus className="h-4 w-4" /> Add Party
               </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Item details (optional)"
+            description="Line-level fields for reporting and the Items tab. Stored on the same expense record."
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
+              <div className="sm:col-span-3">
+                <Label htmlFor="exp-item">Item</Label>
+                <ItemLinePicker
+                  value={itemName}
+                  items={catalogItems}
+                  onSelect={applyCatalogItem}
+                  onChangeName={setItemName}
+                  onQuickAdd={() => {}}
+                  inputPlaceholder="Search or type item name"
+                  searchPlaceholder="Search items…"
+                  emptyLabel="No items match."
+                  quickAddLabel=""
+                  priceKey="purchasePrice"
+                  sheetTitle="Select item"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <Label htmlFor="exp-order">Order no.</Label>
+                <Input
+                  id="exp-order"
+                  value={orderNo}
+                  onChange={(e) => setOrderNo(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="exp-hsn">HSN / SAC</Label>
+                <Input
+                  id="exp-hsn"
+                  value={hsnSac}
+                  onChange={(e) => setHsnSac(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="exp-qty">Quantity</Label>
+                <Input
+                  id="exp-qty"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={quantity === "" ? "" : quantity}
+                  onChange={(e) =>
+                    setQuantity(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  className="text-right tabular-nums"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="exp-unit-price">Unit price</Label>
+                <Input
+                  id="exp-unit-price"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={unitPrice === "" ? "" : unitPrice}
+                  onChange={(e) =>
+                    setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  className="text-right tabular-nums"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="exp-tax">Tax %</Label>
+                <Input
+                  id="exp-tax"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={taxPercent === "" ? "" : taxPercent}
+                  onChange={(e) =>
+                    setTaxPercent(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  className="text-right tabular-nums"
+                />
+              </div>
+              <div className="sm:col-span-4">
+                <Label htmlFor="exp-item-desc">Item description</Label>
+                <Input
+                  id="exp-item-desc"
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
           </Section>
 

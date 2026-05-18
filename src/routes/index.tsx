@@ -132,18 +132,34 @@ function DashboardPage() {
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
 
-  const { invoices, creditNotes } = useInvoices(scopedBusinessId);
-  const { purchases, returns } = usePurchases(scopedBusinessId);
-  const { payments } = usePayments(scopedBusinessId);
-  const { expenses } = useExpenses(scopedBusinessId);
-  const { accounts } = useAccounts(scopedBusinessId, businessIds);
-  const { transfers } = useTransfers(scopedBusinessId);
+  const { invoices, creditNotes, hydrated: invoicesReady } = useInvoices(scopedBusinessId);
+  const { purchases, returns, hydrated: purchasesReady } = usePurchases(scopedBusinessId);
+  const { payments, hydrated: paymentsReady } = usePayments(scopedBusinessId);
+  const { expenses, hydrated: expensesReady } = useExpenses(scopedBusinessId);
+  const { accounts, hydrated: accountsReady } = useAccounts(scopedBusinessId, businessIds);
+  const { transfers, hydrated: transfersReady } = useTransfers(scopedBusinessId);
 
   // Fetch all-businesses data specifically for account balance cards (total net).
-  const { payments: allPaymentsForBalance } = usePayments(null);
-  const { expenses: allExpensesForBalance } = useExpenses(null);
-  const { transfers: allTransfersForBalance } = useTransfers(null);
-  const { accounts: allAccountsForBalance } = useAccounts(null, businessIds);
+  const { payments: allPaymentsForBalance, hydrated: allPaymentsReady } = usePayments(null);
+  const { expenses: allExpensesForBalance, hydrated: allExpensesReady } = useExpenses(null);
+  const { transfers: allTransfersForBalance, hydrated: allTransfersReady } = useTransfers(null);
+  const { accounts: allAccountsForBalance, hydrated: allAccountsReady } = useAccounts(
+    null,
+    businessIds,
+  );
+
+  const dataReady =
+    hydrated &&
+    invoicesReady &&
+    purchasesReady &&
+    paymentsReady &&
+    expensesReady &&
+    accountsReady &&
+    transfersReady &&
+    allPaymentsReady &&
+    allExpensesReady &&
+    allTransfersReady &&
+    allAccountsReady;
 
   const [range, setRange] = useState<Range>("6m");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
@@ -573,8 +589,8 @@ function DashboardPage() {
 
   const recentPg = useListPagination(recent, `${range}|${selectedMonth}`);
 
-  if (!hydrated) {
-    return <div className="max-w-screen-2xl px-6 py-10">Loading…</div>;
+  if (!dataReady) {
+    return <div className="max-w-screen-2xl px-6 py-10">Loading dashboard…</div>;
   }
 
   if (businesses.length === 0) {

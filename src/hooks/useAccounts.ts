@@ -125,11 +125,7 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (USE_BACKEND) {
-      setAccounts([]);
-      setHydrated(true);
-      return;
-    }
+    if (USE_BACKEND) return;
     const initial = read();
     const ids = allBusinessIds.length ? allBusinessIds : businessId ? [businessId] : [];
     const migrated = migrateDefaults(initial, ids);
@@ -151,12 +147,16 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
   useEffect(() => {
     if (!USE_BACKEND) return;
     const token = getJwt();
-    if (!token) {
-      setAccounts([]);
-      return;
-    }
     let cancelled = false;
+    setHydrated(false);
     (async () => {
+      if (!token) {
+        if (!cancelled) {
+          setAccounts([]);
+          setHydrated(true);
+        }
+        return;
+      }
       try {
         const list = await apiFetch<AccountDTO[]>(`/api/accounts?size=500&sort=id,desc`);
         if (cancelled) return;
@@ -169,12 +169,15 @@ export function useAccounts(businessId?: string | null, allBusinessIds: string[]
       } catch {
         if (cancelled) return;
         setAccounts([]);
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [businessId, hydrated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId, allBusinessIds.join(",")]);
 
   const accountsRef = useRef<Account[]>(accounts);
   useEffect(() => {

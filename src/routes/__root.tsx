@@ -222,10 +222,10 @@ function RootComponent() {
 
   return (
     <InvoicesProvider>
-      <div className="flex min-h-screen w-full overflow-x-clip">
+      <div className="flex min-h-screen w-full overflow-x-clip print:block print:min-h-0">
         {import.meta.env.DEV ? <ClickProbe /> : null}
         <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col print:min-h-0">
           <AppHeader />
           <Outlet />
         </div>

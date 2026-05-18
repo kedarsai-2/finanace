@@ -91,10 +91,33 @@ function PurchasePrintPage() {
       <style>{`
         @media print {
           @page { size: A4; margin: 0; }
-          html, body { background: #fff !important; }
+          html, body {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+          }
+          aside,
+          [data-sonner-toaster] {
+            display: none !important;
+          }
           .no-print { display: none !important; }
-          .invoice-print-shell { background: #fff !important; padding: 0 !important; }
-          .invoice-print { box-shadow: none !important; width: 210mm !important; min-height: 297mm !important; }
+          .invoice-print-shell {
+            background: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+          }
+          .invoice-print {
+            box-shadow: none !important;
+            width: 210mm !important;
+            min-height: 0 !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            page-break-after: avoid;
+            break-after: avoid-page;
+          }
         }
         .invoice-print { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       `}</style>

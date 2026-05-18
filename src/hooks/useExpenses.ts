@@ -166,27 +166,20 @@ export function useExpenses(businessId?: string | null) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
+    if (!USE_BACKEND) {
+      setExpenses(read());
       setHydrated(true);
       return;
     }
-    setExpenses(read());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
     const token = getJwt();
-    if (USE_BACKEND && token) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  }, [expenses, hydrated]);
-
-  useEffect(() => {
-    const token = getJwt();
-    if (!USE_BACKEND || !token) return;
+    if (!token) {
+      setExpenses([]);
+      setHydrated(true);
+      return;
+    }
     const biz = businessId ? parseInt(businessId, 10) : NaN;
     let cancelled = false;
+    setHydrated(false);
     (async () => {
       try {
         const query =
@@ -199,12 +192,20 @@ export function useExpenses(businessId?: string | null) {
       } catch {
         if (cancelled) return;
         setExpenses([]);
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [businessId]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (USE_BACKEND) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  }, [expenses, hydrated]);
 
   const expensesRef = useRef<Expense[]>(expenses);
   useEffect(() => {

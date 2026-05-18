@@ -48,10 +48,9 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
 
   return (
     <div
-      className="invoice-print relative mx-auto bg-white text-slate-900"
+      className="invoice-print relative mx-auto min-h-[297mm] bg-white text-slate-900 print:min-h-0"
       style={{
         width: "210mm",
-        minHeight: "297mm",
         padding: "12mm 12mm 10mm 12mm",
         boxSizing: "border-box",
         fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
@@ -207,10 +206,7 @@ export function InvoicePrintLayout({ invoice, business, party, payToAccount }: P
         />
       </section>
 
-      <footer
-        className="absolute bottom-[10mm] left-0 right-0 text-center text-slate-500"
-        style={{ fontSize: BODY_SM }}
-      >
+      <footer className="mt-6 text-center text-slate-500" style={{ fontSize: BODY_SM }}>
         -- 1 of 1 --
       </footer>
     </div>

@@ -386,7 +386,7 @@ export function usePurchases(businessId?: string | null) {
       return;
     }
     setPurchases([]);
-    setHydrated(true);
+    setHydrated(false);
   }, []);
 
   useEffect(() => {
@@ -435,7 +435,9 @@ export function usePurchases(businessId?: string | null) {
 
   useEffect(() => {
     if (!USE_BACKEND) return;
-    void refresh().catch(() => setPurchases([]));
+    void refresh()
+      .catch(() => setPurchases([]))
+      .finally(() => setHydrated(true));
   }, [refresh]);
 
   const purchasesRef = useRef<Purchase[]>(purchases);

@@ -60,3 +60,22 @@ export interface Expense {
    */
   excludeFromLedger?: boolean;
 }
+
+/** True when expense carries imported or manual item-level line metadata. */
+export function expenseHasItemDetail(e: Expense): boolean {
+  if (e.itemName?.trim()) return true;
+  if (e.hsnSac?.trim()) return true;
+  if (e.itemDescription?.trim()) return true;
+  if (e.orderNo?.trim()) return true;
+  if (e.quantity != null && Number.isFinite(e.quantity) && e.quantity !== 0) return true;
+  if (e.unitPrice != null && Number.isFinite(e.unitPrice) && e.unitPrice !== 0) return true;
+  if (e.lineAmount != null && Number.isFinite(e.lineAmount) && e.lineAmount !== 0) return true;
+  return false;
+}
+
+export function expenseLineDisplayAmount(e: Expense): number {
+  if (e.lineAmount != null && Number.isFinite(e.lineAmount) && e.lineAmount > 0) {
+    return e.lineAmount;
+  }
+  return e.amount;
+}

@@ -113,9 +113,11 @@ function CashPage() {
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
   const { accounts, hydrated } = useAccounts(null, businessIds);
-  const { payments } = usePayments();
-  const { transfers } = useTransfers();
-  const { expenses } = useExpenses();
+  const { payments, hydrated: paymentsReady } = usePayments();
+  const { transfers, hydrated: transfersReady } = useTransfers();
+  const { expenses, hydrated: expensesReady } = useExpenses();
+
+  const ledgerReady = paymentsReady && transfersReady && expensesReady;
 
   const businessById = useMemo(
     () => Object.fromEntries(businesses.map((b) => [b.id, b])),
@@ -171,8 +173,8 @@ function CashPage() {
   );
   const cashTxnPg = useListPagination(allCashTxns, cashTxnKey);
 
-  if (!bHyd || !hydrated) {
-    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
+  if (!bHyd || !hydrated || !ledgerReady) {
+    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading cash…</div>;
   }
 
   return (

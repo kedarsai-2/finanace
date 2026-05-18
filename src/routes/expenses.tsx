@@ -1,10 +1,19 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouterState,
+  type SearchSchemaInput,
+} from "@tanstack/react-router";
+import { z } from "zod";
 import { useCallback, useMemo, useState } from "react";
 import { useListPagination } from "@/hooks/useListPagination";
 import { ListPaginationBar } from "@/components/ui/ListPaginationBar";
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 import {
   CircleHelp,
+  Package,
   Plus,
   Receipt,
   Search,
@@ -49,7 +58,13 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useItems } from "@/hooks/useItems";
 import { useParties, formatCurrency } from "@/hooks/useParties";
 import { QuickAddExpenseDialog } from "@/components/expense/QuickAddExpenseDialog";
-import { DEFAULT_EXPENSE_TYPES, type Expense, type ExpenseCategoryRecord } from "@/types/expense";
+import {
+  DEFAULT_EXPENSE_TYPES,
+  expenseHasItemDetail,
+  expenseLineDisplayAmount,
+  type Expense,
+  type ExpenseCategoryRecord,
+} from "@/types/expense";
 import {
   EXPENSE_ITEM_HEADERS,
   EXPENSE_REPORT_HEADERS,
@@ -65,7 +80,18 @@ import { asyncPool, BULK_IO_CONCURRENCY } from "@/lib/asyncPool";
 
 const LAST_ACCOUNT_KEY = "bm.expenses.lastAccount";
 
+const VIEW_FILTERS = ["entries", "items"] as const;
+type ExpenseView = (typeof VIEW_FILTERS)[number];
+
+const searchSchema = z.object({
+  view: z.enum(VIEW_FILTERS).catch("entries").default("entries"),
+});
+
+type SearchValues = z.infer<typeof searchSchema>;
+
 export const Route = createFileRoute("/expenses")({
+  validateSearch: (search: Partial<SearchValues> & SearchSchemaInput): SearchValues =>
+    searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Expenses - QOBOX" },
@@ -85,6 +111,8 @@ function ExpensesRouteLayout() {
 }
 
 function ExpensesPage() {
+  const navigate = useNavigate({ from: "/expenses" });
+  const { view } = Route.useSearch();
   const { activeId, businesses } = useBusinesses();
   const business = businesses.find((b) => b.id === activeId);
   const currency = business?.currency ?? "INR";
@@ -130,6 +158,9 @@ function ExpensesPage() {
   const [importing, setImporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  const setSearch = (next: Partial<SearchValues>) =>
+    navigate({ search: (prev: SearchValues) => ({ ...prev, ...next }) });
   const monthOptions = useMemo(
     () =>
       Array.from({ length: 12 }).map((_, idx) => {
@@ -490,7 +521,7 @@ function ExpensesPage() {
           const needle = q.toLowerCase();
           const partyName = e.partyId ? (partyById[e.partyId]?.name.toLowerCase() ?? "") : "";
           const hay =
-            `${e.notes ?? ""} ${e.reference ?? ""} ${partyName} ${e.category}`.toLowerCase();
+            `${e.notes ?? ""} ${e.reference ?? ""} ${partyName} ${e.category} ${e.itemName ?? ""} ${e.orderNo ?? ""} ${e.hsnSac ?? ""}`.toLowerCase();
           if (!hay.includes(needle)) return false;
         }
         return true;
@@ -498,14 +529,23 @@ function ExpensesPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, typeFilter, categoryFilter, accountFilter, from, to, q, partyById]);
 
+  const listRows = useMemo(
+    () => (view === "items" ? filtered.filter(expenseHasItemDetail) : filtered),
+    [filtered, view],
+  );
+
   const paginationKey = useMemo(
     () =>
-      `${q}|${typeFilter}|${categoryFilter}|${accountFilter}|${from?.getTime() ?? ""}|${to?.getTime() ?? ""}`,
-    [q, typeFilter, categoryFilter, accountFilter, from, to],
+      `${view}|${q}|${typeFilter}|${categoryFilter}|${accountFilter}|${from?.getTime() ?? ""}|${to?.getTime() ?? ""}`,
+    [view, q, typeFilter, categoryFilter, accountFilter, from, to],
   );
-  const pg = useListPagination(filtered, paginationKey);
+  const pg = useListPagination(listRows, paginationKey);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
+  const itemsLineTotal = useMemo(
+    () => listRows.reduce((s, e) => s + expenseLineDisplayAmount(e), 0),
+    [listRows],
+  );
   const allVisibleSelected =
     pg.pageItems.length > 0 && pg.pageItems.every((e) => selectedIds.has(e.id));
   const selectedCount = filtered.filter((e) => selectedIds.has(e.id)).length;
@@ -568,8 +608,25 @@ function ExpensesPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            {filtered.length} entries • Total{" "}
-            <span className="font-semibold text-foreground">{formatCurrency(total, currency)}</span>
+            {view === "items" ? (
+              <>
+                {listRows.length} item {listRows.length === 1 ? "line" : "lines"} • Line total{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(itemsLineTotal, currency)}
+                </span>
+                <span className="text-muted-foreground/80">
+                  {" "}
+                  · {filtered.length} expense {filtered.length === 1 ? "entry" : "entries"}
+                </span>
+              </>
+            ) : (
+              <>
+                {filtered.length} entries • Total{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(total, currency)}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -655,7 +712,7 @@ function ExpensesPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search notes, reference or party"
+            placeholder="Search notes, party, item or reference"
             className="pl-8"
           />
         </div>
@@ -750,20 +807,70 @@ function ExpensesPage() {
         </div>
       )}
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <ExpenseViewTabs view={view} onViewChange={(v) => setSearch({ view: v })} />
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-border">
-        {filtered.length === 0 ? (
+        {listRows.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <Receipt className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm font-medium">No expenses recorded</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Track your outflows to keep account balances accurate.
-            </p>
-            <Button asChild className="mt-4 gap-2">
-              <Link to="/expenses/new">
-                <Plus className="h-4 w-4" /> Add Expense
-              </Link>
-            </Button>
+            {view === "items" ? (
+              <>
+                <Package className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">No item-level expense lines</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {filtered.length > 0
+                    ? "Expenses in this range have no item details. Use bulk import with an Item Details sheet, or switch to Entries."
+                    : "Import from Excel with an Item Details sheet, or adjust your filters."}
+                </p>
+                {filtered.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setSearch({ view: "entries" })}
+                  >
+                    View entries
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Receipt className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">No expenses recorded</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Track your outflows to keep account balances accurate.
+                </p>
+                <Button asChild className="mt-4 gap-2">
+                  <Link to="/expenses/new">
+                    <Plus className="h-4 w-4" /> Add Expense
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
+        ) : view === "items" ? (
+          <>
+            <ExpenseItemsTable
+              expenses={pg.pageItems}
+              currency={currency}
+              partyById={partyById}
+              selectedIds={selectedIds}
+              allVisibleSelected={allVisibleSelected}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onToggleSelectOne={toggleSelectOne}
+              onDelete={remove}
+              formatExpenseAccount={formatExpenseAccount}
+            />
+            <ListPaginationBar
+              page={pg.page}
+              totalPages={pg.totalPages}
+              totalCount={pg.totalCount}
+              rangeFrom={pg.rangeFrom}
+              rangeTo={pg.rangeTo}
+              onPageChange={pg.setPage}
+            />
+          </>
         ) : (
           <>
             <table className="w-full text-sm">
@@ -900,6 +1007,199 @@ function ExpensesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function ExpenseViewTabs({
+  view,
+  onViewChange,
+}: {
+  view: ExpenseView;
+  onViewChange: (view: ExpenseView) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">View</span>
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
+        <ExpenseViewChip active={view === "entries"} onClick={() => onViewChange("entries")}>
+          Entries
+        </ExpenseViewChip>
+        <ExpenseViewChip active={view === "items"} onClick={() => onViewChange("items")}>
+          Items
+        </ExpenseViewChip>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseViewChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function formatQty(qty?: number): string {
+  if (qty == null || !Number.isFinite(qty)) return "—";
+  return Number.isInteger(qty) ? String(qty) : qty.toFixed(2);
+}
+
+function ExpenseItemsTable({
+  expenses,
+  currency,
+  partyById,
+  selectedIds,
+  allVisibleSelected,
+  onToggleSelectAll,
+  onToggleSelectOne,
+  onDelete,
+  formatExpenseAccount,
+}: {
+  expenses: Expense[];
+  currency: string;
+  partyById: Record<string, { name: string } | undefined>;
+  selectedIds: Set<string>;
+  allVisibleSelected: boolean;
+  onToggleSelectAll: (checked: boolean) => void;
+  onToggleSelectOne: (id: string, checked: boolean) => void;
+  onDelete: (id: string) => Promise<void>;
+  formatExpenseAccount: (e: Expense) => string;
+}) {
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+        <tr>
+          <th className="w-10 px-2 py-3 text-center">
+            <Checkbox
+              checked={allVisibleSelected}
+              onCheckedChange={(v) => onToggleSelectAll(!!v)}
+              aria-label="Select all on this page"
+            />
+          </th>
+          <th className="px-4 py-3 text-left">Date</th>
+          <th className="px-4 py-3 text-left">Item</th>
+          <th className="px-4 py-3 text-left">Category</th>
+          <th className="px-4 py-3 text-left">Party</th>
+          <th className="px-4 py-3 text-right">Qty</th>
+          <th className="px-4 py-3 text-right">Unit price</th>
+          <th className="px-4 py-3 text-right">Tax %</th>
+          <th className="px-4 py-3 text-right">Line amount</th>
+          <th className="px-4 py-3 text-left">Order / ref</th>
+          <th className="w-10 px-2 py-3"></th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-border">
+        {expenses.map((e) => (
+          <tr key={e.id} className="hover:bg-muted/30">
+            <td className="px-2 py-3 text-center">
+              <Checkbox
+                checked={selectedIds.has(e.id)}
+                onCheckedChange={(v) => onToggleSelectOne(e.id, !!v)}
+                aria-label={`Select expense ${e.id}`}
+              />
+            </td>
+            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+              <Link to="/expenses/$id" params={{ id: e.id }} className="hover:text-foreground">
+                {format(new Date(e.date), "dd/MM/yyyy")}
+              </Link>
+            </td>
+            <td className="px-4 py-3 font-medium">
+              <Link to="/expenses/$id" params={{ id: e.id }} className="hover:underline">
+                {e.itemName?.trim() || "—"}
+              </Link>
+              {e.itemDescription?.trim() && (
+                <p className="mt-0.5 line-clamp-1 text-xs font-normal text-muted-foreground">
+                  {e.itemDescription}
+                </p>
+              )}
+            </td>
+            <td className="px-4 py-3 text-muted-foreground">{e.category}</td>
+            <td className="px-4 py-3 text-muted-foreground">
+              {e.partyId ? (partyById[e.partyId]?.name ?? "—") : "—"}
+            </td>
+            <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+              {formatQty(e.quantity)}
+            </td>
+            <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+              {e.unitPrice != null && Number.isFinite(e.unitPrice)
+                ? formatCurrency(e.unitPrice, currency)
+                : "—"}
+            </td>
+            <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+              {e.taxPercent != null && Number.isFinite(e.taxPercent) ? `${e.taxPercent}%` : "—"}
+            </td>
+            <td className="px-4 py-3 text-right font-semibold tabular-nums text-destructive">
+              {formatCurrency(expenseLineDisplayAmount(e), currency)}
+            </td>
+            <td className="px-4 py-3 text-xs text-muted-foreground">
+              <span className="line-clamp-1 max-w-[16ch]">
+                {e.orderNo?.trim() || e.reference?.trim() || "—"}
+              </span>
+              <span className="mt-0.5 block text-[10px]">{formatExpenseAccount(e)}</span>
+            </td>
+            <td className="px-2 py-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive"
+                    aria-label="Delete expense"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This soft-deletes the entry and refunds the amount to {formatExpenseAccount(e)}.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        if (!verifyActionPassword()) return;
+                        try {
+                          await onDelete(e.id);
+                          toast.success("Expense deleted");
+                        } catch (err) {
+                          const message =
+                            err instanceof Error ? err.message : "Could not delete expense";
+                          toast.error(message);
+                        }
+                      }}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

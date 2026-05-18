@@ -69,7 +69,7 @@ function InvoicePrintPage() {
   }
 
   return (
-    <div className="invoice-print-shell min-h-screen bg-slate-200/60 py-6">
+    <div className="invoice-print-shell min-h-screen bg-slate-200/60 py-6 print:min-h-0 print:py-0">
       {/* Top bar — hidden on print */}
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] items-center justify-between px-2">
         <Button asChild variant="ghost" className="gap-2">
@@ -90,7 +90,7 @@ function InvoicePrintPage() {
         </div>
       </div>
 
-      <div className="mx-auto shadow-2xl">
+      <div className="mx-auto shadow-2xl print:shadow-none">
         <InvoicePrintLayout
           invoice={invoice}
           business={business}
@@ -103,10 +103,33 @@ function InvoicePrintPage() {
       <style>{`
         @media print {
           @page { size: A4; margin: 0; }
-          html, body { background: #fff !important; }
+          html, body {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+          }
+          aside,
+          [data-sonner-toaster] {
+            display: none !important;
+          }
           .no-print { display: none !important; }
-          .invoice-print-shell { background: #fff !important; padding: 0 !important; }
-          .invoice-print { box-shadow: none !important; width: 210mm !important; min-height: 297mm !important; }
+          .invoice-print-shell {
+            background: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+          }
+          .invoice-print {
+            box-shadow: none !important;
+            width: 210mm !important;
+            min-height: 0 !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            page-break-after: avoid;
+            break-after: avoid-page;
+          }
         }
         .invoice-print { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       `}</style>

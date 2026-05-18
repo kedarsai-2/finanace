@@ -25,6 +25,7 @@ import { ACCOUNT_TYPE_LABEL } from "@/types/account";
 import { PAYMENT_MODE_LABEL } from "@/types/payment";
 import { parseProofAttachments } from "@/lib/proofAttachments";
 import { verifyActionPassword } from "@/lib/actionPassword";
+import { expenseHasItemDetail, expenseLineDisplayAmount } from "@/types/expense";
 
 export const Route = createFileRoute("/expenses/$id/")({
   head: () => ({
@@ -173,6 +174,56 @@ function ExpenseDetailPage() {
             {expense.notes ?? <span className="text-muted-foreground">—</span>}
           </Detail>
         </dl>
+
+        {expenseHasItemDetail(expense) && (
+          <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Item details
+            </p>
+            <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Detail label="Item name">
+                {expense.itemName?.trim() || <span className="text-muted-foreground">—</span>}
+              </Detail>
+              <Detail label="Order no.">
+                {expense.orderNo?.trim() || <span className="text-muted-foreground">—</span>}
+              </Detail>
+              <Detail label="HSN / SAC">
+                {expense.hsnSac?.trim() || <span className="text-muted-foreground">—</span>}
+              </Detail>
+              <Detail label="Quantity">
+                {expense.quantity != null && Number.isFinite(expense.quantity)
+                  ? expense.quantity
+                  : "—"}
+              </Detail>
+              <Detail label="Unit price">
+                {expense.unitPrice != null && Number.isFinite(expense.unitPrice)
+                  ? formatCurrency(expense.unitPrice, currency)
+                  : "—"}
+              </Detail>
+              <Detail label="Tax">
+                {expense.taxPercent != null && Number.isFinite(expense.taxPercent)
+                  ? `${expense.taxPercent}%`
+                  : "—"}
+                {expense.taxAmount != null && Number.isFinite(expense.taxAmount) && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({formatCurrency(expense.taxAmount, currency)})
+                  </span>
+                )}
+              </Detail>
+              <Detail label="Line amount">
+                <span className="font-semibold tabular-nums text-destructive">
+                  {formatCurrency(expenseLineDisplayAmount(expense), currency)}
+                </span>
+              </Detail>
+              {expense.itemDescription?.trim() && (
+                <Detail label="Description">
+                  <span className="text-muted-foreground">{expense.itemDescription}</span>
+                </Detail>
+              )}
+            </dl>
+          </div>
+        )}
 
         {(attachments.imageUrl || attachments.documentUrl || attachments.additionalDocumentUrl) && (
           <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">

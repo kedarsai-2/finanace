@@ -86,27 +86,20 @@ export function useTransfers(businessId?: string | null) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const token = getJwt();
-    if (USE_BACKEND && token) {
+    if (!USE_BACKEND) {
+      setTransfers(read());
       setHydrated(true);
       return;
     }
-    setTransfers(read());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
     const token = getJwt();
-    if (USE_BACKEND && token) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transfers));
-  }, [transfers, hydrated]);
-
-  useEffect(() => {
-    const token = getJwt();
-    if (!USE_BACKEND || !token) return;
+    if (!token) {
+      setTransfers([]);
+      setHydrated(true);
+      return;
+    }
     const biz = businessId ? parseInt(businessId, 10) : NaN;
     let cancelled = false;
+    setHydrated(false);
     (async () => {
       try {
         const list = await apiFetch<TransferDTO[]>(
@@ -119,12 +112,20 @@ export function useTransfers(businessId?: string | null) {
       } catch {
         if (cancelled) return;
         setTransfers([]);
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [businessId]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (USE_BACKEND) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transfers));
+  }, [transfers, hydrated]);
 
   const add = useCallback((t: Transfer) => {
     const token = getJwt();

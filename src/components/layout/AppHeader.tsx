@@ -43,7 +43,7 @@ export function AppHeader() {
     (l) => isAdmin || l.to === "/role-access" || !isTabHidden(l.to, hiddenTabs),
   );
   return (
-    <header className="sticky top-0 z-30 glass border-b border-border/40">
+    <header className="sticky top-0 z-30 glass border-b border-border/40 print:hidden">
       <div className="flex h-16 min-w-0 items-center gap-3 overflow-x-clip px-4 sm:px-6">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>

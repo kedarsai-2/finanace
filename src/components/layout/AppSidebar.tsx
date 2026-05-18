@@ -63,7 +63,7 @@ export function AppSidebar() {
   );
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-linear-to-b from-[#6892F6] via-[#6f82fb] to-[#7A62FF] text-sidebar-foreground md:flex print:hidden">
       <Link to="/" className="flex h-16 items-center justify-center border-b border-white/20 px-4">
         <img
           src="/qobox-wordmark.png"

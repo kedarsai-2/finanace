@@ -103,9 +103,11 @@ function AccountsPage() {
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
   const effectiveBusinessId = scopedBusinessId ?? businesses[0]?.id ?? null;
   const { accounts, hydrated, remove } = useAccounts(null, businessIds);
-  const { payments } = usePayments();
-  const { transfers } = useTransfers();
-  const { expenses } = useExpenses();
+  const { payments, hydrated: paymentsReady } = usePayments();
+  const { transfers, hydrated: transfersReady } = useTransfers();
+  const { expenses, hydrated: expensesReady } = useExpenses();
+
+  const ledgerReady = paymentsReady && transfersReady && expensesReady;
 
   const businessById = useMemo(
     () => Object.fromEntries(businesses.map((b) => [b.id, b])),
@@ -179,8 +181,8 @@ function AccountsPage() {
   const defaultCurrency =
     (businesses.find((b) => b.id === effectiveBusinessId) ?? businesses[0])?.currency ?? "INR";
 
-  if (!bHyd || !hydrated) {
-    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading…</div>;
+  if (!bHyd || !hydrated || !ledgerReady) {
+    return <div className="max-w-screen-2xl px-4 py-10 sm:px-6">Loading accounts…</div>;
   }
 
   return (
