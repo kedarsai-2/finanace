@@ -25,6 +25,7 @@ import { useParties } from "@/hooks/useParties";
 import { useItems } from "@/hooks/useItems";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { QuickAddPartyDialog } from "@/components/party/QuickAddPartyDialog";
+import { QuickAddItemDialog } from "@/components/item/QuickAddItemDialog";
 import { ItemLinePicker } from "@/components/item/ItemLinePicker";
 import { ProofUpload } from "@/components/proof/ProofUpload";
 import { ACCOUNT_TYPE_LABEL } from "@/types/account";
@@ -83,6 +84,7 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
     initial?.taxPercent != null ? initial.taxPercent : "",
   );
   const [showQuickParty, setShowQuickParty] = useState(false);
+  const [showQuickItem, setShowQuickItem] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Skip the first run of the mode-change effect (initial mount).
@@ -369,11 +371,11 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
                   items={catalogItems}
                   onSelect={applyCatalogItem}
                   onChangeName={setItemName}
-                  onQuickAdd={() => {}}
+                  onQuickAdd={() => setShowQuickItem(true)}
                   inputPlaceholder="Search or type item name"
                   searchPlaceholder="Search items…"
                   emptyLabel="No items match."
-                  quickAddLabel=""
+                  quickAddLabel="+ Quick add new item"
                   priceKey="purchasePrice"
                   sheetTitle="Select item"
                 />
@@ -510,6 +512,17 @@ export function ExpenseForm({ initial, onSaved, onCancel, compact = false }: Exp
         open={showQuickParty}
         onOpenChange={setShowQuickParty}
         onCreated={(p) => setPartyId(p.id)}
+      />
+      <QuickAddItemDialog
+        open={showQuickItem}
+        onOpenChange={setShowQuickItem}
+        defaultType="product"
+        priceLabel="Unit price"
+        defaultName={itemName}
+        onCreated={(item) => {
+          applyCatalogItem(item);
+          setShowQuickItem(false);
+        }}
       />
     </form>
   );
