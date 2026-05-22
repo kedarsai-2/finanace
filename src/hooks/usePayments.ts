@@ -113,6 +113,35 @@ function paymentToDto(p: Omit<Payment, "id">, businessId: string): PaymentDTO {
   };
 }
 
+function paymentPatchToDto(
+  patch: Partial<Omit<Payment, "id" | "businessId">>,
+  id: number,
+): Partial<PaymentDTO> & { id: number } {
+  const dto: Partial<PaymentDTO> & { id: number } = { id };
+
+  if ("direction" in patch && patch.direction) dto.direction = toBackendDirection(patch.direction);
+  if ("date" in patch && patch.date != null) dto.date = patch.date;
+  if ("amount" in patch && patch.amount != null) dto.amount = patch.amount;
+  if ("mode" in patch && patch.mode) dto.mode = toBackendMode(patch.mode);
+  if ("reference" in patch) dto.reference = patch.reference ?? null;
+  if ("notes" in patch) dto.notes = patch.notes ?? null;
+  if ("proofDataUrl" in patch) dto.proofDataUrl = patch.proofDataUrl ?? null;
+  if ("proofName" in patch) dto.proofName = patch.proofName ?? null;
+  if ("excludeFromLedger" in patch) {
+    dto.excludeFromLedger = patch.excludeFromLedger === true ? true : null;
+  }
+  if ("partyId" in patch) {
+    const partyId = toNumId(patch.partyId);
+    dto.party = partyId == null ? null : { id: partyId };
+  }
+  if ("accountId" in patch) {
+    const accountId = toNumId(patch.accountId);
+    dto.account = accountId == null ? null : { id: accountId };
+  }
+
+  return dto;
+}
+
 function newPaymentId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return `pay_${crypto.randomUUID()}`;
@@ -281,51 +310,36 @@ export function usePayments(businessId?: string | null) {
           ...patch,
           allocations: patch.allocations ?? current.allocations,
         };
-        const paymentDto = paymentToDto(
-          {
-            businessId: effectiveBizId,
-            partyId: merged.partyId,
-            direction: merged.direction,
-            date: merged.date,
-            amount: merged.amount,
-            mode: merged.mode,
-            accountId: merged.accountId,
-            account: merged.account,
-            reference: merged.reference,
-            notes: merged.notes,
-            proofDataUrl: merged.proofDataUrl,
-            proofName: merged.proofName,
-            allocations: merged.allocations,
-            excludeFromLedger: merged.excludeFromLedger,
-          },
-          effectiveBizId,
-        );
+        const paymentDto = paymentPatchToDto(patch, idNum);
         await apiFetch<PaymentDTO>(`/api/payments/${idNum}`, {
           method: "PATCH",
-          body: JSON.stringify({ ...paymentDto, id: idNum }),
+          headers: { "Content-Type": "application/merge-patch+json" },
+          body: JSON.stringify(paymentDto),
         });
 
-        const existingAllocs = await apiFetch<PaymentAllocationDTO[]>(
-          `/api/payment-allocations/by-business/${encodeURIComponent(String(effectiveBizId))}`,
-        )
-          .then((list) => list.filter((a) => toNumId(a.payment?.id) === idNum))
-          .catch(() => []);
-        for (const alloc of existingAllocs) {
-          if (alloc.id != null) {
-            await apiFetch<void>(`/api/payment-allocations/${alloc.id}`, { method: "DELETE" });
+        if ("allocations" in patch) {
+          const existingAllocs = await apiFetch<PaymentAllocationDTO[]>(
+            `/api/payment-allocations/by-business/${encodeURIComponent(String(effectiveBizId))}`,
+          )
+            .then((list) => list.filter((a) => toNumId(a.payment?.id) === idNum))
+            .catch(() => []);
+          for (const alloc of existingAllocs) {
+            if (alloc.id != null) {
+              await apiFetch<void>(`/api/payment-allocations/${alloc.id}`, { method: "DELETE" });
+            }
           }
-        }
-        for (const a of merged.allocations ?? []) {
-          const allocDto: PaymentAllocationDTO = {
-            docId: a.docId,
-            docNumber: a.docNumber,
-            amount: a.amount,
-            payment: { id: idNum },
-          };
-          await apiFetch<PaymentAllocationDTO>(`/api/payment-allocations`, {
-            method: "POST",
-            body: JSON.stringify({ ...allocDto, id: undefined }),
-          });
+          for (const a of merged.allocations ?? []) {
+            const allocDto: PaymentAllocationDTO = {
+              docId: a.docId,
+              docNumber: a.docNumber,
+              amount: a.amount,
+              payment: { id: idNum },
+            };
+            await apiFetch<PaymentAllocationDTO>(`/api/payment-allocations`, {
+              method: "POST",
+              body: JSON.stringify({ ...allocDto, id: undefined }),
+            });
+          }
         }
         await refresh();
         return;

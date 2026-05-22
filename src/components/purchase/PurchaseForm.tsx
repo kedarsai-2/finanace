@@ -1,16 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
-import {
-  ArrowLeft,
-  Loader2,
-  Plus,
-  Save,
-  Send,
-  Trash2,
-  UserPlus,
-  Lock,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Save, Send, Trash2, UserPlus, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -197,9 +188,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           id: `pay_existing_${p.id}`,
           sourcePaymentId: p.id,
           sourceLocked: false,
-          amount: Number(
-            p.allocations.find(matchesCurrentPurchase)?.amount ?? p.amount ?? 0,
-          ),
+          amount: Number(p.allocations.find(matchesCurrentPurchase)?.amount ?? p.amount ?? 0),
         }));
         const linkedSplits =
           linkedSplitsFromRecords.length > 0 || existing.paidAmount <= 0 || importOnlyPaid
@@ -249,8 +238,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
       next === "cash"
         ? paymentPickerAccounts.filter((a) => a.type === "cash")
         : paymentPickerAccounts.filter((a) => a.type === "bank");
-    const keepCurrent =
-      !!purchaseAccountId && opts.some((a) => a.id === purchaseAccountId);
+    const keepCurrent = !!purchaseAccountId && opts.some((a) => a.id === purchaseAccountId);
     if (!keepCurrent) setPurchaseAccountId(opts[0]?.id ?? "");
   };
 
@@ -453,7 +441,21 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
           if (nextCapture <= 0) {
             await removePayment(editableSource);
           } else {
-            await updatePayment(editableSource, {
+            const original = initialSourceSplitsRef.current[editableSource];
+            const sourcePayment = paymentRecords.find((payment) => payment.id === editableSource);
+            const sourceAllocation = sourcePayment?.allocations.find(
+              (alloc) =>
+                allocationMatchesDocument(
+                  alloc,
+                  existing?.id ?? p.id,
+                  existing?.number ?? p.number,
+                ) || allocationMatchesDocument(alloc, p.id, p.number),
+            );
+            const allocationChanged =
+              Number(original?.amount || 0) !== Number(nextCapture || 0) ||
+              (sourceAllocation != null &&
+                (sourceAllocation.docId !== p.id || sourceAllocation.docNumber !== p.number));
+            const paymentPatch: Parameters<typeof updatePayment>[1] = {
               partyId: p.partyId || "_advance",
               direction: "out",
               date: p.date,
@@ -465,8 +467,13 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               notes: `Auto payment from purchase ${p.number}`,
               proofDataUrl,
               proofName,
-              allocations: [{ docId: p.id, docNumber: p.number, amount: nextCapture }],
-            });
+            };
+            if (allocationChanged) {
+              paymentPatch.allocations = [
+                { docId: p.id, docNumber: p.number, amount: nextCapture },
+              ];
+            }
+            await updatePayment(editableSource, paymentPatch);
           }
           for (const extra of sourceSplits.slice(1)) {
             if (extra.sourcePaymentId) await removePayment(extra.sourcePaymentId);
@@ -1026,7 +1033,6 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
     </div>
   );
 }
-
 // ---------- Sub components ------------------------------------------------
 
 function Row({
@@ -1057,4 +1063,3 @@ function Row({
     </div>
   );
 }
-

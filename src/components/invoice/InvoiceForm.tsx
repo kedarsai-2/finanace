@@ -182,10 +182,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         allocationMatchesDocument(alloc, existing.id, existing.number);
 
       const linkedSplitsFromRecords: PaymentSplit[] = paymentRecords
-        .filter(
-          (p) =>
-            !isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice),
-        )
+        .filter((p) => !isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice))
         .map((p) => {
           const alloc = p.allocations.find(matchesCurrentInvoice);
           return {
@@ -210,16 +207,14 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         seededPaymentsForInvoiceRef.current !== existing.id ||
         (onlyLegacyPlaceholder && linkedSplitsFromRecords.length > 0) ||
         (seededPaymentsForInvoiceRef.current === existing.id &&
-          linkedSplitsFromRecords.length > payments.filter((s) => s.sourcePaymentId && !s.sourceLocked).length);
+          linkedSplitsFromRecords.length >
+            payments.filter((s) => s.sourcePaymentId && !s.sourceLocked).length);
 
       if (!shouldReseed) return;
 
       const importOnlyPaid =
         paymentRecords
-          .filter(
-            (p) =>
-              isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice),
-          )
+          .filter((p) => isImportLedgerPayment(p) && p.allocations.some(matchesCurrentInvoice))
           .reduce((sum, p) => {
             const alloc = p.allocations.find(matchesCurrentInvoice);
             return sum + Number(alloc?.amount ?? p.amount ?? 0);
@@ -253,7 +248,16 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
         seededPaymentsForInvoiceRef.current = null;
       }
     }
-  }, [existing, hydrated, activeId, allInvoices, ensureLines, paymentRecords, paymentsHydrated, payments]);
+  }, [
+    existing,
+    hydrated,
+    activeId,
+    allInvoices,
+    ensureLines,
+    paymentRecords,
+    paymentsHydrated,
+    payments,
+  ]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -512,7 +516,20 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
           const selectedAccount = split.accountId
             ? accounts.find((a) => a.id === split.accountId)
             : undefined;
-          await updatePayment(sourcePaymentId, {
+          const sourcePayment = paymentRecords.find((p) => p.id === sourcePaymentId);
+          const sourceAllocation = sourcePayment?.allocations.find(
+            (a) =>
+              allocationMatchesDocument(
+                a,
+                existing?.id ?? inv.id,
+                existing?.number ?? inv.number,
+              ) || allocationMatchesDocument(a, inv.id, inv.number),
+          );
+          const allocationChanged =
+            Number(original?.amount || 0) !== Number(split.amount || 0) ||
+            (sourceAllocation != null &&
+              (sourceAllocation.docId !== inv.id || sourceAllocation.docNumber !== inv.number));
+          const paymentPatch: Parameters<typeof updatePayment>[1] = {
             partyId: inv.partyId || "_advance",
             direction: "in",
             date: inv.date,
@@ -524,8 +541,13 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             notes: split.notes?.trim() || undefined,
             proofDataUrl: split.proofDataUrl,
             proofName: split.proofName,
-            allocations: [{ docId: inv.id, docNumber: inv.number, amount: split.amount }],
-          });
+          };
+          if (allocationChanged) {
+            paymentPatch.allocations = [
+              { docId: inv.id, docNumber: inv.number, amount: split.amount },
+            ];
+          }
+          await updatePayment(sourcePaymentId, paymentPatch);
         }
         const validSplits = payments.filter((p) => !p.sourcePaymentId && p.amount > 0);
         for (const split of validSplits) {
@@ -870,8 +892,8 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
               <span className="font-medium text-foreground">
                 {formatCurrency(importReceiptTotal, currency)}
               </span>{" "}
-              is already on this sale and is not shown below. Add rows here only for extra
-              cash/bank receipts.
+              is already on this sale and is not shown below. Add rows here only for extra cash/bank
+              receipts.
             </p>
           )}
           <PaymentSplitsEditor
@@ -1202,8 +1224,7 @@ function PaymentSplitsEditor({
                   onValueChange={(v) => {
                     const nextMode = v as PaymentMode;
                     const opts = accountOptionsForMode(accounts, nextMode);
-                    const keepCurrent =
-                      !!s.accountId && opts.some((a) => a.id === s.accountId);
+                    const keepCurrent = !!s.accountId && opts.some((a) => a.id === s.accountId);
                     onChange(s.id, {
                       mode: nextMode,
                       accountId: keepCurrent ? s.accountId : opts[0]?.id,
