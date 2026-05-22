@@ -74,7 +74,7 @@ export interface Invoice {
   deleted?: boolean;
   notes?: string;
   terms?: string;
-  /** Set when status moves to 'final' for the 24h edit window. */
+  /** Set when status moves to 'final'. */
   finalizedAt?: string;
   /** Document kind. Defaults to "invoice". Credit notes are listed separately. */
   kind?: InvoiceKind;
@@ -183,22 +183,17 @@ export function nextInvoiceNumber(
   return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
 
-const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
 /**
  * Editability rules:
  *  - draft       → always editable
- *  - final       → editable within 24h of finalizedAt (or always with adminOverride)
+ *  - final       → always editable
  *  - cancelled   → never editable
  */
 export function canEditInvoice(
-  inv: Pick<Invoice, "status" | "finalizedAt">,
-  opts: { adminOverride?: boolean; now?: number } = {},
+  inv: Pick<Invoice, "status">,
+  opts: { adminOverride?: boolean } = {},
 ): boolean {
   if (inv.status === "cancelled") return false;
-  if (inv.status === "draft") return true;
   if (opts.adminOverride) return true;
-  const finalized = inv.finalizedAt ? new Date(inv.finalizedAt).getTime() : 0;
-  const now = opts.now ?? Date.now();
-  return finalized > 0 && now - finalized <= EDIT_WINDOW_MS;
+  return inv.status === "draft" || inv.status === "final";
 }

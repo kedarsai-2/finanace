@@ -112,10 +112,7 @@ function PurchaseDetailsPage() {
   const [returnPaymentMode, setReturnPaymentMode] = useState<ReturnPaymentMode>("cash");
   const [returnAccountId, setReturnAccountId] = useState<string>("");
   const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const paymentPickerAccounts = useMemo(
-    () => accountsForPaymentPicker(accounts),
-    [accounts],
-  );
+  const paymentPickerAccounts = useMemo(() => accountsForPaymentPicker(accounts), [accounts]);
   const returnAccountOptions = useMemo(
     () => accountOptionsForMode(paymentPickerAccounts, returnPaymentMode),
     [paymentPickerAccounts, returnPaymentMode],
@@ -816,7 +813,7 @@ function Timeline({ purchase }: { purchase: Purchase }) {
         id: "finalized",
         at: purchase.finalizedAt,
         title: "Finalised",
-        description: "Locked for editing after 24 hours",
+        description: "Editable after finalising",
         icon: CircleCheck,
         tone: "success",
       });

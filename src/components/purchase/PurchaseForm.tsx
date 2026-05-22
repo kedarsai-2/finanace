@@ -270,7 +270,7 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
   const lockedReason =
     existing?.status === "cancelled"
       ? "Cancelled purchases cannot be edited."
-      : "Final purchases can only be edited within 24 hours of finalising.";
+      : "This purchase cannot be edited.";
 
   // -------- Line helpers --------------------------------------------------
   const updateLine = (id: string, patch: Partial<PurchaseLine>) =>

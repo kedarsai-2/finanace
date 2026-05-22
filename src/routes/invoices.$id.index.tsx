@@ -7,7 +7,6 @@ import {
   Copy,
   FileText,
   IndianRupee,
-  Lock,
   MessageCircle,
   Pencil,
   Plus,
@@ -124,10 +123,7 @@ function InvoiceDetailsPage() {
   const [cnPaymentMode, setCnPaymentMode] = useState<"cash" | "bank">("cash");
   const [cnAccountId, setCnAccountId] = useState<string>("");
   const [cnReturnDate, setCnReturnDate] = useState<string>("");
-  const paymentPickerAccounts = useMemo(
-    () => accountsForPaymentPicker(accounts),
-    [accounts],
-  );
+  const paymentPickerAccounts = useMemo(() => accountsForPaymentPicker(accounts), [accounts]);
   const cnAccountOptions = useMemo(
     () => accountOptionsForMode(paymentPickerAccounts, cnPaymentMode),
     [paymentPickerAccounts, cnPaymentMode],
@@ -137,9 +133,7 @@ function InvoiceDetailsPage() {
     const a = paymentPickerAccounts.find((x) => x.id === cnAccountId);
     return a ? accountSelectTextValue(a) : undefined;
   }, [cnAccountId, paymentPickerAccounts]);
-  const salePaymentTypeLabel = invoice
-    ? documentPaymentTypeLabel(invoice.paymentType)
-    : "";
+  const salePaymentTypeLabel = invoice ? documentPaymentTypeLabel(invoice.paymentType) : "";
 
   useEffect(() => {
     if (!invoice) return;
@@ -320,7 +314,7 @@ function InvoiceDetailsPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {editable ? (
+            {editable && (
               <Button asChild className="gap-2">
                 <Link
                   to="/invoices/$id/edit"
@@ -332,11 +326,6 @@ function InvoiceDetailsPage() {
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
-              </Button>
-            ) : (
-              <Button disabled className="gap-2">
-                <Lock className="h-4 w-4" />
-                Locked
               </Button>
             )}
             {invoice.status === "final" && invoice.kind !== "credit-note" && (
@@ -378,16 +367,16 @@ function InvoiceDetailsPage() {
                   </AlertDialogHeader>
                   <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
                     <div className="min-w-0">
-                    <label className="text-sm font-medium">Credit amount</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={remainingCredit}
-                      step="0.01"
-                      value={cnAmount}
-                      onChange={(e) => setCnAmount(Number(e.target.value))}
-                      className="min-w-0 w-full tabular-nums"
-                    />
+                      <label className="text-sm font-medium">Credit amount</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={remainingCredit}
+                        step="0.01"
+                        value={cnAmount}
+                        onChange={(e) => setCnAmount(Number(e.target.value))}
+                        className="min-w-0 w-full tabular-nums"
+                      />
                     </div>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>Already credited: {formatCurrency(alreadyCredited, currency)}</p>
@@ -397,8 +386,8 @@ function InvoiceDetailsPage() {
                       <label className="text-sm font-medium">Refund payment type *</label>
                       <p className="text-xs text-muted-foreground">
                         Sale was recorded as{" "}
-                        <span className="font-medium text-foreground">{salePaymentTypeLabel}</span>
-                        . Change below if the refund uses a different mode.
+                        <span className="font-medium text-foreground">{salePaymentTypeLabel}</span>.
+                        Change below if the refund uses a different mode.
                       </p>
                       <Select
                         value={cnPaymentMode}
@@ -908,7 +897,7 @@ function Timeline({
         id: "finalized",
         at: invoice.finalizedAt,
         title: "Finalised",
-        description: "Locked for editing after 24 hours",
+        description: "Editable after finalising",
         icon: CircleCheck,
         tone: "success",
       });

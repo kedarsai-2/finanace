@@ -301,7 +301,7 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
   const lockedReason =
     existing?.status === "cancelled"
       ? "Cancelled sales cannot be edited."
-      : "Final sales can only be edited within 24 hours of finalising.";
+      : "This sale cannot be edited.";
 
   // -------- Line helpers --------------------------------------------------
   const updateLine = (id: string, patch: Partial<InvoiceLine>) =>

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/invoices/$id/edit")({
       { title: "Edit Invoice - QOBOX" },
       {
         name: "description",
-        content: "Update an invoice that is still within the editable window.",
+        content: "Update an invoice.",
       },
     ],
   }),

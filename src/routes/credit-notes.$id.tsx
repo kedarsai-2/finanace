@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { format } from "date-fns";
-import { ArrowLeft, FileMinus, Ban, Lock, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, FileMinus, Ban, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ function CreditNoteDetailPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {editable ? (
+            {editable && (
               <Button asChild className="gap-2">
                 <Link
                   to="/invoices/$id/edit"
@@ -156,11 +156,6 @@ function CreditNoteDetailPage() {
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
-              </Button>
-            ) : (
-              <Button disabled className="gap-2">
-                <Lock className="h-4 w-4" />
-                Locked
               </Button>
             )}
           </div>

@@ -67,7 +67,7 @@ export interface Purchase {
   deleted?: boolean;
   notes?: string;
   terms?: string;
-  /** Set when status moves to 'final' for the 24h edit window. */
+  /** Set when status moves to 'final'. */
   finalizedAt?: string;
   /** Document kind. Defaults to "purchase". Returns are listed separately. */
   kind?: PurchaseKind;
@@ -106,24 +106,19 @@ export function nextPurchaseNumber(
   return `${prefix}${String(max + 1).padStart(pad, "0")}`;
 }
 
-const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
 /**
  * Editability rules:
  *  - draft       → always editable
- *  - final       → editable within 24h of finalizedAt (or always with adminOverride)
+ *  - final       → always editable
  *  - cancelled   → never editable
  */
 export function canEditPurchase(
-  p: Pick<Purchase, "status" | "finalizedAt">,
-  opts: { adminOverride?: boolean; now?: number } = {},
+  p: Pick<Purchase, "status">,
+  opts: { adminOverride?: boolean } = {},
 ): boolean {
   if (p.status === "cancelled") return false;
-  if (p.status === "draft") return true;
   if (opts.adminOverride) return true;
-  const finalized = p.finalizedAt ? new Date(p.finalizedAt).getTime() : 0;
-  const now = opts.now ?? Date.now();
-  return finalized > 0 && now - finalized <= EDIT_WINDOW_MS;
+  return p.status === "draft" || p.status === "final";
 }
 
 export function purchaseLedgerEntryId(purchaseId: string) {
