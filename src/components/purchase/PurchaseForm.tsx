@@ -455,25 +455,40 @@ export function PurchaseForm({ mode, purchaseId }: Props) {
               Number(original?.amount || 0) !== Number(nextCapture || 0) ||
               (sourceAllocation != null &&
                 (sourceAllocation.docId !== p.id || sourceAllocation.docNumber !== p.number));
-            const paymentPatch: Parameters<typeof updatePayment>[1] = {
-              partyId: p.partyId || "_advance",
-              direction: "out",
-              date: p.date,
-              amount: nextCapture,
-              mode: purchasePaymentMode,
-              accountId: purchaseAccountId,
-              account: selectedPaymentAccount?.name,
-              reference: p.number,
-              notes: `Auto payment from purchase ${p.number}`,
-              proofDataUrl,
-              proofName,
-            };
+            const paymentPatch: Parameters<typeof updatePayment>[1] = {};
+            const nextPartyId = p.partyId || "_advance";
+            const nextNotes = `Auto payment from purchase ${p.number}`;
+            if ((sourcePayment?.partyId ?? "_advance") !== nextPartyId) {
+              paymentPatch.partyId = nextPartyId;
+            }
+            if (sourcePayment?.direction !== "out") paymentPatch.direction = "out";
+            if (sourcePayment?.date !== p.date) paymentPatch.date = p.date;
+            if (Number(sourcePayment?.amount ?? 0) !== Number(nextCapture || 0)) {
+              paymentPatch.amount = nextCapture;
+            }
+            if (sourcePayment?.mode !== purchasePaymentMode) {
+              paymentPatch.mode = purchasePaymentMode;
+            }
+            if ((sourcePayment?.accountId ?? "") !== (purchaseAccountId ?? "")) {
+              paymentPatch.accountId = purchaseAccountId;
+              paymentPatch.account = selectedPaymentAccount?.name;
+            }
+            if ((sourcePayment?.reference ?? "") !== p.number) paymentPatch.reference = p.number;
+            if ((sourcePayment?.notes ?? "") !== nextNotes) paymentPatch.notes = nextNotes;
+            if ((sourcePayment?.proofDataUrl ?? "") !== (proofDataUrl ?? "")) {
+              paymentPatch.proofDataUrl = proofDataUrl;
+            }
+            if ((sourcePayment?.proofName ?? "") !== (proofName ?? "")) {
+              paymentPatch.proofName = proofName;
+            }
             if (allocationChanged) {
               paymentPatch.allocations = [
                 { docId: p.id, docNumber: p.number, amount: nextCapture },
               ];
             }
-            await updatePayment(editableSource, paymentPatch);
+            if (Object.keys(paymentPatch).length > 0) {
+              await updatePayment(editableSource, paymentPatch);
+            }
           }
           for (const extra of sourceSplits.slice(1)) {
             if (extra.sourcePaymentId) await removePayment(extra.sourcePaymentId);

@@ -529,25 +529,41 @@ export function InvoiceForm({ mode, invoiceId }: Props) {
             Number(original?.amount || 0) !== Number(split.amount || 0) ||
             (sourceAllocation != null &&
               (sourceAllocation.docId !== inv.id || sourceAllocation.docNumber !== inv.number));
-          const paymentPatch: Parameters<typeof updatePayment>[1] = {
-            partyId: inv.partyId || "_advance",
-            direction: "in",
-            date: inv.date,
-            amount: split.amount,
-            mode: split.mode,
-            accountId: split.accountId,
-            account: selectedAccount?.name,
-            reference: split.reference?.trim() || undefined,
-            notes: split.notes?.trim() || undefined,
-            proofDataUrl: split.proofDataUrl,
-            proofName: split.proofName,
-          };
+          const paymentPatch: Parameters<typeof updatePayment>[1] = {};
+          const nextPartyId = inv.partyId || "_advance";
+          const nextReference = split.reference?.trim() || undefined;
+          const nextNotes = split.notes?.trim() || undefined;
+          if ((sourcePayment?.partyId ?? "_advance") !== nextPartyId) {
+            paymentPatch.partyId = nextPartyId;
+          }
+          if (sourcePayment?.direction !== "in") paymentPatch.direction = "in";
+          if (sourcePayment?.date !== inv.date) paymentPatch.date = inv.date;
+          if (Number(sourcePayment?.amount ?? 0) !== Number(split.amount || 0)) {
+            paymentPatch.amount = split.amount;
+          }
+          if (sourcePayment?.mode !== split.mode) paymentPatch.mode = split.mode;
+          if ((sourcePayment?.accountId ?? "") !== (split.accountId ?? "")) {
+            paymentPatch.accountId = split.accountId;
+            paymentPatch.account = selectedAccount?.name;
+          }
+          if ((sourcePayment?.reference ?? "") !== (nextReference ?? "")) {
+            paymentPatch.reference = nextReference;
+          }
+          if ((sourcePayment?.notes ?? "") !== (nextNotes ?? "")) paymentPatch.notes = nextNotes;
+          if ((sourcePayment?.proofDataUrl ?? "") !== (split.proofDataUrl ?? "")) {
+            paymentPatch.proofDataUrl = split.proofDataUrl;
+          }
+          if ((sourcePayment?.proofName ?? "") !== (split.proofName ?? "")) {
+            paymentPatch.proofName = split.proofName;
+          }
           if (allocationChanged) {
             paymentPatch.allocations = [
               { docId: inv.id, docNumber: inv.number, amount: split.amount },
             ];
           }
-          await updatePayment(sourcePaymentId, paymentPatch);
+          if (Object.keys(paymentPatch).length > 0) {
+            await updatePayment(sourcePaymentId, paymentPatch);
+          }
         }
         const validSplits = payments.filter((p) => !p.sourcePaymentId && p.amount > 0);
         for (const split of validSplits) {
