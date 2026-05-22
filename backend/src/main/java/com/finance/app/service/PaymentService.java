@@ -1,9 +1,11 @@
 package com.finance.app.service;
 
 import com.finance.app.domain.Account;
+import com.finance.app.domain.Party;
 import com.finance.app.domain.Payment;
 import com.finance.app.domain.enumeration.PaymentMode;
 import com.finance.app.repository.AccountRepository;
+import com.finance.app.repository.PartyRepository;
 import com.finance.app.repository.PaymentAllocationRepository;
 import com.finance.app.repository.PaymentRepository;
 import com.finance.app.service.dto.PaymentDTO;
@@ -37,13 +39,16 @@ public class PaymentService {
 
     private final AccountRepository accountRepository;
 
+    private final PartyRepository partyRepository;
+
     public PaymentService(
         PaymentRepository paymentRepository,
         PaymentAllocationRepository paymentAllocationRepository,
         PaymentMapper paymentMapper,
         CashLedgerAccountService cashLedgerAccountService,
         BankLedgerAccountService bankLedgerAccountService,
-        AccountRepository accountRepository
+        AccountRepository accountRepository,
+        PartyRepository partyRepository
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentAllocationRepository = paymentAllocationRepository;
@@ -51,6 +56,7 @@ public class PaymentService {
         this.cashLedgerAccountService = cashLedgerAccountService;
         this.bankLedgerAccountService = bankLedgerAccountService;
         this.accountRepository = accountRepository;
+        this.partyRepository = partyRepository;
     }
 
     /** Load a managed account when the client sends {@code account: { id }} so the chosen ledger is persisted. */
@@ -107,14 +113,67 @@ public class PaymentService {
         return paymentRepository
             .findById(paymentDTO.getId())
             .map(existingPayment -> {
-                paymentMapper.partialUpdate(existingPayment, paymentDTO);
-                applyAccountFromDto(existingPayment, paymentDTO);
+                applyPaymentPatch(existingPayment, paymentDTO);
                 applyDefaultAccountIfMissing(existingPayment);
 
                 return existingPayment;
             })
             .map(paymentRepository::save)
             .map(paymentMapper::toDto);
+    }
+
+    private void applyPaymentPatch(Payment payment, PaymentDTO paymentDTO) {
+        if (paymentDTO.getDirection() != null) {
+            payment.setDirection(paymentDTO.getDirection());
+        }
+        if (paymentDTO.getDate() != null) {
+            payment.setDate(paymentDTO.getDate());
+        }
+        if (paymentDTO.getAmount() != null) {
+            payment.setAmount(paymentDTO.getAmount());
+        }
+        if (paymentDTO.getMode() != null) {
+            payment.setMode(paymentDTO.getMode());
+        }
+        if (paymentDTO.getReference() != null) {
+            payment.setReference(paymentDTO.getReference());
+        }
+        if (paymentDTO.getNotes() != null) {
+            payment.setNotes(paymentDTO.getNotes());
+        }
+        if (paymentDTO.getProofDataUrl() != null) {
+            payment.setProofDataUrl(paymentDTO.getProofDataUrl());
+        }
+        if (paymentDTO.getProofName() != null) {
+            payment.setProofName(paymentDTO.getProofName());
+        }
+        if (paymentDTO.getExcludeFromLedger() != null) {
+            payment.setExcludeFromLedger(paymentDTO.getExcludeFromLedger());
+        }
+        if (paymentDTO.getParty() != null) {
+            if (paymentDTO.getParty().getId() == null) {
+                payment.setParty(null);
+            } else {
+                Party party = partyRepository
+                    .findById(paymentDTO.getParty().getId())
+                    .orElseThrow(() ->
+                        new IllegalArgumentException("Party not found: " + paymentDTO.getParty().getId())
+                    );
+                payment.setParty(party);
+            }
+        }
+        if (paymentDTO.getAccount() != null) {
+            if (paymentDTO.getAccount().getId() == null) {
+                payment.setAccount(null);
+            } else {
+                Account account = accountRepository
+                    .findById(paymentDTO.getAccount().getId())
+                    .orElseThrow(() ->
+                        new IllegalArgumentException("Account not found: " + paymentDTO.getAccount().getId())
+                    );
+                payment.setAccount(account);
+            }
+        }
     }
 
     /**
