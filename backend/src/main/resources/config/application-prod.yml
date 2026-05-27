@@ -34,8 +34,8 @@ spring:
   datasource:
     # In production, Render provides DATABASE_URL / user / password via env vars.
     url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/finance_app}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DATABASE_USERNAME:postgres}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:1234}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DATABASE_USERNAME:finance_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:QOEPS@!}}
     hikari:
       auto-commit: false
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
