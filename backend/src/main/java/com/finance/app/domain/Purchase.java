@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * A Purchase.
@@ -151,7 +153,7 @@ public class Purchase implements Serializable {
     @Column(name = "finalized_at")
     private Instant finalizedAt;
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     @Column(name = "proof_data_url")
     private String proofDataUrl;
 

@@ -91,7 +91,11 @@ export function stringifyProofAttachments(attachments: ProofAttachments): {
 
 export function hasAnyProof(proofDataUrl?: string, proofName?: string) {
   const parsed = parseProofAttachments(proofDataUrl, proofName);
-  return !!parsed.imageUrl || !!parsed.documentUrl || !!parsed.additionalDocumentUrl;
+  if (!!parsed.imageUrl || !!parsed.documentUrl || !!parsed.additionalDocumentUrl) {
+    return true;
+  }
+  // List APIs may omit large proofDataUrl; proofName alone still indicates an attachment.
+  return !!(proofName && proofName.trim());
 }
 
 export function primaryProofUrl(proofDataUrl?: string, proofName?: string) {

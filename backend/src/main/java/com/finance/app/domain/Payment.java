@@ -13,6 +13,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * A Payment.
@@ -59,7 +61,7 @@ public class Payment implements Serializable {
     @Column(name = "notes", length = 2000)
     private String notes;
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     @Column(name = "proof_data_url")
     private String proofDataUrl;
 

@@ -18,6 +18,13 @@ public interface PurchaseMapper extends EntityMapper<PurchaseDTO, Purchase> {
     @Mapping(target = "sourcePurchaseId", source = "sourcePurchase.id")
     PurchaseDTO toDto(Purchase s);
 
+    @Named("listDto")
+    @Mapping(target = "proofDataUrl", ignore = true)
+    @Mapping(target = "business", source = "business", qualifiedByName = "businessName")
+    @Mapping(target = "party", source = "party", qualifiedByName = "partyName")
+    @Mapping(target = "sourcePurchaseId", source = "sourcePurchase.id")
+    PurchaseDTO toListDto(Purchase s);
+
     @Mapping(target = "sourcePurchase", source = "sourcePurchaseId", qualifiedByName = "sourcePurchaseFromId")
     Purchase toEntity(PurchaseDTO dto);
 

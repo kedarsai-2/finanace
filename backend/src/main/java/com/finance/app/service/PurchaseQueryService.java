@@ -47,7 +47,7 @@ public class PurchaseQueryService extends QueryService<Purchase> {
     public Page<PurchaseDTO> findByCriteria(PurchaseCriteria criteria, Pageable page) {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<Purchase> specification = createSpecification(criteria);
-        return purchaseRepository.findAll(specification, page).map(purchaseMapper::toDto);
+        return purchaseRepository.findAll(specification, page).map(purchaseMapper::toListDto);
     }
 
     /**

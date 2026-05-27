@@ -20,6 +20,14 @@ public interface PaymentMapper extends EntityMapper<PaymentDTO, Payment> {
     @Mapping(target = "account", source = "account", qualifiedByName = "accountName")
     PaymentDTO toDto(Payment s);
 
+    /** List/search responses: omit large base64 proof payloads; load via {@link #toDto} for a single id. */
+    @Named("listDto")
+    @Mapping(target = "proofDataUrl", ignore = true)
+    @Mapping(target = "business", source = "business", qualifiedByName = "businessName")
+    @Mapping(target = "party", source = "party", qualifiedByName = "partyName")
+    @Mapping(target = "account", source = "account", qualifiedByName = "accountName")
+    PaymentDTO toListDto(Payment s);
+
     @Named("businessName")
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")

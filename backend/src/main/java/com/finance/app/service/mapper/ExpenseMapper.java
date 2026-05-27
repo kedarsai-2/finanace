@@ -20,6 +20,13 @@ public interface ExpenseMapper extends EntityMapper<ExpenseDTO, Expense> {
     @Mapping(target = "account", source = "account", qualifiedByName = "accountName")
     ExpenseDTO toDto(Expense s);
 
+    @Named("listDto")
+    @Mapping(target = "proofDataUrl", ignore = true)
+    @Mapping(target = "business", source = "business", qualifiedByName = "businessName")
+    @Mapping(target = "party", source = "party", qualifiedByName = "partyName")
+    @Mapping(target = "account", source = "account", qualifiedByName = "accountName")
+    ExpenseDTO toListDto(Expense s);
+
     @Named("businessName")
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")

@@ -47,7 +47,7 @@ public class PaymentQueryService extends QueryService<Payment> {
     public Page<PaymentDTO> findByCriteria(PaymentCriteria criteria, Pageable page) {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<Payment> specification = createSpecification(criteria);
-        return paymentRepository.findAll(specification, page).map(paymentMapper::toDto);
+        return paymentRepository.findAll(specification, page).map(paymentMapper::toListDto);
     }
 
     /**

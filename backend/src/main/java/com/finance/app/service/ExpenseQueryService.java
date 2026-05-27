@@ -47,7 +47,7 @@ public class ExpenseQueryService extends QueryService<Expense> {
     public Page<ExpenseDTO> findByCriteria(ExpenseCriteria criteria, Pageable page) {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<Expense> specification = createSpecification(criteria);
-        return expenseRepository.findAll(specification, page).map(expenseMapper::toDto);
+        return expenseRepository.findAll(specification, page).map(expenseMapper::toListDto);
     }
 
     /**

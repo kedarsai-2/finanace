@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * A Expense.
@@ -107,7 +109,7 @@ public class Expense implements Serializable {
     @Column(name = "line_amount", precision = 21, scale = 2)
     private BigDecimal lineAmount;
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     @Column(name = "proof_data_url")
     private String proofDataUrl;
 
