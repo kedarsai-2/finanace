@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   endOfDay,
   format,
@@ -126,6 +126,16 @@ function parseYearMonthFirstDay(ym: string): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+function latestActivityMonth(values: string[]): string | null {
+  let latest: Date | null = null;
+  for (const value of values) {
+    const d = parseDashDate(value);
+    if (!d) continue;
+    if (!latest || d.getTime() > latest.getTime()) latest = d;
+  }
+  return latest ? format(latest, "yyyy-MM") : null;
+}
+
 function DashboardPage() {
   const { businesses, activeId, scopedBusinessId, isAll, hydrated } = useBusinesses();
   const businessIds = useMemo(() => businesses.map((b) => b.id), [businesses]);
@@ -163,6 +173,7 @@ function DashboardPage() {
 
   const [range, setRange] = useState<Range>("6m");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [monthTouchedByUser, setMonthTouchedByUser] = useState(false);
   const monthOptions = useMemo(
     () =>
       Array.from({ length: 36 }).map((_, idx) => {
@@ -196,6 +207,29 @@ function DashboardPage() {
     () => returns.filter((r) => r.status !== "cancelled"),
     [returns],
   );
+  const preferredMonth = useMemo(
+    () =>
+      latestActivityMonth([
+        ...liveInvoices.map((i) => i.date),
+        ...livePurchases.map((p) => p.date),
+        ...liveCreditNotes.map((cn) => cn.date),
+        ...livePurchaseReturns.map((r) => r.date),
+        ...payments.map((p) => p.date),
+        ...expenses.map((e) => e.date),
+      ]) ?? format(new Date(), "yyyy-MM"),
+    [
+      liveInvoices,
+      livePurchases,
+      liveCreditNotes,
+      livePurchaseReturns,
+      payments,
+      expenses,
+    ],
+  );
+  useEffect(() => {
+    if (monthTouchedByUser) return;
+    setSelectedMonth(preferredMonth);
+  }, [monthTouchedByUser, preferredMonth]);
   const monthInvoices = useMemo(
     () => liveInvoices.filter((i) => inSelectedMonth(i.date)),
     [liveInvoices, inSelectedMonth],
@@ -637,7 +671,13 @@ function DashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-[180px]">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <Select
+              value={selectedMonth}
+              onValueChange={(value) => {
+                setMonthTouchedByUser(true);
+                setSelectedMonth(value);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
