@@ -148,21 +148,51 @@ function pageSignature(rows: unknown[]): string {
 
 export async function apiFetchAllPages<T>(
   path: string,
-  { pageSize = 500, maxPages = 1000 }: { pageSize?: number; maxPages?: number } = {},
+  {
+    pageSize = 500,
+    maxPages = 1000,
+    concurrency = 4,
+  }: { pageSize?: number; maxPages?: number; concurrency?: number } = {},
 ): Promise<T[]> {
-  const all: T[] = [];
-  let previousSignature = "";
+  const first = await apiFetch<T[]>(withPagination(path, 0, pageSize));
+  if (!Array.isArray(first) || first.length === 0) return [];
+  const all: T[] = [...first];
+  if (first.length < pageSize) return all;
 
-  for (let page = 0; page < maxPages; page += 1) {
-    const rows = await apiFetch<T[]>(withPagination(path, page, pageSize));
-    if (!Array.isArray(rows) || rows.length === 0) break;
+  let previousSignature = pageSignature(first);
+  let page = 1;
 
-    const signature = pageSignature(rows);
-    if (page > 0 && signature && signature === previousSignature) break;
-    previousSignature = signature;
+  while (page < maxPages) {
+    const batchSize = Math.min(concurrency, maxPages - page);
+    const pages = Array.from({ length: batchSize }, (_, i) => page + i);
+    const results = await Promise.all(
+      pages.map((p) => apiFetch<T[]>(withPagination(path, p, pageSize))),
+    );
 
-    all.push(...rows);
-    if (rows.length < pageSize) break;
+    let reachedEnd = false;
+    for (let i = 0; i < results.length; i += 1) {
+      const rows = results[i];
+      if (!Array.isArray(rows) || rows.length === 0) {
+        reachedEnd = true;
+        break;
+      }
+
+      const signature = pageSignature(rows);
+      if (pages[i]! > 0 && signature && signature === previousSignature) {
+        reachedEnd = true;
+        break;
+      }
+      previousSignature = signature;
+
+      all.push(...rows);
+      if (rows.length < pageSize) {
+        reachedEnd = true;
+        break;
+      }
+    }
+
+    if (reachedEnd) break;
+    page += batchSize;
   }
 
   return all;

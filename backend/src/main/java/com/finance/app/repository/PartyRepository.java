@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -34,4 +36,8 @@ public interface PartyRepository extends JpaRepository<Party, Long>, JpaSpecific
 
     @Query("select party from Party party left join fetch party.business where party.id =:id")
     Optional<Party> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = { "business" })
+    @Override
+    Page<Party> findAll(@Nullable Specification<Party> spec, Pageable pageable);
 }

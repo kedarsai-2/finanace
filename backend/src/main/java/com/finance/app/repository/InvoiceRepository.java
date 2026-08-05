@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -37,4 +39,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     @Query("select invoice from Invoice invoice left join fetch invoice.business left join fetch invoice.party where invoice.id =:id")
     Optional<Invoice> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = { "business", "party" })
+    @Override
+    Page<Invoice> findAll(@Nullable Specification<Invoice> spec, Pageable pageable);
 }

@@ -15,6 +15,11 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+.env
+backend/.env
+
+# Database backups (contain production data)
+backups/
 
 # Wrangler / Cloudflare
 .wrangler/

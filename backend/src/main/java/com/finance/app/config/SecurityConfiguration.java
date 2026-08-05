@@ -113,7 +113,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PATCH, "/api/expense-categories/**").hasAnyAuthority(moduleEditAuthorities("EXPENSES"))
                     .requestMatchers(HttpMethod.DELETE, "/api/expense-categories/**").hasAnyAuthority(moduleDeleteAuthorities("EXPENSES"))
                     .requestMatchers(HttpMethod.POST, "/api/cloudinary/**").hasAnyAuthority(
-                        moduleWriteAuthorities("SALES")
+                        cloudinaryUploadAuthorities()
                     )
                     .requestMatchers("/api/**").authenticated()
                     // Swagger / OpenAPI (enabled only with the api-docs profile in this app)
@@ -173,6 +173,20 @@ public class SecurityConfiguration {
             AuthoritiesConstants.USER,
             "ROLE_MANAGER",
             "PERM_" + module + "_DELETE",
+        };
+    }
+
+    /** Proof/logo uploads are used across sales, purchases, expenses, payments and businesses. */
+    private static String[] cloudinaryUploadAuthorities() {
+        return new String[] {
+            AuthoritiesConstants.ADMIN,
+            AuthoritiesConstants.USER,
+            "ROLE_MANAGER",
+            "PERM_SALES_WRITE",
+            "PERM_PURCHASES_WRITE",
+            "PERM_EXPENSES_WRITE",
+            "PERM_PAYMENTS_WRITE",
+            "PERM_BUSINESSES_WRITE",
         };
     }
 }

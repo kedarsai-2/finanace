@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Skip when indexes already exist (e.g. created by postgres superuser on deploy). -->
+    <changeSet id="20260612120000-1" author="perf">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_payment_business_date" tableName="payment"/>
+            </not>
+        </preConditions>
+        <sql dbms="postgresql" splitStatements="true" stripComments="true">
+            CREATE INDEX IF NOT EXISTS idx_payment_business_date ON payment (business_id, date DESC);
+            CREATE INDEX IF NOT EXISTS idx_payment_account_id ON payment (account_id);
+            CREATE INDEX IF NOT EXISTS idx_expense_business_date ON expense (business_id, date DESC);
+            CREATE INDEX IF NOT EXISTS idx_expense_account_id ON expense (account_id);
+            CREATE INDEX IF NOT EXISTS idx_invoice_business_date ON invoice (business_id, date DESC);
+            CREATE INDEX IF NOT EXISTS idx_purchase_business_date ON purchase (business_id, date DESC);
+            CREATE INDEX IF NOT EXISTS idx_transfer_business_date ON transfer (business_id, date DESC);
+            CREATE INDEX IF NOT EXISTS idx_transfer_from_account ON transfer (from_account_id);
+            CREATE INDEX IF NOT EXISTS idx_transfer_to_account ON transfer (to_account_id);
+            CREATE INDEX IF NOT EXISTS idx_payment_allocation_payment ON payment_allocation (payment_id);
+            CREATE INDEX IF NOT EXISTS idx_invoice_line_invoice ON invoice_line (invoice_id);
+            CREATE INDEX IF NOT EXISTS idx_purchase_line_purchase ON purchase_line (purchase_id);
+            CREATE INDEX IF NOT EXISTS idx_account_business ON account (business_id);
+            CREATE INDEX IF NOT EXISTS idx_party_business ON party (business_id);
+            CREATE INDEX IF NOT EXISTS idx_item_business ON item (business_id);
+        </sql>
+    </changeSet>
+</databaseChangeLog>

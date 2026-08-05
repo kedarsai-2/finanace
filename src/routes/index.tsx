@@ -52,8 +52,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useTransfers } from "@/hooks/useTransfers";
 import { formatAccountCurrency, formatCurrency } from "@/hooks/useParties";
 import {
-  accountAllocatedOutsidePaymentMonth,
-  accountNetChangeInMonth,
+  accountBalance,
   buildAccountTxns,
   expenseExcludedFromLedger,
   paymentExcludedFromLedger,
@@ -144,19 +143,32 @@ function DashboardPage() {
 
   const { invoices, creditNotes, hydrated: invoicesReady } = useInvoices(scopedBusinessId);
   const { purchases, returns, hydrated: purchasesReady } = usePurchases(scopedBusinessId);
-  const { payments, hydrated: paymentsReady } = usePayments(scopedBusinessId);
-  const { expenses, hydrated: expensesReady } = useExpenses(scopedBusinessId);
-  const { accounts, hydrated: accountsReady } = useAccounts(scopedBusinessId, businessIds);
-  const { transfers, hydrated: transfersReady } = useTransfers(scopedBusinessId);
 
-  // Fetch all-businesses data specifically for account balance cards (total net).
-  const { payments: allPaymentsForBalance, hydrated: allPaymentsReady } = usePayments(null);
-  const { expenses: allExpensesForBalance, hydrated: allExpensesReady } = useExpenses(null);
-  const { transfers: allTransfersForBalance, hydrated: allTransfersReady } = useTransfers(null);
-  const { accounts: allAccountsForBalance, hydrated: allAccountsReady } = useAccounts(
+  // One full fetch per entity; filter client-side for scoped month stats and balances.
+  const { allPayments, hydrated: paymentsReady } = usePayments(null);
+  const { expenses: allExpenses, hydrated: expensesReady } = useExpenses(null);
+  const { accounts: allAccountsForBalance, hydrated: accountsReady } = useAccounts(
     null,
     businessIds,
   );
+  const { transfers: allTransfersForBalance, hydrated: transfersReady } = useTransfers(null);
+
+  const payments = useMemo(
+    () =>
+      scopedBusinessId
+        ? allPayments.filter((p) => p.businessId === scopedBusinessId)
+        : allPayments,
+    [allPayments, scopedBusinessId],
+  );
+  const expenses = useMemo(
+    () =>
+      scopedBusinessId
+        ? allExpenses.filter((e) => e.businessId === scopedBusinessId)
+        : allExpenses,
+    [allExpenses, scopedBusinessId],
+  );
+  const allPaymentsForBalance = allPayments;
+  const allExpensesForBalance = allExpenses;
 
   const dataReady =
     hydrated &&
@@ -165,11 +177,7 @@ function DashboardPage() {
     paymentsReady &&
     expensesReady &&
     accountsReady &&
-    transfersReady &&
-    allPaymentsReady &&
-    allExpensesReady &&
-    allTransfersReady &&
-    allAccountsReady;
+    transfersReady;
 
   const [range, setRange] = useState<Range>("6m");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
@@ -259,25 +267,49 @@ function DashboardPage() {
     [monthPayments],
   );
 
-  const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
-  const totalCreditNotes = monthCreditNotes.reduce((s, cn) => s + cn.total, 0);
-  const totalReceivable = monthInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
-  const totalPurchases = monthPurchases.reduce((s, p) => s + p.total, 0);
-  const totalPurchaseReturns = monthPurchaseReturns.reduce((s, p) => s + p.total, 0);
-  const totalPaidSuppliers = monthPurchases.reduce((s, p) => s + p.paidAmount, 0);
-  const totalPayable = monthPurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
-  const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  /** Paid portion on sales invoices dated this month (customer collections on sales only). */
-  const totalReceived = monthInvoices.reduce(
-    (s, i) => s + Math.max(0, Number(i.paidAmount ?? 0)),
-    0,
-  );
+  const monthKpis = useMemo(() => {
+    const totalSales = monthInvoices.reduce((s, i) => s + i.total, 0);
+    const totalCreditNotes = monthCreditNotes.reduce((s, cn) => s + cn.total, 0);
+    const totalReceivable = monthInvoices.reduce((s, i) => s + (i.total - i.paidAmount), 0);
+    const totalPurchases = monthPurchases.reduce((s, p) => s + p.total, 0);
+    const totalPurchaseReturns = monthPurchaseReturns.reduce((s, p) => s + p.total, 0);
+    const totalPaidSuppliers = monthPurchases.reduce((s, p) => s + p.paidAmount, 0);
+    const totalPayable = monthPurchases.reduce((s, p) => s + (p.total - p.paidAmount), 0);
+    const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
+    const totalReceived = monthInvoices.reduce(
+      (s, i) => s + Math.max(0, Number(i.paidAmount ?? 0)),
+      0,
+    );
+    return {
+      totalSales,
+      totalCreditNotes,
+      totalReceivable,
+      totalPurchases,
+      totalPurchaseReturns,
+      totalPaidSuppliers,
+      totalPayable,
+      totalExpenses,
+      totalReceived,
+    };
+  }, [
+    monthInvoices,
+    monthCreditNotes,
+    monthPurchases,
+    monthPurchaseReturns,
+    monthExpenses,
+  ]);
+  const {
+    totalSales,
+    totalCreditNotes,
+    totalReceivable,
+    totalPurchases,
+    totalPurchaseReturns,
+    totalPaidSuppliers,
+    totalPayable,
+    totalExpenses,
+    totalReceived,
+  } = monthKpis;
 
-  const monthInvoiceIds = useMemo(() => new Set(monthInvoices.map((i) => i.id)), [monthInvoices]);
-  const monthPurchaseIds = useMemo(
-    () => new Set(monthPurchases.map((p) => p.id)),
-    [monthPurchases],
-  );
   /** Payments not tied to month sales/purchase docs — advances, misc receipts, etc. */
   const standalonePaymentsIn = useMemo(() => {
     const monthDocsIn = [...monthInvoices, ...monthCreditNotes, ...monthPurchaseReturns];
@@ -379,7 +411,7 @@ function DashboardPage() {
     standalonePaymentsIn -
     standalonePaymentsOut;
 
-  /** Cash/bank: always use all accounts across all businesses for total net. */
+  /** Cash/bank: always use all accounts across all businesses for live balances. */
   const accountsForBalances = useMemo(() => allAccountsForBalance, [allAccountsForBalance]);
 
   const accountBalances = useMemo(() => {
@@ -391,12 +423,12 @@ function DashboardPage() {
     const cashRows: {
       id: string;
       name: string;
-      ledgerNet: number;
+      balance: number;
     }[] = [];
     const bankRows: {
       id: string;
       name: string;
-      ledgerNet: number;
+      balance: number;
     }[] = [];
     for (const a of accountsForBalances) {
       const txns = buildAccountTxns({
@@ -406,31 +438,14 @@ function DashboardPage() {
         expenses: allExpensesForBalance,
         accountsById,
       });
-      const inMonth = accountNetChangeInMonth(txns, monthStart);
-      const liftSales = accountAllocatedOutsidePaymentMonth(
-        a,
-        allPaymentsForBalance,
-        monthStart,
-        monthInvoiceIds,
-        "in",
-        accountsById,
-      );
-      const liftPurchases = accountAllocatedOutsidePaymentMonth(
-        a,
-        allPaymentsForBalance,
-        monthStart,
-        monthPurchaseIds,
-        "out",
-        accountsById,
-      );
-      const ledgerNet = inMonth + liftSales + liftPurchases;
-      const row = { id: a.id, name: a.name, ledgerNet };
+      const balance = accountBalance(txns);
+      const row = { id: a.id, name: a.name, balance };
       if (a.type === "cash") {
-        cash += ledgerNet;
+        cash += balance;
         cashCount += 1;
         cashRows.push(row);
       } else {
-        bank += ledgerNet;
+        bank += balance;
         bankCount += 1;
         bankRows.push(row);
       }
@@ -448,9 +463,6 @@ function DashboardPage() {
     allPaymentsForBalance,
     allTransfersForBalance,
     allExpensesForBalance,
-    monthStart,
-    monthInvoiceIds,
-    monthPurchaseIds,
   ]);
 
   const cashCardFooter = useMemo(() => {
@@ -810,7 +822,7 @@ function DashboardPage() {
         <BalanceCard
           to="/cash"
           label="Cash Accounts"
-          sublabel={`${accountBalances.cashCount} accounts · net ${format(monthStart, "MMM yyyy")}`}
+          sublabel={`${accountBalances.cashCount} accounts · current balance`}
           amount={accountBalances.cash}
           currency={currency}
           tone="primary"
@@ -822,7 +834,7 @@ function DashboardPage() {
         <BalanceCard
           to="/accounts"
           label="Bank Accounts"
-          sublabel={`${accountBalances.bankCount} accounts · net ${format(monthStart, "MMM yyyy")}`}
+          sublabel={`${accountBalances.bankCount} accounts · current balance`}
           amount={accountBalances.bank}
           currency={currency}
           tone="primary"
@@ -1080,7 +1092,7 @@ function AccountMonthBreakdown({
   rows: {
     id: string;
     name: string;
-    ledgerNet: number;
+    balance: number;
   }[];
   currency: string;
 }) {
@@ -1092,8 +1104,8 @@ function AccountMonthBreakdown({
         {rows.map((r) => (
           <li key={r.id} className="flex justify-between gap-2 tabular-nums">
             <span className="min-w-0 truncate">{r.name}</span>
-            <span className="shrink-0 text-right" title="Ledger net (balance impact)">
-              {formatAccountCurrency(r.ledgerNet, currency)}
+            <span className="shrink-0 text-right" title="Current balance">
+              {formatAccountCurrency(r.balance, currency)}
             </span>
           </li>
         ))}
